@@ -2,15 +2,18 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
-SoftHSM trunk
+SoftHSM 1.0.0-RC3 - 2009-08-26
 
 * Vacuum the empty space in the database when initializing it
 * Minor speed improvment when searching for objects
 * Fixed build problem with GCC >= 4.3
 * Fixed some linking problem
+* KNOWN BUG: A version of Botan available in some OS has a problem with 
+             the entropy. This causes SoftHSM to freeze in some operations.
+             Please upgrade to the Botan 1.8.5 or greater.
 
 
-SoftHSM 1.0-RC2 - 2009-07-08
+SoftHSM 1.0.0-RC2 - 2009-07-08
 
 * Added a check for the Botan library in config script
 * SoftHSM will not add a default label/ID to a key pair when the
@@ -26,7 +29,7 @@ SoftHSM 1.0-RC2 - 2009-07-08
 * Export keys via the softhsm tool
 
 
-SoftHSM 1.0-RC1 - 2009-03-10
+SoftHSM 1.0.0-RC1 - 2009-03-10
 
 * Versioning moved to the configure script
 * This is release candidate 1
