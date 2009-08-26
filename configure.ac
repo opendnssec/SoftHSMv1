@@ -75,6 +75,10 @@ AC_CHECK_HEADERS([sys/time.h dlfcn.h], [], [],
   #endif
   ]])
 
+# Set full directory paths
+full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+full_localstatedir=`eval eval eval eval eval echo "${localstatedir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+
 # Define some variables for the code
 AC_DEFINE_UNQUOTED(
   [VERSION_MAJOR],
@@ -108,7 +112,7 @@ AC_DEFINE_UNQUOTED(
 )
 AC_DEFINE_UNQUOTED(
   [DEFAULT_SOFTHSM_CONF],
-  ["`eval echo ${sysconfdir} | sed s,NONE,$ac_default_prefix,g`/softhsm.conf"],
+  ["`eval echo ${full_sysconfdir} | sed s,NONE,$ac_default_prefix,g`/softhsm.conf"],
   [The default location of softhsm.conf]
 )
 
@@ -116,7 +120,7 @@ AC_DEFINE_UNQUOTED(
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 
-softhsmdbdir=${localstatedir}/softhsm
+softhsmdbdir=${full_localstatedir}/softhsm
 AC_SUBST([softhsmdbdir])
 
 # Generate the make files
