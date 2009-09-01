@@ -2,7 +2,7 @@
 
 AC_DEFUN([ACX_BOTAN],[
 	AC_ARG_WITH(botan,
-        	AC_HELP_STRING([--with-botan=DIR],[Location of the Botan crypto library]),
+        	AC_HELP_STRING([--with-botan=PATH],[Specify prefix of path of Botan]),
 		[
 			BOTAN_PATH="$withval"
 		],
