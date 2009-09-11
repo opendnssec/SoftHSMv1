@@ -78,6 +78,8 @@ static char sqlDeleteTrigger[] =
       "WHERE objectID = OLD.objectID; "
   "END;";
 
+static char sqlCreateIndexAttributes[] =
+  "CREATE INDEX idxObject ON Attributes (objectID);";
 
 // Initialize a token
 
@@ -121,6 +123,7 @@ CK_RV softInitToken(SoftSlot *currentSlot, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinL
   EXEC_DB(db, sqlCreateTableObjects);
   EXEC_DB(db, sqlCreateTableAttributes);
   EXEC_DB(db, sqlDeleteTrigger);
+  EXEC_DB(db, sqlCreateIndexAttributes);
   sqlite3_close(db);
 
   // Open a connection to the new db
