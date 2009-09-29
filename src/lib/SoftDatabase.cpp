@@ -111,7 +111,7 @@ CK_RV SoftDatabase::init(char *dbPath) {
   if(result) {
     char warnMsg[1024];
     snprintf(warnMsg, sizeof(warnMsg), "Could not open token database. Probably wrong privileges: %s", dbPath);
-    WARNING_MSG("init", warnMsg);
+    ERROR_MSG("init", warnMsg);
     return CKR_TOKEN_NOT_PRESENT;
   }
 
@@ -125,7 +125,7 @@ CK_RV SoftDatabase::init(char *dbPath) {
     if(dbVersion != 100) {
       char warnMsg[1024];
       snprintf(warnMsg, sizeof(warnMsg), "Wrong database schema version: %s", dbPath);
-      WARNING_MSG("init", warnMsg);
+      ERROR_MSG("init", warnMsg);
       return CKR_TOKEN_NOT_RECOGNIZED;
     }
   } else {
