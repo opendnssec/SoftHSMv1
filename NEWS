@@ -2,6 +2,16 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
+SoftHSM 1.0.0 - 2009-09-30
+
+* Using /usr/local, /etc, and /var as default
+* Improved the performance of creating keys
+* Log error message if database cannot be opened
+* KNOWN BUG: A version of Botan available in some OS has a problem with 
+             the entropy. This causes SoftHSM to freeze in some operations.
+             Please upgrade to the Botan 1.8.5 or greater.
+
+
 SoftHSM 1.0.0-RC3 - 2009-08-26
 
 * Vacuum the empty space in the database when initializing it
@@ -57,7 +67,7 @@ SoftHSM 0.3 - 2009-02-03
   correct parameters to the init function. 
 
 
-SoftHSM in 0.2 - 2009-01-23
+SoftHSM 0.2 - 2009-01-23
 
 * Two libraries are compiled. One normal (libsofthsm.so) and
   one for debugging (libsofthsm.d.so). The debug info is saved
