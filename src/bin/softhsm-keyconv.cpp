@@ -157,7 +157,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
   FILE *file_pointer = NULL;
   char line[MAX_LINE], data[MAX_LINE], *value_pointer;
   int lineno = 0, m, n, error = 0, found, algorithm = -1, data_length;
-  u_int32_t bitfield = 0;
+  uint32_t bitfield = 0;
 
   BigInt bigN = BigInt(0);
   BigInt bigE = BigInt(0);
