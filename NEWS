@@ -2,6 +2,12 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
+SoftHSM trunk - 2009-XX-XX
+
+* The tool softhsm-keyconv can convert keys between BIND key file format
+  and PKCS#8 file format. So it can be imported to SoftHSM.
+
+
 SoftHSM 1.0.0 - 2009-09-30
 
 * Using /usr/local, /etc, and /var as default
