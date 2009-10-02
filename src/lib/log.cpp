@@ -32,9 +32,9 @@
 *
 ************************************************************/
 
-#include "log.h"
+#include <syslog.h>
 
-#include "syslog.h"
+#include "log.h"
 
 void logError(const char *functionName, const char *text) {
   syslog(LOG_ERR, "SoftHSM: %s: %s", functionName, text);
