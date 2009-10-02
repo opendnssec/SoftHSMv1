@@ -29,6 +29,8 @@
 #ifndef SOFTHSM_LOG_H
 #define SOFTHSM_LOG_H 1
 
+#include "config.h"
+
 // The log levels
 #define SOFTERROR 1
 #define SOFTWARNING 2
