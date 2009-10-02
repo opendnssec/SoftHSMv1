@@ -49,6 +49,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <fstream>
+#include <stdint.h>
 
 void usage() {
   printf("Converting between BIND .private-key format and PKCS#8 key file format.\n");
