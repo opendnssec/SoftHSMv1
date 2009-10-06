@@ -325,6 +325,8 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
     }
   }
 
+  fclose(file_pointer);
+
   // Something went wrong. Clean up and quit.
   if(error) {
     return;
