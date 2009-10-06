@@ -40,7 +40,7 @@ using namespace Botan;
 
 void usage();
 void to_pkcs8(char *in_path, char *out_path, char *file_pin);
-void to_bind(char *in_path, char *out_path);
+void to_bind(char *in_path, char *file_pin, char *out_path, char *algorithm_str);
 
 // Support functions
 
@@ -48,6 +48,11 @@ void save_rsa_pkcs8(char *out_path, char *file_pin, BigInt bigN, BigInt bigE,
                     BigInt bigD, BigInt bigP, BigInt bigQ);
 void save_dsa_pkcs8(char *out_path, char *file_pin, BigInt bigDP, BigInt bigDQ,
                     BigInt bigDG, BigInt bigDX);
+Private_Key* key_from_pkcs8(char *in_path, char *file_pin);
+int get_key_algorithm(Private_Key *priv_key, char *algorithm_str);
+void print_big_int(FILE *file_pointer, const char *file_tag, BigInt big_integer);
+void save_rsa_bind(char *out_path, Private_Key *priv_key, int algorithm);
+void save_dsa_bind(char *out_path, Private_Key *priv_key, int algorithm);
 
 // base64.c prototypes
 
@@ -61,13 +66,18 @@ int b64_ntop(const u_char *, size_t, char *, size_t);
 #endif
 
 // The BIND file version number.
-#define FILE_MAJOR_VERSION      1
-#define FILE_MINOR_VERSION      2
+#define FILE_MAJOR_VERSION	1
+#define FILE_MINOR_VERSION	2
 
 // Key algorithm number
-#define DNS_KEYALG_RSAMD5       1
-#define DNS_KEYALG_DSA          3
-#define DNS_KEYALG_RSASHA1      5
+#define DNS_KEYALG_ERROR		-1
+#define DNS_KEYALG_RSAMD5		1
+#define DNS_KEYALG_DSA			3
+#define DNS_KEYALG_RSASHA1		5
+#define DNS_KEYALG_DSA_NSEC3		6
+#define DNS_KEYALG_RSASHA1_NSEC3	7
+#define DNS_KEYALG_RSASHA256		8
+#define DNS_KEYALG_RSASHA512		10
 
 // Maximum number of lines / line length
 #define MAX_LINE 4096

@@ -55,21 +55,30 @@ void usage() {
   printf("Converting between BIND .private-key format and PKCS#8 key file format.\n");
   printf("Usage: softhsm-keyconv [OPTIONS]\n");
   printf("Options:\n");
-  printf("  --topkcs8     Convert from BIND .private-key format to PKCS#8.\n");
-  printf("                    Use with --in, --out, and --pin.\n");
-  printf("  --tobind      Convert from PKCS#8 to BIND .private-key format.\n");
-  printf("                    Use with --in and --out.\n");
-  printf("  -h            Shows this help screen.\n");
-  printf("  --help        Shows this help screen.\n");
-  printf("  --in <path>   The path to the input file.\n");
-  printf("  --out <path>  The path to the output file.\n");
-  printf("  --pin <PIN>   To encrypt/decrypt PKCS#8 file. Optional.\n");
+  printf("  --topkcs8           Convert from BIND .private-key format to PKCS#8.\n");
+  printf("                          Use with --in, --out, and --pin.\n");
+  printf("  --tobind            Convert from PKCS#8 to BIND .private-key format.\n");
+  printf("                          Use with --in, --pin, --out, and --algorithm.\n");
+  printf("  --algorithm <algo>  Specifies which DNSSEC algorithm to use in file.\n");
+  printf("                           RSAMD5\n");
+  printf("                           DSA\n");
+  printf("                           RSASHA1\n");
+  printf("                           RSASHA1_NSEC3\n");
+  printf("                           DSA_NSEC3\n");
+  printf("                           RSASHA256\n");
+  printf("                           RSASHA512\n");
+  printf("  -h                  Shows this help screen.\n");
+  printf("  --help              Shows this help screen.\n");
+  printf("  --in <path>         The path to the input file.\n");
+  printf("  --out <path>        The path to the output file.\n");
+  printf("  --pin <PIN>         To encrypt/decrypt PKCS#8 file. Optional.\n");
 }
 
 // Give a number to each option
 enum {
   OPT_TOPKCS8 = 0x100,
   OPT_TOBIND,
+  OPT_ALGORITHM,
   OPT_HELP,
   OPT_IN,
   OPT_OUT,
@@ -80,6 +89,7 @@ enum {
 static const struct option long_options[] = {
   { "topkcs8",    0, NULL, OPT_TOPKCS8 },
   { "tobind",     0, NULL, OPT_TOBIND },
+  { "algorithm",  1, NULL, OPT_ALGORITHM },
   { "help",       0, NULL, OPT_HELP },
   { "in",         1, NULL, OPT_IN },
   { "out",        1, NULL, OPT_OUT },
@@ -94,6 +104,7 @@ int main(int argc, char *argv[]) {
   char *in_path = NULL;
   char *out_path = NULL;
   char *file_pin = NULL;
+  char *algorithm_str = NULL;
 
   int do_to_pkcs8 = 0;
   int do_to_bind = 0;
@@ -108,6 +119,9 @@ int main(int argc, char *argv[]) {
       case OPT_TOBIND:
         do_to_bind = 1;
         action++;
+        break;
+      case OPT_ALGORITHM:
+        algorithm_str = optarg;
         break;
       case OPT_IN:
         in_path = optarg;
@@ -143,7 +157,7 @@ int main(int argc, char *argv[]) {
 
   // We should convert to BIND
   if(do_to_bind) {
-    to_bind(in_path, out_path);
+    to_bind(in_path, file_pin, out_path, algorithm_str);
   }
 
   // Deinitialize the Botan crypto lib
@@ -157,7 +171,7 @@ int main(int argc, char *argv[]) {
 void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
   FILE *file_pointer = NULL;
   char line[MAX_LINE], data[MAX_LINE], *value_pointer;
-  int lineno = 0, m, n, error = 0, found, algorithm = -1, data_length;
+  int lineno = 0, m, n, error = 0, found, algorithm = DNS_KEYALG_ERROR, data_length;
   uint32_t bitfield = 0;
 
   BigInt bigN = BigInt(0);
@@ -334,14 +348,18 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
 
   // Save the the key to the disk
   switch(algorithm) {
-    case -1:
+    case DNS_KEYALG_ERROR:
       fprintf(stderr, "Error: The algorithm was not given in the file.\n", algorithm);
       break;
     case DNS_KEYALG_RSAMD5:
     case DNS_KEYALG_RSASHA1:
+    case DNS_KEYALG_RSASHA1_NSEC3:
+    case DNS_KEYALG_RSASHA256:
+    case DNS_KEYALG_RSASHA512:
       save_rsa_pkcs8(out_path, file_pin, bigN, bigE, bigD, bigP, bigQ);
       break;
     case DNS_KEYALG_DSA:
+    case DNS_KEYALG_DSA_NSEC3:
       save_dsa_pkcs8(out_path, file_pin, bigDP, bigDQ, bigDG, bigDX);
       break;
     default:
@@ -354,7 +372,10 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
 
 // Convert from PKCS#8 to BIND
 
-void to_bind(char *in_path, char *out_path) {
+void to_bind(char *in_path, char *file_pin, char *out_path, char *algorithm_str) {
+  int algorithm;
+  Private_Key *priv_key;
+
   if(in_path == NULL) {
     fprintf(stderr, "Error: A path to the input file must be supplied. Use --in <path>\n");
     return;
@@ -365,7 +386,39 @@ void to_bind(char *in_path, char *out_path) {
     return;
   }
 
-  fprintf(stderr, "Error: Function not implemented.\n");
+  if(algorithm_str == NULL) {
+    fprintf(stderr, "Error: An algorithm must be supplied. Use --algorithm <algo>\n");
+    return;
+  }
+
+  // Get private key from PKCS8
+  priv_key = key_from_pkcs8(in_path, file_pin);
+  if(priv_key == NULL) {
+    return;
+  }
+
+  // Determine which algorithm to use
+  algorithm = get_key_algorithm(priv_key, algorithm_str);
+
+  // Save key to disk
+  switch(algorithm) {
+    case DNS_KEYALG_RSAMD5:
+    case DNS_KEYALG_RSASHA1:
+    case DNS_KEYALG_RSASHA1_NSEC3:
+    case DNS_KEYALG_RSASHA256:
+    case DNS_KEYALG_RSASHA512:
+      save_rsa_bind(out_path, priv_key, algorithm);
+      break;
+    case DNS_KEYALG_DSA:
+    case DNS_KEYALG_DSA_NSEC3:
+      save_dsa_bind(out_path, priv_key, algorithm);
+      break;
+    case DNS_KEYALG_ERROR:
+    default:
+      break;
+  }
+
+  delete priv_key;
 
   return;
 }
@@ -375,6 +428,10 @@ void to_bind(char *in_path, char *out_path) {
 void save_rsa_pkcs8(char *out_path, char *file_pin, BigInt bigN, BigInt bigE, 
                     BigInt bigD, BigInt bigP, BigInt bigQ) {
 
+  char buffer[MAX_LINE];
+  Private_Key *priv_key = NULL;
+  AutoSeeded_RNG *rng;
+
   // See if the key material was found. Not checking D and N,
   // because they can be reconstructed if they are zero.
   if(bigE.is_zero() || bigP.is_zero() || bigQ.is_zero()) {
@@ -382,10 +439,7 @@ void save_rsa_pkcs8(char *out_path, char *file_pin, BigInt bigN, BigInt bigE,
     return;
   }
 
-  char buffer[MAX_LINE];
-
-  Private_Key *priv_key = NULL;
-  AutoSeeded_RNG *rng = new AutoSeeded_RNG();
+  rng = new AutoSeeded_RNG();
 
   try {
     priv_key = new RSA_PrivateKey(*rng, bigP, bigQ, bigE, bigD, bigN);
@@ -431,6 +485,10 @@ void save_rsa_pkcs8(char *out_path, char *file_pin, BigInt bigN, BigInt bigE,
 void save_dsa_pkcs8(char *out_path, char *file_pin, BigInt bigDP, BigInt bigDQ, 
                     BigInt bigDG, BigInt bigDX) {
 
+  char buffer[MAX_LINE];
+  Private_Key *priv_key = NULL;
+  AutoSeeded_RNG *rng;
+
   // See if the key material was found. Not checking Q and X
   // because it can be reconstructed if it is zero.
   if(bigDP.is_zero() || bigDG.is_zero() || bigDX.is_zero()) {
@@ -438,10 +496,7 @@ void save_dsa_pkcs8(char *out_path, char *file_pin, BigInt bigDP, BigInt bigDQ,
     return;
   }
 
-  char buffer[MAX_LINE];
-
-  Private_Key *priv_key = NULL;
-  AutoSeeded_RNG *rng = new AutoSeeded_RNG();
+  rng = new AutoSeeded_RNG();
 
   try {
     priv_key = new DSA_PrivateKey(*rng, DL_Group(bigDP, bigDQ, bigDG), bigDX);
@@ -478,6 +533,268 @@ void save_dsa_pkcs8(char *out_path, char *file_pin, BigInt bigDP, BigInt bigDQ,
   delete rng;
   delete priv_key;
   priv_file.close();
+
+  return;
+}
+
+// Extract the private key from the PKCS#8 file
+
+Private_Key* key_from_pkcs8(char *in_path, char *file_pin) {
+  AutoSeeded_RNG *rng;
+  Private_Key *priv_key = NULL;
+
+  if(in_path == NULL) {
+    return NULL;
+  }
+
+  rng = new AutoSeeded_RNG();
+
+  try {
+    if(file_pin == NULL) {
+      priv_key = PKCS8::load_key(in_path, *rng);
+    } else {
+      priv_key = PKCS8::load_key(in_path, *rng, file_pin);
+    }
+  }
+  catch(std::exception& e) {
+    fprintf(stderr, "%s\n", e.what());
+    fprintf(stderr, "Error: Perhaps wrong path to file, wrong file format, or wrong PIN to file (--pin <PIN>).\n");
+    delete rng;
+    return NULL;
+  }
+  delete rng;
+
+  return priv_key;
+}
+
+// Return the correct DNSSEC key algorithm
+
+int get_key_algorithm(Private_Key *priv_key, char *algorithm_str) {
+  if(priv_key == NULL || algorithm_str == NULL) {
+    return DNS_KEYALG_ERROR;
+  }
+
+  if(strncmp(algorithm_str, "RSASHA1_NSEC3", 13) == 0) {
+    if(priv_key->algo_name().compare("RSA") == 0) {
+      return DNS_KEYALG_RSASHA1_NSEC3;
+    } else {
+      fprintf(stderr, "Error: The given algorithm does not match the algorithm in the PKCS#8 file.\n");
+      return DNS_KEYALG_ERROR;
+    }
+  }
+
+  if(strncmp(algorithm_str, "DSA_NSEC3", 9) == 0) {
+    if(priv_key->algo_name().compare("DSA") == 0) {
+      return DNS_KEYALG_DSA_NSEC3;
+    } else {
+      fprintf(stderr, "Error: The given algorithm does not match the algorithm in the PKCS#8 file.\n");
+      return DNS_KEYALG_ERROR;
+    }
+  }
+
+  if(strncmp(algorithm_str, "RSASHA256", 9) == 0) {
+    if(priv_key->algo_name().compare("RSA") == 0) {
+      return DNS_KEYALG_RSASHA256;
+    } else {
+      fprintf(stderr, "Error: The given algorithm does not match the algorithm in the PKCS#8 file.\n");
+      return DNS_KEYALG_ERROR;
+    }
+  }
+
+  if(strncmp(algorithm_str, "RSASHA512", 9) == 0) {
+    if(priv_key->algo_name().compare("RSA") == 0) {
+      return DNS_KEYALG_RSASHA512;
+    } else {
+      fprintf(stderr, "Error: The given algorithm does not match the algorithm in the PKCS#8 file.\n");
+      return DNS_KEYALG_ERROR;
+    }
+  }
+
+  if(strncmp(algorithm_str, "RSASHA1", 7) == 0) {
+    if(priv_key->algo_name().compare("RSA") == 0) {
+      return DNS_KEYALG_RSASHA1;
+    } else {
+      fprintf(stderr, "Error: The given algorithm does not match the algorithm in the PKCS#8 file.\n");
+      return DNS_KEYALG_ERROR;
+    }
+  }
+
+  if(strncmp(algorithm_str, "RSAMD5", 6) == 0) {
+    if(priv_key->algo_name().compare("RSA") == 0) {
+      return DNS_KEYALG_RSAMD5;
+    } else {
+      fprintf(stderr, "Error: The given algorithm does not match the algorithm in the PKCS#8 file.\n");
+      return DNS_KEYALG_ERROR;
+    }
+  }
+
+  if(strncmp(algorithm_str, "DSA", 3) == 0) {
+    if(priv_key->algo_name().compare("DSA") == 0) {
+      return DNS_KEYALG_DSA;
+    } else {
+      fprintf(stderr, "Error: The given algorithm does not match the algorithm in the PKCS#8 file.\n");
+      return DNS_KEYALG_ERROR;
+    }
+  }
+
+  fprintf(stderr, "Error: The given algorithm \"%s\" is not known.\n", algorithm_str);
+
+  return DNS_KEYALG_ERROR;
+}
+
+// Save the private RSA key in BIND format
+
+void save_rsa_bind(char *out_path, Private_Key *priv_key, int algorithm) {
+  FILE *file_pointer;
+  IF_Scheme_PrivateKey *if_key_priv;
+
+  if(out_path == NULL || priv_key == NULL) {
+    fprintf(stderr, "Error: save_rsa_bind: Got NULL as an argument.\n");
+    return;
+  }
+
+  if(priv_key->algo_name().compare("RSA") != 0) {
+    fprintf(stderr, "Error: save_rsa_bind: Got key with wrong algorithm. Got %s.\n", priv_key->algo_name().c_str());
+    return;
+  }
+
+  file_pointer = fopen(out_path, "w");
+  if (!file_pointer) {
+    fprintf(stderr, "Error: Could not open output file %.100s for writing.\n", out_path);
+    return;
+  }
+
+  // File version
+  fprintf(file_pointer, "%s v%i.%i\n", file_tags[TAG_VERSION], FILE_MAJOR_VERSION, FILE_MINOR_VERSION);
+
+  // Algorithm
+  switch(algorithm) {
+    case DNS_KEYALG_RSAMD5:
+      fprintf (file_pointer, "%s %i (%s)\n", file_tags[TAG_ALGORITHM], DNS_KEYALG_RSAMD5, "RSA");
+      break;
+    case DNS_KEYALG_RSASHA1:
+      fprintf (file_pointer, "%s %i (%s)\n", file_tags[TAG_ALGORITHM], DNS_KEYALG_RSASHA1, "RSASHA1");
+      break;
+    case DNS_KEYALG_RSASHA1_NSEC3:
+      fprintf (file_pointer, "%s %i (%s)\n", file_tags[TAG_ALGORITHM], DNS_KEYALG_RSASHA1_NSEC3, "RSASHA1_NSEC3");
+      break;
+    case DNS_KEYALG_RSASHA256:
+      fprintf (file_pointer, "%s %i (%s)\n", file_tags[TAG_ALGORITHM], DNS_KEYALG_RSASHA256, "RSASHA256");
+      break;
+    case DNS_KEYALG_RSASHA512:
+      fprintf (file_pointer, "%s %i (%s)\n", file_tags[TAG_ALGORITHM], DNS_KEYALG_RSASHA512, "RSASHA512");
+      break;
+    case DNS_KEYALG_ERROR:
+    default:
+      // Will not happen
+      fprintf(stderr, "Error: save_rsa_bind: Unknown algorithm tag.\n");
+      break;
+  }
+
+  if_key_priv = dynamic_cast<IF_Scheme_PrivateKey*>(priv_key);
+
+  // Key material
+  print_big_int(file_pointer, file_tags[TAG_MODULUS], if_key_priv->get_n());
+  print_big_int(file_pointer, file_tags[TAG_PUBEXP], if_key_priv->get_e());
+  print_big_int(file_pointer, file_tags[TAG_PRIVEXP], if_key_priv->get_d());
+  print_big_int(file_pointer, file_tags[TAG_PRIME1], if_key_priv->get_p());
+  print_big_int(file_pointer, file_tags[TAG_PRIME2], if_key_priv->get_q());
+  print_big_int(file_pointer, file_tags[TAG_EXP1], if_key_priv->get_d() % (if_key_priv->get_p() - 1));
+  print_big_int(file_pointer, file_tags[TAG_EXP2], if_key_priv->get_d() % (if_key_priv->get_q() - 1));
+  print_big_int(file_pointer, file_tags[TAG_COEFF], inverse_mod(if_key_priv->get_q(), if_key_priv->get_p()));
+
+  fclose(file_pointer);
+
+  printf("The key has been written to %s\n", out_path);
+
+  return;
+}
+
+// Save the private DSA key in BIND format
+
+void save_dsa_bind(char *out_path, Private_Key *priv_key, int algorithm) {
+  FILE *file_pointer;
+  DL_Scheme_PrivateKey *dl_key_priv;
+
+  if(out_path == NULL || priv_key == NULL) {
+    fprintf(stderr, "Error: save_dsa_bind: Got NULL as an argument.\n");
+    return;
+  }
+
+  if(priv_key->algo_name().compare("DSA") != 0) {
+    fprintf(stderr, "Error: save_dsa_bind: Got key with wrong algorithm. Got %s.\n", priv_key->algo_name().c_str());
+    return;
+  }
+
+  file_pointer = fopen(out_path, "w");
+  if (!file_pointer) {
+    fprintf(stderr, "Error: Could not open output file %.100s for writing.\n", out_path);
+    return;
+  }
+
+  // File version
+  fprintf(file_pointer, "%s v%i.%i\n", file_tags[TAG_VERSION], FILE_MAJOR_VERSION, FILE_MINOR_VERSION);
+
+  // Algorithm
+  switch(algorithm) {
+    case DNS_KEYALG_DSA:
+      fprintf (file_pointer, "%s %i (%s)\n", file_tags[TAG_ALGORITHM], DNS_KEYALG_DSA, "DSA");
+      break;
+    case DNS_KEYALG_DSA_NSEC3:
+      fprintf (file_pointer, "%s %i (%s)\n", file_tags[TAG_ALGORITHM], DNS_KEYALG_DSA_NSEC3, "DSA_NSEC3");
+      break;
+    case DNS_KEYALG_ERROR:
+    default:
+      // Will not happen
+      fprintf(stderr, "Error: save_dsa_bind: Unknown algorithm tag.\n");
+      break;
+  }
+
+  dl_key_priv = dynamic_cast<DL_Scheme_PrivateKey*>(priv_key);
+
+  // Key material
+  print_big_int(file_pointer, file_tags[TAG_PRIME], dl_key_priv->group_p());
+  print_big_int(file_pointer, file_tags[TAG_SUBPRIME], dl_key_priv->group_q());
+  print_big_int(file_pointer, file_tags[TAG_BASE], dl_key_priv->group_g());
+  print_big_int(file_pointer, file_tags[TAG_PRIVVAL], dl_key_priv->get_x());
+  print_big_int(file_pointer, file_tags[TAG_PUBVAL], dl_key_priv->get_y());
+
+  fclose(file_pointer);
+
+  printf("The key has been written to %s\n", out_path);
+
+  return;
+}
+
+// Print the BigInt to file
+
+void print_big_int(FILE *file_pointer, const char *file_tag, BigInt big_integer) {
+  char bin_integer[MAX_LINE], base64_integer[MAX_LINE];
+  int base64_len;
+
+  if(file_pointer == NULL || file_tag == NULL) {
+    fprintf(stderr, "Error: print_big_int: Got NULL as an argument.\n");
+    return;
+  }
+
+  if(big_integer.bytes() >= MAX_LINE) {
+    fprintf(stderr, "Error: print_big_int: Too big integer.\n");
+    return;
+  }
+
+  // Convert to binary
+  big_integer.binary_encode((byte *)bin_integer);
+
+  // Convert to base64
+  base64_len = b64_ntop((u_char*)bin_integer, big_integer.bytes(), base64_integer, MAX_LINE);
+  if(base64_len < 0) {
+    fprintf(stderr, "Error: print_big_int: Could not convert to base64.\n");
+    return;
+  }
+  base64_integer[base64_len] = (char)0;
+
+  // Print base64 to file
+  fprintf(file_pointer, "%s %s\n", file_tag, base64_integer);
 
   return;
 }
