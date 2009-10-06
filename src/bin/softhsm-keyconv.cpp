@@ -63,8 +63,8 @@ void usage() {
   printf("                           RSAMD5\n");
   printf("                           DSA\n");
   printf("                           RSASHA1\n");
-  printf("                           RSASHA1_NSEC3\n");
-  printf("                           DSA_NSEC3\n");
+  printf("                           RSASHA1-NSEC3-SHA1\n");
+  printf("                           DSA-NSEC3-SHA1\n");
   printf("                           RSASHA256\n");
   printf("                           RSASHA512\n");
   printf("  -h                  Shows this help screen.\n");
@@ -353,13 +353,13 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
       break;
     case DNS_KEYALG_RSAMD5:
     case DNS_KEYALG_RSASHA1:
-    case DNS_KEYALG_RSASHA1_NSEC3:
+    case DNS_KEYALG_RSASHA1_NSEC3_SHA1:
     case DNS_KEYALG_RSASHA256:
     case DNS_KEYALG_RSASHA512:
       save_rsa_pkcs8(out_path, file_pin, bigN, bigE, bigD, bigP, bigQ);
       break;
     case DNS_KEYALG_DSA:
-    case DNS_KEYALG_DSA_NSEC3:
+    case DNS_KEYALG_DSA_NSEC3_SHA1:
       save_dsa_pkcs8(out_path, file_pin, bigDP, bigDQ, bigDG, bigDX);
       break;
     default:
@@ -404,13 +404,13 @@ void to_bind(char *in_path, char *file_pin, char *out_path, char *algorithm_str)
   switch(algorithm) {
     case DNS_KEYALG_RSAMD5:
     case DNS_KEYALG_RSASHA1:
-    case DNS_KEYALG_RSASHA1_NSEC3:
+    case DNS_KEYALG_RSASHA1_NSEC3_SHA1:
     case DNS_KEYALG_RSASHA256:
     case DNS_KEYALG_RSASHA512:
       save_rsa_bind(out_path, priv_key, algorithm);
       break;
     case DNS_KEYALG_DSA:
-    case DNS_KEYALG_DSA_NSEC3:
+    case DNS_KEYALG_DSA_NSEC3_SHA1:
       save_dsa_bind(out_path, priv_key, algorithm);
       break;
     case DNS_KEYALG_ERROR:
@@ -574,18 +574,18 @@ int get_key_algorithm(Private_Key *priv_key, char *algorithm_str) {
     return DNS_KEYALG_ERROR;
   }
 
-  if(strncmp(algorithm_str, "RSASHA1_NSEC3", 13) == 0) {
+  if(strncmp(algorithm_str, "RSASHA1-NSEC3-SHA1", 13) == 0) {
     if(priv_key->algo_name().compare("RSA") == 0) {
-      return DNS_KEYALG_RSASHA1_NSEC3;
+      return DNS_KEYALG_RSASHA1_NSEC3_SHA1;
     } else {
       fprintf(stderr, "Error: The given algorithm does not match the algorithm in the PKCS#8 file.\n");
       return DNS_KEYALG_ERROR;
     }
   }
 
-  if(strncmp(algorithm_str, "DSA_NSEC3", 9) == 0) {
+  if(strncmp(algorithm_str, "DSA-NSEC3-SHA1", 9) == 0) {
     if(priv_key->algo_name().compare("DSA") == 0) {
-      return DNS_KEYALG_DSA_NSEC3;
+      return DNS_KEYALG_DSA_NSEC3_SHA1;
     } else {
       fprintf(stderr, "Error: The given algorithm does not match the algorithm in the PKCS#8 file.\n");
       return DNS_KEYALG_ERROR;
@@ -675,8 +675,8 @@ void save_rsa_bind(char *out_path, Private_Key *priv_key, int algorithm) {
     case DNS_KEYALG_RSASHA1:
       fprintf (file_pointer, "%s %i (%s)\n", file_tags[TAG_ALGORITHM], DNS_KEYALG_RSASHA1, "RSASHA1");
       break;
-    case DNS_KEYALG_RSASHA1_NSEC3:
-      fprintf (file_pointer, "%s %i (%s)\n", file_tags[TAG_ALGORITHM], DNS_KEYALG_RSASHA1_NSEC3, "RSASHA1_NSEC3");
+    case DNS_KEYALG_RSASHA1_NSEC3_SHA1:
+      fprintf (file_pointer, "%s %i (%s)\n", file_tags[TAG_ALGORITHM], DNS_KEYALG_RSASHA1_NSEC3_SHA1, "RSASHA1-NSEC3-SHA1");
       break;
     case DNS_KEYALG_RSASHA256:
       fprintf (file_pointer, "%s %i (%s)\n", file_tags[TAG_ALGORITHM], DNS_KEYALG_RSASHA256, "RSASHA256");
@@ -740,8 +740,8 @@ void save_dsa_bind(char *out_path, Private_Key *priv_key, int algorithm) {
     case DNS_KEYALG_DSA:
       fprintf (file_pointer, "%s %i (%s)\n", file_tags[TAG_ALGORITHM], DNS_KEYALG_DSA, "DSA");
       break;
-    case DNS_KEYALG_DSA_NSEC3:
-      fprintf (file_pointer, "%s %i (%s)\n", file_tags[TAG_ALGORITHM], DNS_KEYALG_DSA_NSEC3, "DSA_NSEC3");
+    case DNS_KEYALG_DSA_NSEC3_SHA1:
+      fprintf (file_pointer, "%s %i (%s)\n", file_tags[TAG_ALGORITHM], DNS_KEYALG_DSA_NSEC3_SHA1, "DSA-NSEC3-SHA1");
       break;
     case DNS_KEYALG_ERROR:
     default:

@@ -74,8 +74,8 @@ int b64_ntop(const u_char *, size_t, char *, size_t);
 #define DNS_KEYALG_RSAMD5		1
 #define DNS_KEYALG_DSA			3
 #define DNS_KEYALG_RSASHA1		5
-#define DNS_KEYALG_DSA_NSEC3		6
-#define DNS_KEYALG_RSASHA1_NSEC3	7
+#define DNS_KEYALG_DSA_NSEC3_SHA1	6
+#define DNS_KEYALG_RSASHA1_NSEC3_SHA1	7
 #define DNS_KEYALG_RSASHA256		8
 #define DNS_KEYALG_RSASHA512		10
 
