@@ -567,14 +567,18 @@ Private_Key* key_from_pkcs8(char *in_path, char *file_pin) {
   return priv_key;
 }
 
-// Return the correct DNSSEC key algorithm
+// Return the correct DNSSEC key algorithm.
+// Check that the given algorithm matches one of the supported ones and 
+// matches the algorithm of the key from the PKCS#8 file.
 
 int get_key_algorithm(Private_Key *priv_key, char *algorithm_str) {
   if(priv_key == NULL || algorithm_str == NULL) {
     return DNS_KEYALG_ERROR;
   }
 
-  if(strncmp(algorithm_str, "RSASHA1-NSEC3-SHA1", 13) == 0) {
+  // Compare with the longest string first, so that we do not get a false positive.
+
+  if(strncmp(algorithm_str, "RSASHA1-NSEC3-SHA1", 18) == 0) {
     if(priv_key->algo_name().compare("RSA") == 0) {
       return DNS_KEYALG_RSASHA1_NSEC3_SHA1;
     } else {
@@ -583,7 +587,7 @@ int get_key_algorithm(Private_Key *priv_key, char *algorithm_str) {
     }
   }
 
-  if(strncmp(algorithm_str, "DSA-NSEC3-SHA1", 9) == 0) {
+  if(strncmp(algorithm_str, "DSA-NSEC3-SHA1", 14) == 0) {
     if(priv_key->algo_name().compare("DSA") == 0) {
       return DNS_KEYALG_DSA_NSEC3_SHA1;
     } else {
