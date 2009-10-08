@@ -2,20 +2,23 @@
 #
 # $Id$
 
-DOMAIN=example.com.
-
 regress()
 {
 	ALGORITHM=$1
 	KEYSIZE=$2
 
+	DOMAIN=`echo ${KEYSIZE}.${ALGORITHM}.example.com. | tr '[:upper:]' '[:lower:]'`
 	KEYFILE_P8=test-${ALGORITHM}.pkcs8
-	
+
+	echo "Testing with ${ALGORITHM} keysize ${KEYSIZE}: ${DOMAIN}"
+
 	echo "Generating key using dnssec-keygen from BIND"
 	dnssec-keygen -a $ALGORITHM -b $KEYSIZE -n ZONE $DOMAIN
 
 	PUBLIC=`ls -1 K${DOMAIN}+*.key`
 	PRIVATE=`ls -1 K${DOMAIN}+*.private`
+
+	echo $PUBLIC
 
 	echo "Converting key from BIND to PKCS#8"
 	../src/bin/softhsm-keyconv \
