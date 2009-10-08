@@ -2,7 +2,7 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-CLEANFILES = no.token token.db
+CLEANFILES = no.token token.db K*.key* K*.private* *.pkcs8 
 
 noinst_PROGRAMS = checks
 
@@ -17,3 +17,6 @@ checks_LDFLAGS = -no-install
 
 check-local:
 	./checks -z
+
+keyconv:
+	sh $(srcdir)/keyconv.sh
