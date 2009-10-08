@@ -58,8 +58,8 @@ void usage() {
   printf("  --topkcs8           Convert from BIND .private-key format to PKCS#8.\n");
   printf("                          Use with --in, --out, and --pin.\n");
   printf("  --tobind            Convert from PKCS#8 to BIND .private-key format.\n");
-  printf("                          Use with --in, --pin, --out, and --algorithm.\n");
-  printf("  --algorithm <algo>  Specifies which DNSSEC algorithm to use in file.\n");
+  printf("                          Use with --in, --pin, --name, --ttl, --ksk, and --algorithm.\n");
+  printf("  --algorithm <alg>   Specifies which DNSSEC algorithm to use in file.\n");
   printf("                           RSAMD5\n");
   printf("                           DSA\n");
   printf("                           RSASHA1\n");
@@ -70,8 +70,17 @@ void usage() {
   printf("  -h                  Shows this help screen.\n");
   printf("  --help              Shows this help screen.\n");
   printf("  --in <path>         The path to the input file.\n");
+  printf("  --ksk               Set the flag to 257. Key Signing Key. Optional.\n");
+  printf("  --name <name>       The owner name. Do not forget the trailing dot, e.g. \"example.com.\"\n");
   printf("  --out <path>        The path to the output file.\n");
   printf("  --pin <PIN>         To encrypt/decrypt PKCS#8 file. Optional.\n");
+  printf("  --ttl <ttl>         The TTL to use for the DNSKEY RR. Optional.\n");
+  printf("\n");
+  printf("  The following files will be created:\n");
+  printf("    K<name>+<alg id>+<key tag>.key\tPublic key in RR format\n");
+  printf("    K<name>+<alg id>+<key tag>.private\tPrivate key in key format\n");
+  printf("  E.g.\n");
+  printf("    Kexample.com.+007+05474.private\n");
 }
 
 // Give a number to each option
@@ -81,8 +90,11 @@ enum {
   OPT_ALGORITHM,
   OPT_HELP,
   OPT_IN,
+  OPT_KSK,
+  OPT_NAME,
   OPT_OUT,
-  OPT_PIN
+  OPT_PIN,
+  OPT_TTL
 };
 
 // Define the options
@@ -92,8 +104,11 @@ static const struct option long_options[] = {
   { "algorithm",  1, NULL, OPT_ALGORITHM },
   { "help",       0, NULL, OPT_HELP },
   { "in",         1, NULL, OPT_IN },
+  { "ksk",        0, NULL, OPT_KSK },
+  { "name",       1, NULL, OPT_NAME },
   { "out",        1, NULL, OPT_OUT },
   { "pin",        1, NULL, OPT_PIN },
+  { "ttl",        0, NULL, OPT_TTL },
   { NULL,         0, NULL, 0 }
 };
 
@@ -105,10 +120,13 @@ int main(int argc, char *argv[]) {
   char *out_path = NULL;
   char *file_pin = NULL;
   char *algorithm_str = NULL;
+  char *name = NULL;
 
   int do_to_pkcs8 = 0;
   int do_to_bind = 0;
   int action = 0;
+  int key_flag = 256;
+  int ttl = 3600;
 
   while ((opt = getopt_long(argc, argv, "h", long_options, &option_index)) != -1) {
     switch (opt) {
@@ -126,11 +144,20 @@ int main(int argc, char *argv[]) {
       case OPT_IN:
         in_path = optarg;
         break;
+      case OPT_KSK:
+        key_flag = 257;
+        break;
+      case OPT_NAME:
+        name = optarg;
+        break;
       case OPT_OUT:
         out_path = optarg;
         break;
       case OPT_PIN:
         file_pin = optarg;
+        break;
+      case OPT_TTL:
+        ttl = atoi(optarg);
         break;
       case OPT_HELP:
       case 'h':
@@ -157,7 +184,7 @@ int main(int argc, char *argv[]) {
 
   // We should convert to BIND
   if(do_to_bind) {
-    to_bind(in_path, file_pin, out_path, algorithm_str);
+    to_bind(in_path, file_pin, name, ttl, key_flag, algorithm_str);
   }
 
   // Deinitialize the Botan crypto lib
@@ -372,17 +399,18 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
 
 // Convert from PKCS#8 to BIND
 
-void to_bind(char *in_path, char *file_pin, char *out_path, char *algorithm_str) {
+void to_bind(char *in_path, char *file_pin, char *name, int ttl, int key_flag, char *algorithm_str) {
   int algorithm;
   Private_Key *priv_key;
+  char priv_out[MAX_LINE], pub_out[MAX_LINE];
 
   if(in_path == NULL) {
     fprintf(stderr, "Error: A path to the input file must be supplied. Use --in <path>\n");
     return;
   }
 
-  if(out_path == NULL) {
-    fprintf(stderr, "Error: A path to the output file must be supplied. Use --out <path>\n");
+  if(name == NULL) {
+    fprintf(stderr, "Error: The name of the zone must be supplied. Use --name <zone>\n");
     return;
   }
 
@@ -400,18 +428,18 @@ void to_bind(char *in_path, char *file_pin, char *out_path, char *algorithm_str)
   // Determine which algorithm to use
   algorithm = get_key_algorithm(priv_key, algorithm_str);
 
-  // Save key to disk
+  // Save keys to disk
   switch(algorithm) {
     case DNS_KEYALG_RSAMD5:
     case DNS_KEYALG_RSASHA1:
     case DNS_KEYALG_RSASHA1_NSEC3_SHA1:
     case DNS_KEYALG_RSASHA256:
     case DNS_KEYALG_RSASHA512:
-      save_rsa_bind(out_path, priv_key, algorithm);
+      save_rsa_bind(name, ttl, priv_key, key_flag, algorithm);
       break;
     case DNS_KEYALG_DSA:
     case DNS_KEYALG_DSA_NSEC3_SHA1:
-      save_dsa_bind(out_path, priv_key, algorithm);
+      save_dsa_bind(name, ttl, priv_key, key_flag, algorithm);
       break;
     case DNS_KEYALG_ERROR:
     default:
@@ -648,11 +676,14 @@ int get_key_algorithm(Private_Key *priv_key, char *algorithm_str) {
 
 // Save the private RSA key in BIND format
 
-void save_rsa_bind(char *out_path, Private_Key *priv_key, int algorithm) {
+void save_rsa_bind(char *name, int ttl, Private_Key *priv_key, int key_flag, int algorithm) {
   FILE *file_pointer;
   IF_Scheme_PrivateKey *if_key_priv;
+  char priv_out[MAX_LINE], pub_out[MAX_LINE];
+  unsigned char rdata[MAX_LINE];
+  int key_tag, rdata_size;
 
-  if(out_path == NULL || priv_key == NULL) {
+  if(name == NULL || priv_key == NULL) {
     fprintf(stderr, "Error: save_rsa_bind: Got NULL as an argument.\n");
     return;
   }
@@ -662,9 +693,25 @@ void save_rsa_bind(char *out_path, Private_Key *priv_key, int algorithm) {
     return;
   }
 
-  file_pointer = fopen(out_path, "w");
+  // Create RDATA
+  rdata_size = create_rsa_rdata(rdata, MAX_LINE, priv_key, key_flag, algorithm);
+  if(rdata_size < 0) {
+    fprintf(stderr, "Error: save_rsa_bind: Could not create RDATA.\n");
+    return;
+  }
+
+  // Get the key tag
+  key_tag = keytag(rdata, rdata_size);
+
+  // Create the file names
+  snprintf(priv_out, MAX_LINE, "K%s+%03i+%05i.private", name, algorithm, key_tag);
+  snprintf(pub_out, MAX_LINE, "K%s+%03i+%05i.key", name, algorithm, key_tag);
+
+  // Create the private key file
+
+  file_pointer = fopen(priv_out, "w");
   if (!file_pointer) {
-    fprintf(stderr, "Error: Could not open output file %.100s for writing.\n", out_path);
+    fprintf(stderr, "Error: Could not open output file %.100s for writing.\n", priv_out);
     return;
   }
 
@@ -709,18 +756,37 @@ void save_rsa_bind(char *out_path, Private_Key *priv_key, int algorithm) {
 
   fclose(file_pointer);
 
-  printf("The key has been written to %s\n", out_path);
+  printf("The private key has been written to %s\n", priv_out);
+
+  // Create the public key file
+
+  file_pointer = fopen(pub_out, "w");
+  if (!file_pointer) {
+    fprintf(stderr, "Error: Could not open output file %.100s for writing.\n", pub_out);
+    return;
+  }
+
+  if(print_dnskey(file_pointer, name, ttl, rdata, rdata_size) == 0) {
+    printf("The public key has been written to %s\n", pub_out);
+  } else {
+    printf("Could not write the public key to the file.\n");
+  }
+
+  fclose(file_pointer);
 
   return;
 }
 
 // Save the private DSA key in BIND format
 
-void save_dsa_bind(char *out_path, Private_Key *priv_key, int algorithm) {
+void save_dsa_bind(char *name, int ttl, Private_Key *priv_key, int key_flag, int algorithm) {
   FILE *file_pointer;
   DL_Scheme_PrivateKey *dl_key_priv;
+  char priv_out[MAX_LINE], pub_out[MAX_LINE];
+  unsigned char rdata[MAX_LINE];
+  int key_tag, rdata_size;
 
-  if(out_path == NULL || priv_key == NULL) {
+  if(name == NULL || priv_key == NULL) {
     fprintf(stderr, "Error: save_dsa_bind: Got NULL as an argument.\n");
     return;
   }
@@ -730,9 +796,19 @@ void save_dsa_bind(char *out_path, Private_Key *priv_key, int algorithm) {
     return;
   }
 
-  file_pointer = fopen(out_path, "w");
+  // Create RDATA
+  rdata_size = create_dsa_rdata(rdata, MAX_LINE, priv_key, key_flag, algorithm);
+
+  // Get the key tag
+  key_tag = keytag(rdata, rdata_size);
+
+  // Create the file names
+  snprintf(priv_out, MAX_LINE, "K%s+%03i+%05i.private", name, algorithm, key_tag);
+  snprintf(pub_out, MAX_LINE, "K%s+%03i+%05i.key", name, algorithm, key_tag);
+
+  file_pointer = fopen(priv_out, "w");
   if (!file_pointer) {
-    fprintf(stderr, "Error: Could not open output file %.100s for writing.\n", out_path);
+    fprintf(stderr, "Error: Could not open output file %.100s for writing.\n", priv_out);
     return;
   }
 
@@ -765,7 +841,23 @@ void save_dsa_bind(char *out_path, Private_Key *priv_key, int algorithm) {
 
   fclose(file_pointer);
 
-  printf("The key has been written to %s\n", out_path);
+  printf("The private key has been written to %s\n", priv_out);
+
+  // Create the public key file
+
+  file_pointer = fopen(pub_out, "w");
+  if (!file_pointer) {
+    fprintf(stderr, "Error: Could not open output file %.100s for writing.\n", pub_out);
+    return;
+  }
+
+  if(print_dnskey(file_pointer, name, ttl, rdata, rdata_size) == 0) {
+    printf("The public key has been written to %s\n", pub_out);
+  } else {
+    printf("Could not write the public key to the file.\n");
+  }
+
+  fclose(file_pointer);
 
   return;
 }
@@ -801,4 +893,200 @@ void print_big_int(FILE *file_pointer, const char *file_tag, BigInt big_integer)
   fprintf(file_pointer, "%s %s\n", file_tag, base64_integer);
 
   return;
+}
+
+// Create RSA RDATA
+
+int create_rsa_rdata(unsigned char *rdata, int length, Private_Key *priv_key, int key_flag, int algorithm) {
+  unsigned int counter = 0, big_e_size, big_n_size;
+  IF_Scheme_PrivateKey *if_key_priv;
+  BigInt big_e;
+  BigInt big_n;
+
+  if(rdata == NULL || priv_key == NULL) {
+    fprintf(stderr, "Error: create_rsa_rdata: Got NULL as an argument.\n");
+    return -1;
+  }
+
+  // Key material
+  if_key_priv = dynamic_cast<IF_Scheme_PrivateKey*>(priv_key);
+  big_e = if_key_priv->get_e();
+  big_n = if_key_priv->get_n();
+  big_e_size = big_e.bytes();
+  big_n_size = big_n.bytes();
+
+  // Check length of buffer
+  if((7 + big_e_size + big_n_size) > length) {
+    fprintf(stderr, "Error: create_rsa_rdata: Buffer is too small.\n");
+    return -1;
+  }
+
+  // Zone key
+  rdata[counter++] = 1;
+
+  // SEP flag
+  if(key_flag == 257) {
+    rdata[counter++] = 1;
+  } else {
+    rdata[counter++] = 0;
+  }
+
+  // Protocol
+  rdata[counter++] = 3;
+
+  // Algorithm
+  rdata[counter++] = (unsigned char)algorithm;
+
+  // Exponent length
+  if(big_e_size <= 255) {
+    rdata[counter++] = (unsigned char)big_e_size;
+  } else {
+    rdata[counter++] = 0;
+    rdata[counter++] = (unsigned char)(big_e_size >> 8);
+    rdata[counter++] = (unsigned char)big_e_size;
+  }
+
+  // Exponent
+  big_e.binary_encode((byte*)(rdata + counter));
+  counter += big_e_size;
+
+  // Modulus
+  big_n.binary_encode((byte*)(rdata + counter));
+  counter += big_n_size;
+
+  return counter;
+}
+
+// Create DSA RDATA
+
+int create_dsa_rdata(unsigned char *rdata, int length, Private_Key *priv_key, int key_flag, int algorithm) {
+  unsigned int counter = 0, size, size_t;
+  DL_Scheme_PrivateKey *dl_key_priv;
+  BigInt big_q;
+  BigInt big_p;
+  BigInt big_g;
+  BigInt big_y;
+
+  if(rdata == NULL || priv_key == NULL) {
+    fprintf(stderr, "Error: create_dsa_rdata: Got NULL as an argument.\n");
+    return -1;
+  }
+
+  // Key material
+  dl_key_priv = dynamic_cast<DL_Scheme_PrivateKey*>(priv_key);
+  big_q = dl_key_priv->group_q();
+  big_p = dl_key_priv->group_p();
+  big_g = dl_key_priv->group_g();
+  big_y = dl_key_priv->get_y();
+  size = big_g.bytes();
+  size_t = (size - 64) / 8;
+
+  // Check the value of T
+  if(size_t > 8) {
+    fprintf(stderr, "Error: create_dsa_rdata: No support for DSA T > 8.\n");
+    return -1;
+  }
+
+  // Check length of buffer
+  if((25 + 3 * size) > length) {
+    fprintf(stderr, "Error: create_dsa_rdata: Buffer is too small.\n");
+    return -1;
+  }
+
+  // Zone key
+  rdata[counter++] = 1;
+
+  // SEP flag
+  if(key_flag == 257) {
+    rdata[counter++] = 1;
+  } else {
+    rdata[counter++] = 0;
+  }
+
+  // Protocol
+  rdata[counter++] = 3;
+
+  // Algorithm
+  rdata[counter++] = (unsigned char)algorithm;
+
+  // T
+  rdata[counter++] = (unsigned char)size_t;
+
+  // Q
+  big_q.binary_encode((byte*)(rdata + counter));
+  counter += 20;
+
+  // P
+  big_p.binary_encode((byte*)(rdata + counter));
+  counter += size;
+
+  // G
+  big_g.binary_encode((byte*)(rdata + counter));
+  counter += size;
+
+  // Y
+  big_y.binary_encode((byte*)(rdata + counter));
+  counter += size;
+  
+  return counter;
+}
+
+// Print the given information as an DNSKEY RR in the file.
+
+int print_dnskey(FILE *file_pointer, char *name, int ttl, unsigned char *rdata, int rdata_size) {
+  char base64[MAX_LINE];
+  int base64_len;
+
+  if(file_pointer == NULL || name == NULL || rdata == NULL) {
+    fprintf(stderr, "Error: print_dnskey: Got NULL as an argument.\n");
+    return -1;
+  }
+
+  if(rdata_size < 4) {
+    fprintf(stderr, "Error: print_dnskey: The length of the RDATA is too small.\n");
+    return -1;
+  }
+
+  // Convert to base64
+  base64_len = b64_ntop(rdata + 4, rdata_size - 4, base64, MAX_LINE - 1);
+  if(base64_len < 0) {
+    fprintf(stderr, "Error: print_dnskey: Could not convert to base64.\n");
+    return -1;
+  }
+  base64[base64_len] = (char)0;
+
+  fprintf(file_pointer, "%s\t%i\tIN\tDNSKEY\t%i %i %i %s\n", name, ttl, (rdata[0] << 8) + rdata[1], rdata[2], rdata[3], base64);
+
+  return 0;
+}
+
+
+/* From RFC4034, with some extra code
+ *
+ * Assumes that int is at least 16 bits.
+ * First octet of the key tag is the most significant 8 bits of the
+ * return value;
+ * Second octet of the key tag is the least significant 8 bits of the
+ * return value.
+ */
+
+unsigned int keytag(unsigned char key[], unsigned int keysize) {
+  unsigned long ac;     /* assumed to be 32 bits or larger */
+  int i;                /* loop index */
+
+  if(keysize < 4) {
+    return 0;
+  }
+
+  if (key[3] == DNS_KEYALG_RSAMD5) {
+    ac = (key[keysize - 3] << 8) + key[keysize - 2];
+  } else {
+    for( ac = 0, i = 0; i < keysize; ++i ) {
+      ac += (i & 1) ? key[i] : key[i] << 8;
+    }
+
+    ac += (ac >> 16) & 0xFFFF;
+  }
+
+  return ac & 0xFFFF;
 }
