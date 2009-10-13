@@ -611,22 +611,21 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
   for(CK_ULONG counter = 0; counter < objectCount; counter++) {
     CK_OBJECT_HANDLE currentObject = objectRefs[counter];
 
-    // Check user auth for object access
-    CK_BBOOL userAuth = userAuthorization(session->getSessionState(), session->db->getBooleanAttribute(currentObject, CKA_TOKEN, CK_TRUE), 
-                                          session->db->getBooleanAttribute(currentObject, CKA_PRIVATE, CK_TRUE), 0);
+    CK_BBOOL findObject = CK_TRUE;
 
-    if(userAuth == CK_TRUE) {
-      CK_BBOOL findObject = CK_TRUE;
-
-      // See if the object match all attributes.
-      for(CK_ULONG j = 0; j < ulCount; j++) {
-        if(session->db->matchAttribute(currentObject, &pTemplate[j]) == CK_FALSE) {
-          findObject = CK_FALSE;
-        }
+    // See if the object match all attributes.
+    for(CK_ULONG j = 0; j < ulCount; j++) {
+      if(session->db->matchAttribute(currentObject, &pTemplate[j]) == CK_FALSE) {
+        findObject = CK_FALSE;
       }
+    }
 
-      // Add the handle to the search results if the object matched the attributes.
-      if(findObject == CK_TRUE) {
+    // Add the handle to the search results if the object matched the attributes.
+    if(findObject == CK_TRUE) {
+      // Check user auth for object access
+      CK_BBOOL userAuth = userAuthorization(session->getSessionState(), session->db->getBooleanAttribute(currentObject, CKA_TOKEN, CK_TRUE), 
+                                            session->db->getBooleanAttribute(currentObject, CKA_PRIVATE, CK_TRUE), 0);
+      if(userAuth == CK_TRUE) {
         session->findAnchor->addFind(currentObject);
       }
     }
