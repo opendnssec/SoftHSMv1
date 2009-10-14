@@ -63,8 +63,8 @@ unsigned int keytag(unsigned char key[], unsigned int keysize);
 #ifdef __cplusplus
 extern "C" {
 #endif
-int b64_pton(const char *, u_char *, size_t);
-int b64_ntop(const u_char *, size_t, char *, size_t);
+int b64_pton(const char *, unsigned char *, size_t);
+int b64_ntop(const unsigned char *, size_t, char *, size_t);
 #ifdef __cplusplus
 }
 #endif

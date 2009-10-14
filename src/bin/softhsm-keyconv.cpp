@@ -276,7 +276,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
         algorithm = strtol(value_pointer, NULL, 10);
         break;
       case TAG_MODULUS:
-        data_length = b64_pton(value_pointer, (u_char*)data, MAX_LINE);
+        data_length = b64_pton(value_pointer, (unsigned char*)data, MAX_LINE);
         if(data_length == -1) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
@@ -285,7 +285,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
         }
         break;
       case TAG_PUBEXP:
-        data_length = b64_pton(value_pointer, (u_char*)data, MAX_LINE);
+        data_length = b64_pton(value_pointer, (unsigned char*)data, MAX_LINE);
         if(data_length == -1) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
@@ -294,7 +294,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
         }
         break;
       case TAG_PRIVEXP:
-        data_length = b64_pton(value_pointer, (u_char*)data, MAX_LINE);
+        data_length = b64_pton(value_pointer, (unsigned char*)data, MAX_LINE);
         if(data_length == -1) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
@@ -303,7 +303,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
         }
         break;
       case TAG_PRIME1:
-        data_length = b64_pton(value_pointer, (u_char*)data, MAX_LINE);
+        data_length = b64_pton(value_pointer, (unsigned char*)data, MAX_LINE);
         if(data_length == -1) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
@@ -312,7 +312,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
         }
         break;
       case TAG_PRIME2:
-        data_length = b64_pton(value_pointer, (u_char*)data, MAX_LINE);
+        data_length = b64_pton(value_pointer, (unsigned char*)data, MAX_LINE);
         if(data_length == -1) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
@@ -321,7 +321,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
         }
         break;
       case TAG_PRIME:
-        data_length = b64_pton(value_pointer, (u_char*)data, MAX_LINE);
+        data_length = b64_pton(value_pointer, (unsigned char*)data, MAX_LINE);
         if(data_length == -1) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
@@ -330,7 +330,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
         }
         break;
       case TAG_SUBPRIME:
-        data_length = b64_pton(value_pointer, (u_char*)data, MAX_LINE);
+        data_length = b64_pton(value_pointer, (unsigned char*)data, MAX_LINE);
         if(data_length == -1) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
@@ -339,7 +339,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
         }
         break;
       case TAG_BASE:
-        data_length = b64_pton(value_pointer, (u_char*)data, MAX_LINE);
+        data_length = b64_pton(value_pointer, (unsigned char*)data, MAX_LINE);
         if(data_length == -1) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
@@ -348,7 +348,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
         }
         break;
       case TAG_PRIVVAL:
-        data_length = b64_pton(value_pointer, (u_char*)data, MAX_LINE);
+        data_length = b64_pton(value_pointer, (unsigned char*)data, MAX_LINE);
         if(data_length == -1) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
@@ -882,7 +882,7 @@ void print_big_int(FILE *file_pointer, const char *file_tag, BigInt big_integer)
   big_integer.binary_encode((byte *)bin_integer);
 
   // Convert to base64
-  base64_len = b64_ntop((u_char*)bin_integer, big_integer.bytes(), base64_integer, MAX_LINE);
+  base64_len = b64_ntop((unsigned char*)bin_integer, big_integer.bytes(), base64_integer, MAX_LINE);
   if(base64_len < 0) {
     fprintf(stderr, "Error: print_big_int: Could not convert to base64.\n");
     return;
