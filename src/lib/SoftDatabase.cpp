@@ -825,7 +825,7 @@ CK_OBJECT_HANDLE* SoftDatabase::getMatchingObjects(CK_ATTRIBUTE_PTR pTemplate, C
   }
 
   for(CK_ULONG i = 1; i < ulCount; i++) {
-    sql += " INTERSECT SELECT objectID FROM Attributes WHERE type = ? AND value = ?";
+    sql = "SELECT objectID FROM Attributes WHERE type = ? AND value = ? AND objectID IN (" + sql + ")";
   }
 
   sqlite3_prepare_v2(db, sql.c_str(), sql.size(), &stmt, NULL);
