@@ -38,6 +38,8 @@
 // Standard includes
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+using std::string;
 
 // Rollback the object if it can't be saved
 #define CHECK_DB_RESPONSE(stmt) \
@@ -67,12 +69,10 @@ SoftDatabase::SoftDatabase() {
   update_attribute_sql = NULL;
   insert_attribute_sql = NULL;
   insert_object_sql = NULL;
-  select_object_ids_sql = NULL;
   select_object_id_sql = NULL;
   select_attribute_sql = NULL;
   select_session_obj_sql = NULL;
   delete_object_sql = NULL;
-  count_object_id_sql = NULL;
   select_an_attribute_sql = NULL;
 }
 
@@ -92,12 +92,10 @@ SoftDatabase::~SoftDatabase() {
   FINALIZE_STMT(update_attribute_sql);
   FINALIZE_STMT(insert_attribute_sql);
   FINALIZE_STMT(insert_object_sql);
-  FINALIZE_STMT(select_object_ids_sql);
   FINALIZE_STMT(select_object_id_sql);
   FINALIZE_STMT(select_attribute_sql);
   FINALIZE_STMT(select_session_obj_sql);
   FINALIZE_STMT(delete_object_sql);
-  FINALIZE_STMT(count_object_id_sql);
   FINALIZE_STMT(select_an_attribute_sql);
 
   if(db != NULL_PTR) {
@@ -159,12 +157,10 @@ CK_RV SoftDatabase::init(char *dbPath) {
   const char update_attribute_str[] =		"UPDATE Attributes SET value = ?, length = ? WHERE attributeID = ?;";
   const char insert_attribute_str[] =		"INSERT INTO Attributes (objectID, type, value, length) VALUES (?, ?, ?, ?);";
   const char insert_object_str[] =		"INSERT INTO Objects DEFAULT VALUES;";
-  const char select_object_ids_str[] =		"SELECT objectID FROM Objects;";
   const char select_object_id_str[] =		"SELECT objectID FROM Objects WHERE objectID = ?;";
   const char select_attribute_str[] =		"SELECT type,value,length from Attributes WHERE objectID = ?;";
   const char select_session_obj_str[] =		"SELECT objectID FROM Attributes WHERE type = ? AND value = ? AND objectID IN (SELECT objectID FROM Attributes WHERE type = ? AND value = ?);";
   const char delete_object_str[] =		"DELETE FROM Objects WHERE objectID = ?;";
-  const char count_object_id_str[] =		"SELECT COUNT(objectID) FROM Objects;";
   const char select_an_attribute_str[] =	"SELECT value,length FROM Attributes WHERE objectID = ? AND type = ?;";
 
   PREP_STMT(token_info_str, &token_info_sql);
@@ -173,12 +169,10 @@ CK_RV SoftDatabase::init(char *dbPath) {
   PREP_STMT(update_attribute_str, &update_attribute_sql);
   PREP_STMT(insert_attribute_str, &insert_attribute_sql);
   PREP_STMT(insert_object_str, &insert_object_sql);
-  PREP_STMT(select_object_ids_str, &select_object_ids_sql);
   PREP_STMT(select_object_id_str, &select_object_id_sql);
   PREP_STMT(select_attribute_str, &select_attribute_sql);
   PREP_STMT(select_session_obj_str, &select_session_obj_sql);
   PREP_STMT(delete_object_str, &delete_object_sql);
-  PREP_STMT(count_object_id_str, &count_object_id_sql);
   PREP_STMT(select_an_attribute_str, &select_an_attribute_sql);
 
   return CKR_OK;
@@ -721,38 +715,6 @@ void SoftDatabase::deleteObject(CK_OBJECT_HANDLE objRef) {
   sqlite3_reset(delete_object_sql);
 }
 
-// Return the all the object IDs
-
-CK_OBJECT_HANDLE* SoftDatabase::getObjectRefs(CK_ULONG *objectCount) {
-  *objectCount = 0;
-
-  // Find out how many objects we have.
-  if(sqlite3_step(count_object_id_sql) != SQLITE_ROW) {
-    return NULL_PTR;
-  }
-
-  // Get the number of objects
-  CK_ULONG objectsInDB = sqlite3_column_int(count_object_id_sql, 0);
-  sqlite3_reset(count_object_id_sql);
-
-  // Create the object-reference buffer
-  CK_OBJECT_HANDLE *objectRefs = (CK_OBJECT_HANDLE *)malloc(objectsInDB * sizeof(CK_OBJECT_HANDLE));
-  if(objectRefs == NULL_PTR) {
-    return NULL_PTR;
-  }
-
-  // Get all the object ids
-  CK_ULONG tmpCounter = 0;
-  while(sqlite3_step(select_object_ids_sql) == SQLITE_ROW && tmpCounter < objectsInDB) {
-    objectRefs[tmpCounter++] = sqlite3_column_int(select_object_ids_sql, 0);
-  }
-
-  *objectCount = tmpCounter;
-  sqlite3_reset(select_object_ids_sql);
- 
-  return objectRefs;
-}
-
 // Return a boolean attribute of the object
 
 CK_BBOOL SoftDatabase::getBooleanAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type, CK_BBOOL defaultValue) {
@@ -846,31 +808,59 @@ BigInt SoftDatabase::getBigIntAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE
   return retVal;
 }
 
+// Check if any objects matches the attributes
 
-// Check if the object has an matching attribute
+CK_OBJECT_HANDLE* SoftDatabase::getMatchingObjects(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount, CK_ULONG *objectCount) {
+  string sql;
+  sqlite3_stmt *stmt = NULL;
+  int max_object_count = 8;
+  int counter = 0;
+  CK_OBJECT_HANDLE *objects = NULL;
 
-CK_BBOOL SoftDatabase::matchAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate) {
-  CK_BBOOL retVal = CK_FALSE;
-
-  sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
-  sqlite3_bind_int(select_an_attribute_sql, 2, attTemplate->type);
-
-  // Get attribute
-  if(sqlite3_step(select_an_attribute_sql) == SQLITE_ROW) {
-    CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_an_attribute_sql, 0);
-    CK_ULONG length = sqlite3_column_int(select_an_attribute_sql, 1);
-
-    // Match attribute
-    if(length == attTemplate->ulValueLen && pValue != NULL_PTR && attTemplate->pValue != NULL_PTR &&
-       memcmp(pValue, attTemplate->pValue, length) == 0) {
-
-      retVal = CK_TRUE;
-    }
+  // Construct the query
+  if(ulCount == 0) {
+    sql = "SELECT DISTINCT objectID FROM Attributes";
+  } else {
+    sql = "SELECT objectID FROM Attributes WHERE type = ? AND value = ?";
   }
 
-  sqlite3_reset(select_an_attribute_sql);
+  for(CK_ULONG i = 1; i < ulCount; i++) {
+    sql += " INTERSECT SELECT objectID FROM Attributes WHERE type = ? AND value = ?";
+  }
 
-  return retVal;
+  sqlite3_prepare_v2(db, sql.c_str(), sql.size(), &stmt, NULL);
+
+  // Add the data.
+  int position = 1;
+  for(CK_ULONG i = 0; i < ulCount; i++) {
+    sqlite3_bind_int(stmt, position, pTemplate[i].type);
+    sqlite3_bind_blob(stmt, position + 1, pTemplate[i].pValue, pTemplate[i].ulValueLen, SQLITE_TRANSIENT);
+    position += 2;
+  }
+
+  objects = (CK_OBJECT_HANDLE*)realloc(objects, max_object_count * sizeof(CK_OBJECT_HANDLE));
+
+  // Get the results
+  while(sqlite3_step(stmt) == SQLITE_ROW) {
+    // Increase the size if needed.
+    if(counter == max_object_count) {
+      max_object_count = max_object_count * 4;
+      objects = (CK_OBJECT_HANDLE*)realloc(objects, max_object_count * sizeof(CK_OBJECT_HANDLE));
+    }
+    objects[counter] = (CK_OBJECT_HANDLE)sqlite3_column_int(stmt, 0);
+    counter++;
+  }
+
+  sqlite3_finalize(stmt);
+
+  *objectCount = counter;
+
+  if(counter == 0) {
+    free(objects);
+    objects = NULL;
+  }
+
+  return objects;
 }
 
 // Check if the object handle exist in the database

@@ -603,31 +603,19 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
   session->findAnchor = new SoftFind();
   session->findCurrent = session->findAnchor;
 
-  // Get the object ids
+  // Get all the matching objects
   CK_ULONG objectCount = 0;
-  CK_OBJECT_HANDLE *objectRefs = session->db->getObjectRefs(&objectCount);
+  CK_OBJECT_HANDLE *objectRefs = session->db->getMatchingObjects(pTemplate, ulCount, &objectCount);
 
-  // Check with all objects.
+  // Check object access and then add the result.
   for(CK_ULONG counter = 0; counter < objectCount; counter++) {
     CK_OBJECT_HANDLE currentObject = objectRefs[counter];
 
-    CK_BBOOL findObject = CK_TRUE;
-
-    // See if the object match all attributes.
-    for(CK_ULONG j = 0; j < ulCount; j++) {
-      if(session->db->matchAttribute(currentObject, &pTemplate[j]) == CK_FALSE) {
-        findObject = CK_FALSE;
-      }
-    }
-
-    // Add the handle to the search results if the object matched the attributes.
-    if(findObject == CK_TRUE) {
-      // Check user auth for object access
-      CK_BBOOL userAuth = userAuthorization(session->getSessionState(), session->db->getBooleanAttribute(currentObject, CKA_TOKEN, CK_TRUE), 
+    // Check user auth for object access
+    CK_BBOOL userAuth = userAuthorization(session->getSessionState(), session->db->getBooleanAttribute(currentObject, CKA_TOKEN, CK_TRUE), 
                                             session->db->getBooleanAttribute(currentObject, CKA_PRIVATE, CK_TRUE), 0);
-      if(userAuth == CK_TRUE) {
-        session->findAnchor->addFind(currentObject);
-      }
+    if(userAuth == CK_TRUE) {
+      session->findAnchor->addFind(currentObject);
     }
   }
 

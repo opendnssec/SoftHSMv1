@@ -7,6 +7,10 @@ SoftHSM trunk - 2009-XX-XX
 * The tool softhsm-keyconv can convert keys between BIND key file format
   and PKCS#8 file format. So it can be imported to SoftHSM.
   It can also convert back to BIND format.
+* C_FindObjectsInit is now up to 80 % faster.
+* KNOWN BUG: A version of Botan available in some OS has a problem with 
+             the entropy. This causes SoftHSM to freeze in some operations.
+             Please upgrade to the Botan 1.8.5 or greater.
 
 
 SoftHSM 1.0.0 - 2009-09-30
