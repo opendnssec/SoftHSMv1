@@ -23,10 +23,12 @@ INTRODUCTION
 
 DEPENDENCIES
 
-  SoftHSM depends on the Botan 1.8.0 or greater (a cryptographic library) 
-  and SQLite 3.4.2 or greater (a database library). If the packaged version 
-  for your distribution does not work try to compile the latest version 
-  from source. They can be found at:
+  SoftHSM depends on the Botan 1.8.0 or greater (a cryptographic library)
+  and SQLite 3.4.2 or greater (a database library). But it is recommended to
+  use Botan 1.8.5 or greater since there is a known issues on some OS which
+  freezes the application when it tries to pull entropy. If the packaged
+  version for your distribution does not work try to compile the latest
+  version from source. They can be found at:
     http://botan.randombit.net
   and
     http://www.sqlite.org
@@ -39,10 +41,8 @@ INSTALLING
 
     Options:
 
-      --with-botan=DIR        The location of the Botan crypto library and 
-                              include files (default DIR=/usr/local)
-      --with-sqlite3=DIR      The location of SQLite3 library and include 
-                              files (default DIR=/usr/local)
+      --with-botan=PATH       Specify prefix of path of Botan
+      --with-sqlite3=PATH     Specify prefix of path of SQLite3
       --enable-64bit          Compile a 64-bit version
       --with-loglevel=INT     The log level. 0=No log 1=Error 2=Warning 
                               3=Info 4=Debug (default INT=3)
@@ -63,8 +63,7 @@ INSTALLING
 
   4. Add the tokens to the slots:
 
-    The default location of the config file is $sysconfdir/softhsm.conf
-    On some systems this location is equal to /usr/local/etc/softhsm.conf
+    The default location of the config file is /etc/softhsm.conf
     This location can be change by setting the environment variable.
 
       export SOFTHSM_CONF=/home/user/config.file
@@ -115,3 +114,34 @@ KEY MANAGEMENT
 
     Add, --file-pin <PIN>, if you want to output an encrypted file.
     Use, softhsm --help, for more info.
+
+CONVERTING KEYS TO/FROM BIND
+
+  The softhsm-keyconv tool can convert keys between BIND .private-key format and 
+  PKCS#8 key file format.
+
+  1. Convert from BIND .private to PKCS#8
+
+    Keys used for DNSSEC in BIND can be converted over to PKCS#8. Thus possible to
+    import them into SoftHSM.
+
+      softhsm-keyconv --topkcs8 --in Kexample.com.+007+05474.private --out rsa.pem
+
+    Add, --pin <PIN>, if you want an encrypted PKCS#8 file.
+    Use, softhsm-keyconv --help, for more info.
+
+  2. Convert from PKCS#8 to BIND .private and .key
+
+    PKCS#8 files can be converted to key used for DNSSEC signing in BIND. The
+    public key is also saved to file.
+
+      softhsm-keyconv --tobind --in rsa.pem --name example.com. --ttl 3600 \
+                      --ksk --algorithm RSASHA1-NSEC3-SHA1
+
+    Add, --pin <PIN>, if you the PKCS#8 file is encrypted.
+    Use, softhsm-keyconv --help, for more info.
+
+    The following files will be created in this example:
+
+      Kexample.com.+007+05474.private
+      Kexample.com.+007+05474.key
