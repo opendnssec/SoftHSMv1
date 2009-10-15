@@ -70,7 +70,7 @@ INSTALLING
 
     Open the config file and add the slots and tokens.
 
-      sudo pico /home/user/config.file
+      pico /home/user/config.file
 
         0:/home/user/my.db
         # Comments can be added
