@@ -76,7 +76,10 @@ INSTALLING
         # Comments can be added
         4:/home/user/token.database
 
-    Uninitialized tokens will be created at the given paths.
+    NOTE:
+    The token databases does not exist at this stage. The given paths are just an
+    indication to SoftHSM on where it should store the information for each token.
+    Each token are now treated as uninitialized.
 
   5. Initialize your tokens. Use either the softhsm tool or the PKCS#11 interface.
 
