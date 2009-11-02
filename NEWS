@@ -4,6 +4,8 @@ NEWS for SoftHSM -- History of user visible changes
 
 SoftHSM trunk - 2009-XX-XX
 
+SoftHSM 1.1.0 - 2009-11-02
+
 * The tool softhsm-keyconv can convert keys between BIND key file format
   and PKCS#8 file format. So it can be imported to SoftHSM.
   It can also convert back to BIND format.
