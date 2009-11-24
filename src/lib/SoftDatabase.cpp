@@ -182,10 +182,14 @@ CK_RV SoftDatabase::init(char *dbPath) {
 
 char* SoftDatabase::getTokenLabel() {
   char *retLabel = NULL_PTR;
+  int retVal = 0;
 
   sqlite3_bind_int(token_info_sql, 1, DB_TOKEN_LABEL);
 
-  if(sqlite3_step(token_info_sql) == SQLITE_ROW) {
+  // Get result
+  while((retVal = sqlite3_step(token_info_sql)) == SQLITE_BUSY) {}
+
+  if(retVal == SQLITE_ROW) {
     const char *tokenLabel = (const char*)sqlite3_column_text(token_info_sql, 0);
     int labelSize = sizeof(CK_TOKEN_INFO().label);
 
@@ -203,11 +207,15 @@ char* SoftDatabase::getTokenLabel() {
 // Return the hashed SO PIN
 
 char* SoftDatabase::getSOPIN() {
+  int retVal = 0;
   char *soPIN = NULL_PTR;
 
   sqlite3_bind_int(token_info_sql, 1, DB_TOKEN_SOPIN);
 
-  if(sqlite3_step(token_info_sql) == SQLITE_ROW) {
+  // Get result
+  while((retVal = sqlite3_step(token_info_sql)) == SQLITE_BUSY) {}
+
+  if(retVal == SQLITE_ROW) {
     soPIN = strdup((const char*)sqlite3_column_text(token_info_sql, 0));
   }
 
@@ -219,11 +227,15 @@ char* SoftDatabase::getSOPIN() {
 // Return the hashed user PIN
 
 char* SoftDatabase::getUserPIN() {
+  int retVal = 0;
   char *userPIN = NULL_PTR;
 
   sqlite3_bind_int(token_info_sql, 1, DB_TOKEN_USERPIN);
 
-  if(sqlite3_step(token_info_sql) == SQLITE_ROW) {
+  // Get result
+  while((retVal = sqlite3_step(token_info_sql)) == SQLITE_BUSY) {}
+
+  if(retVal == SQLITE_ROW) {
     userPIN = strdup((const char*)sqlite3_column_text(token_info_sql, 0));
   }
 
@@ -235,13 +247,15 @@ char* SoftDatabase::getUserPIN() {
 // Save/update the token info
 
 CK_RV SoftDatabase::saveTokenInfo(int valueID, char *value, int length) {
+  int retVal = 0;
+
   sqlite3_bind_int(insert_token_info_sql, 1, valueID);
   sqlite3_bind_text(insert_token_info_sql, 2, value, length, SQLITE_TRANSIENT);
 
-  int result = sqlite3_step(insert_token_info_sql);
+  while((retVal = sqlite3_step(insert_token_info_sql)) == SQLITE_BUSY) {}
   sqlite3_reset(insert_token_info_sql);
 
-  if(result != SQLITE_DONE) {
+  if(retVal != SQLITE_DONE) {
     return CKR_DEVICE_ERROR;
   }
 
@@ -692,6 +706,7 @@ CK_RV SoftDatabase::saveAttributeBigInt(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_
 // Destroy all the session objects created by this database handle
 
 void SoftDatabase::destroySessObj() {
+  int retVal = 0;
   CK_BBOOL ckFalse = CK_FALSE;
 
   sqlite3_bind_int(select_session_obj_sql, 1, CKA_TOKEN);
@@ -699,8 +714,10 @@ void SoftDatabase::destroySessObj() {
   sqlite3_bind_int(select_session_obj_sql, 3, CKA_VENDOR_DEFINED);
   sqlite3_bind_blob(select_session_obj_sql, 4, &db, sizeof(db), SQLITE_TRANSIENT);
 
-  while(sqlite3_step(select_session_obj_sql) == SQLITE_ROW) {
-    this->deleteObject(sqlite3_column_int(select_session_obj_sql, 0));
+  while((retVal = sqlite3_step(select_session_obj_sql)) == SQLITE_BUSY || retVal == SQLITE_ROW) {
+    if(retVal == SQLITE_ROW) {
+      this->deleteObject(sqlite3_column_int(select_session_obj_sql, 0));
+    }
   }
 
   sqlite3_reset(select_session_obj_sql);
@@ -718,13 +735,17 @@ void SoftDatabase::deleteObject(CK_OBJECT_HANDLE objRef) {
 // Return a boolean attribute of the object
 
 CK_BBOOL SoftDatabase::getBooleanAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type, CK_BBOOL defaultValue) {
+  int retSQL = 0;
   CK_BBOOL retVal = defaultValue;
 
   sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
   sqlite3_bind_int(select_an_attribute_sql, 2, type);
 
+  // Get result
+  while((retSQL = sqlite3_step(select_an_attribute_sql)) == SQLITE_BUSY) {}
+
   // Get attribute
-  if(sqlite3_step(select_an_attribute_sql) == SQLITE_ROW) {
+  if(retSQL == SQLITE_ROW) {
     CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_an_attribute_sql, 0);
     CK_ULONG length = sqlite3_column_int(select_an_attribute_sql, 1);
 
@@ -741,13 +762,17 @@ CK_BBOOL SoftDatabase::getBooleanAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIB
 // Return the class of the object
 
 CK_OBJECT_CLASS SoftDatabase::getObjectClass(CK_OBJECT_HANDLE objectRef) {
+  int retSQL = 0;
   CK_OBJECT_CLASS retVal = CKO_VENDOR_DEFINED;
 
   sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
   sqlite3_bind_int(select_an_attribute_sql, 2, CKA_CLASS);
 
+  // Get result
+  while((retSQL = sqlite3_step(select_an_attribute_sql)) == SQLITE_BUSY) {}
+
   // Get attribute
-  if(sqlite3_step(select_an_attribute_sql) == SQLITE_ROW) {
+  if(retSQL == SQLITE_ROW) {
     CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_an_attribute_sql, 0);
     CK_ULONG length = sqlite3_column_int(select_an_attribute_sql, 1);
 
@@ -764,13 +789,17 @@ CK_OBJECT_CLASS SoftDatabase::getObjectClass(CK_OBJECT_HANDLE objectRef) {
 // Return the key type of the object
 
 CK_KEY_TYPE SoftDatabase::getKeyType(CK_OBJECT_HANDLE objectRef) {
+  int retSQL = 0;
   CK_KEY_TYPE retVal = CKK_VENDOR_DEFINED;
 
   sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
   sqlite3_bind_int(select_an_attribute_sql, 2, CKA_KEY_TYPE);
 
+  // Get result
+  while((retSQL = sqlite3_step(select_an_attribute_sql)) == SQLITE_BUSY) {}
+
   // Get attribute
-  if(sqlite3_step(select_an_attribute_sql) == SQLITE_ROW) {
+  if(retSQL == SQLITE_ROW) {
     CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_an_attribute_sql, 0);
     CK_ULONG length = sqlite3_column_int(select_an_attribute_sql, 1);
 
@@ -788,13 +817,17 @@ CK_KEY_TYPE SoftDatabase::getKeyType(CK_OBJECT_HANDLE objectRef) {
 // We reveal anything, because this is used to create a key within the SoftHSM.
 
 BigInt SoftDatabase::getBigIntAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type) {
+  int retSQL = 0;
   BigInt retVal = BigInt(0);
 
   sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
   sqlite3_bind_int(select_an_attribute_sql, 2, type);
 
+  // Get result
+  while((retSQL = sqlite3_step(select_an_attribute_sql)) == SQLITE_BUSY) {}
+
   // Get attribute
-  if(sqlite3_step(select_an_attribute_sql) == SQLITE_ROW) {
+  if(retSQL == SQLITE_ROW) {
     CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_an_attribute_sql, 0);
     CK_ULONG length = sqlite3_column_int(select_an_attribute_sql, 1);
 
@@ -816,6 +849,7 @@ CK_OBJECT_HANDLE* SoftDatabase::getMatchingObjects(CK_ATTRIBUTE_PTR pTemplate, C
   int max_object_count = 8;
   int counter = 0;
   CK_OBJECT_HANDLE *objects = NULL;
+  int retSQL = 0;
 
   // Construct the query
   if(ulCount == 0) {
@@ -841,14 +875,16 @@ CK_OBJECT_HANDLE* SoftDatabase::getMatchingObjects(CK_ATTRIBUTE_PTR pTemplate, C
   objects = (CK_OBJECT_HANDLE*)realloc(objects, max_object_count * sizeof(CK_OBJECT_HANDLE));
 
   // Get the results
-  while(sqlite3_step(stmt) == SQLITE_ROW) {
-    // Increase the size if needed.
-    if(counter == max_object_count) {
-      max_object_count = max_object_count * 4;
-      objects = (CK_OBJECT_HANDLE*)realloc(objects, max_object_count * sizeof(CK_OBJECT_HANDLE));
+  while((retSQL = sqlite3_step(stmt)) == SQLITE_BUSY || retSQL == SQLITE_ROW) {
+    if(retSQL == SQLITE_ROW) {
+      // Increase the size if needed.
+      if(counter == max_object_count) {
+        max_object_count = max_object_count * 4;
+        objects = (CK_OBJECT_HANDLE*)realloc(objects, max_object_count * sizeof(CK_OBJECT_HANDLE));
+      }
+      objects[counter] = (CK_OBJECT_HANDLE)sqlite3_column_int(stmt, 0);
+      counter++;
     }
-    objects[counter] = (CK_OBJECT_HANDLE)sqlite3_column_int(stmt, 0);
-    counter++;
   }
 
   sqlite3_finalize(stmt);
@@ -867,12 +903,16 @@ CK_OBJECT_HANDLE* SoftDatabase::getMatchingObjects(CK_ATTRIBUTE_PTR pTemplate, C
 
 CK_BBOOL SoftDatabase::hasObject(CK_OBJECT_HANDLE objectRef) {
   CK_BBOOL retVal = CK_FALSE;
+  int retSQL = 0;
 
   sqlite3_reset(select_object_id_sql);
   sqlite3_bind_int(select_object_id_sql, 1, objectRef);
 
+  // Get result
+  while((retSQL = sqlite3_step(select_object_id_sql)) == SQLITE_BUSY) {}
+
   // Check object id
-  if(sqlite3_step(select_object_id_sql) == SQLITE_ROW) {
+  if(retSQL == SQLITE_ROW) {
     retVal = CK_TRUE;
   } 
 
@@ -884,6 +924,8 @@ CK_BBOOL SoftDatabase::hasObject(CK_OBJECT_HANDLE objectRef) {
 // Get the value of an attribute for this object.
 
 CK_RV SoftDatabase::getAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate) {
+  int retSQL = 0;
+
   // Can we reveal this attribute?
   switch(attTemplate->type) {
     case CKA_PRIVATE_EXPONENT:
@@ -906,8 +948,11 @@ CK_RV SoftDatabase::getAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTe
   sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
   sqlite3_bind_int(select_an_attribute_sql, 2, attTemplate->type);
 
+  // Get result
+  while((retSQL = sqlite3_step(select_an_attribute_sql)) == SQLITE_BUSY) {}
+
   // Get the attribute
-  if(sqlite3_step(select_an_attribute_sql) == SQLITE_ROW) {
+  if(retSQL == SQLITE_ROW) {
     CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_an_attribute_sql, 0);
     CK_ULONG length = sqlite3_column_int(select_an_attribute_sql, 1);
 
