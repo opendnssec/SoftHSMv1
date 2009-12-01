@@ -6,6 +6,7 @@ SoftHSM trunk - 2009-XX-XX
 
 * Bugfix: Signing could not be done when another application had a lock
   on the database.
+* Bugfix: Check if a session were able to create a connection to the database.
 * KNOWN BUG: A version of Botan available in some OS has a problem with 
              the entropy. This causes SoftHSM to freeze in some operations.
              Please upgrade to the Botan 1.8.5 or greater.

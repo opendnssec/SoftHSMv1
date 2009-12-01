@@ -116,11 +116,20 @@ CK_RV SoftHSMInternal::openSession(CK_SLOT_ID slotID, CK_FLAGS flags, CK_VOID_PT
 
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] == NULL_PTR) {
-      openSessions++;
       sessions[i] = new SoftSession(flags & CKF_RW_SESSION, currentSlot);
+
+      // Check that we have a connection
+      if(sessions[i]->db == NULL) {
+        delete sessions[i];
+        sessions[i] = NULL;
+        DEBUG_MSG("C_OpenSession", "Could not connect to database.");
+        return CKR_GENERAL_ERROR;
+      }
+
       sessions[i]->pApplication = pApplication;
       sessions[i]->Notify = Notify;
       *phSession = (CK_SESSION_HANDLE)(i+1);
+      openSessions++;
 
       DEBUG_MSG("C_OpenSession", "OK");
       return CKR_OK;
