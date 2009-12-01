@@ -78,7 +78,7 @@ SoftSession::SoftSession(CK_FLAGS rwSession, SoftSlot *givenSlot) {
   db = new SoftDatabase();
   if(db->init(currentSlot->dbPath) != CKR_OK) {
     delete db;
-    db = NULL;
+    db = NULL_PTR;
   }
 }
 
