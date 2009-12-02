@@ -39,14 +39,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <pthread.h>
+#include <sched.h>
 using std::string;
 
 // Rollback the object if it can't be saved
 #define CHECK_DB_RESPONSE(stmt) \
   if(stmt) { \
     while(sqlite3_exec(db, "ROLLBACK;", NULL, NULL, NULL) == SQLITE_BUSY) { \
-      pthread_yield(); \
+      sched_yield(); \
     } \
     return CK_INVALID_HANDLE; \
   }
@@ -191,7 +191,7 @@ char* SoftDatabase::getTokenLabel() {
 
   // Get result
   while((retVal = sqlite3_step(token_info_sql)) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
 
   if(retVal == SQLITE_ROW) {
@@ -219,7 +219,7 @@ char* SoftDatabase::getSOPIN() {
 
   // Get result
   while((retVal = sqlite3_step(token_info_sql)) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
 
   if(retVal == SQLITE_ROW) {
@@ -241,7 +241,7 @@ char* SoftDatabase::getUserPIN() {
 
   // Get result
   while((retVal = sqlite3_step(token_info_sql)) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
 
   if(retVal == SQLITE_ROW) {
@@ -262,7 +262,7 @@ CK_RV SoftDatabase::saveTokenInfo(int valueID, char *value, int length) {
   sqlite3_bind_text(insert_token_info_sql, 2, value, length, SQLITE_TRANSIENT);
 
   while((retVal = sqlite3_step(insert_token_info_sql)) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
   sqlite3_reset(insert_token_info_sql);
 
@@ -283,7 +283,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE
   // Begin the transaction
   int retVal = 0;
   while((retVal = sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL)) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
   if(retVal != SQLITE_OK) {
     return CK_INVALID_HANDLE;
@@ -376,7 +376,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE
   }
 
   while(sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
 
   return objectID;
@@ -392,7 +392,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(RSA_PrivateKey *rsaKey, CK_ATTRIBUT
   // Begin the transaction
   int retVal = 0;
   while((retVal = sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL)) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
   if(retVal != SQLITE_OK) {
     return CK_INVALID_HANDLE;
@@ -520,7 +520,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(RSA_PrivateKey *rsaKey, CK_ATTRIBUT
   }
 
   while(sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
 
   return objectID;
@@ -532,7 +532,7 @@ CK_OBJECT_HANDLE SoftDatabase::importPublicKey(CK_ATTRIBUTE_PTR pTemplate, CK_UL
   // Begin the transaction
   int retVal = 0;
   while((retVal = sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL)) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
   if(retVal != SQLITE_OK) {
     return CK_INVALID_HANDLE;
@@ -579,7 +579,7 @@ CK_OBJECT_HANDLE SoftDatabase::importPublicKey(CK_ATTRIBUTE_PTR pTemplate, CK_UL
   }
 
   while(sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
 
   return objectID;
@@ -591,7 +591,7 @@ CK_OBJECT_HANDLE SoftDatabase::importPrivateKey(CK_ATTRIBUTE_PTR pTemplate, CK_U
   // Begin the transaction
   int retVal = 0;
   while((retVal = sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL)) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
   if(retVal != SQLITE_OK) {
     return CK_INVALID_HANDLE;
@@ -659,7 +659,7 @@ CK_OBJECT_HANDLE SoftDatabase::importPrivateKey(CK_ATTRIBUTE_PTR pTemplate, CK_U
   }
 
   while(sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
 
   return objectID;
@@ -745,7 +745,7 @@ void SoftDatabase::destroySessObj() {
     if(retVal == SQLITE_ROW) {
       this->deleteObject(sqlite3_column_int(select_session_obj_sql, 0));
     } else {
-      pthread_yield();
+      sched_yield();
     }
   }
 
@@ -758,7 +758,7 @@ void SoftDatabase::destroySessObj() {
 void SoftDatabase::deleteObject(CK_OBJECT_HANDLE objRef) {
   sqlite3_bind_int(delete_object_sql, 1, objRef);
   while(sqlite3_step(delete_object_sql) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
   sqlite3_reset(delete_object_sql);
 }
@@ -774,7 +774,7 @@ CK_BBOOL SoftDatabase::getBooleanAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIB
 
   // Get result
   while((retSQL = sqlite3_step(select_an_attribute_sql)) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
 
   // Get attribute
@@ -803,7 +803,7 @@ CK_OBJECT_CLASS SoftDatabase::getObjectClass(CK_OBJECT_HANDLE objectRef) {
 
   // Get result
   while((retSQL = sqlite3_step(select_an_attribute_sql)) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
 
   // Get attribute
@@ -832,7 +832,7 @@ CK_KEY_TYPE SoftDatabase::getKeyType(CK_OBJECT_HANDLE objectRef) {
 
   // Get result
   while((retSQL = sqlite3_step(select_an_attribute_sql)) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
 
   // Get attribute
@@ -862,7 +862,7 @@ BigInt SoftDatabase::getBigIntAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE
 
   // Get result
   while((retSQL = sqlite3_step(select_an_attribute_sql)) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
 
   // Get attribute
@@ -924,7 +924,7 @@ CK_OBJECT_HANDLE* SoftDatabase::getMatchingObjects(CK_ATTRIBUTE_PTR pTemplate, C
       objects[counter] = (CK_OBJECT_HANDLE)sqlite3_column_int(stmt, 0);
       counter++;
     } else {
-      pthread_yield();
+      sched_yield();
     }
   }
 
@@ -951,7 +951,7 @@ CK_BBOOL SoftDatabase::hasObject(CK_OBJECT_HANDLE objectRef) {
 
   // Get result
   while((retSQL = sqlite3_step(select_object_id_sql)) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
 
   // Check object id
@@ -993,7 +993,7 @@ CK_RV SoftDatabase::getAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTe
 
   // Get result
   while((retSQL = sqlite3_step(select_an_attribute_sql)) == SQLITE_BUSY) {
-    pthread_yield();
+    sched_yield();
   }
 
   // Get the attribute
