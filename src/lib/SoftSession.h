@@ -36,6 +36,7 @@
 #ifndef SOFTHSM_SOFTSESSION_H
 #define SOFTHSM_SOFTSESSION_H 1
 
+#include "config.h"
 #include "pkcs11_unix.h"
 #include "SoftFind.h"
 #include "SoftDatabase.h"
@@ -47,6 +48,7 @@
 #include <botan/pubkey.h>
 #include <botan/pk_keys.h>
 #include <botan/auto_rng.h>
+#include <botan/secmem.h>
 using namespace Botan;
 
 class SoftFind;
@@ -80,6 +82,10 @@ class SoftSession {
     bool signSinglePart;
     CK_ULONG signSize;
     bool signInitialized;
+#ifdef SOFTHSM_SIGVER
+    PK_Verifier *pkSigVer;
+    MemoryRegion<byte> *pkSigVerData;
+#endif
 
     // Verify
     PK_Verifier *pkVerifier;

@@ -1198,31 +1198,55 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   }
 
   EMSA *hashFunc = NULL_PTR;
+#ifdef SOFTHSM_SIGVER
+  EMSA *hashFuncVer = NULL_PTR;
+#endif
   session->signSinglePart = false;
 
   // Selects the correct padding and hash algorithm.
   switch(pMechanism->mechanism) {
     case CKM_RSA_PKCS:
       hashFunc = new EMSA3_Raw();
+#ifdef SOFTHSM_SIGVER
+      hashFuncVer = new EMSA3_Raw();
+#endif
       session->signSinglePart = true;
       break;
     case CKM_MD5_RSA_PKCS:
       hashFunc = new EMSA3(new MD5);
+#ifdef SOFTHSM_SIGVER
+      hashFuncVer = new EMSA3(new MD5);
+#endif
       break;
     case CKM_RIPEMD160_RSA_PKCS:
       hashFunc = new EMSA3(new RIPEMD_160);
+#ifdef SOFTHSM_SIGVER
+      hashFuncVer = new EMSA3(new RIPEMD_160);
+#endif
       break;
     case CKM_SHA1_RSA_PKCS:
       hashFunc = new EMSA3(new SHA_160);
+#ifdef SOFTHSM_SIGVER
+      hashFuncVer = new EMSA3(new SHA_160);
+#endif
       break;
     case CKM_SHA256_RSA_PKCS:
       hashFunc = new EMSA3(new SHA_256);
+#ifdef SOFTHSM_SIGVER
+      hashFuncVer = new EMSA3(new SHA_256);
+#endif
       break;
     case CKM_SHA384_RSA_PKCS:
       hashFunc = new EMSA3(new SHA_384);
+#ifdef SOFTHSM_SIGVER
+      hashFuncVer = new EMSA3(new SHA_384);
+#endif
       break;
     case CKM_SHA512_RSA_PKCS:
       hashFunc = new EMSA3(new SHA_512);
+#ifdef SOFTHSM_SIGVER
+      hashFuncVer = new EMSA3(new SHA_512);
+#endif
       break;
     default:
       softHSM->unlockMutex();
@@ -1252,6 +1276,10 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   PK_Signing_Key *signKey = dynamic_cast<PK_Signing_Key*>(cryptoKey);
   session->signSize = (cryptoKey->max_input_bits() + 7) / 8;
   session->pkSigner = new PK_Signer(*signKey, &*hashFunc);
+#ifdef SOFTHSM_SIGVER
+  session->pkSigVer = new PK_Verifier_with_MR(*dynamic_cast<PK_Verifying_with_MR_Key*>(cryptoKey), &*hashFuncVer);
+  session->pkSigVerData = new SecureVector<byte>();
+#endif
 
   if(!session->pkSigner) {
     softHSM->unlockMutex();
@@ -1328,6 +1356,68 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
   // Sign 
   SecureVector<byte> signResult = session->pkSigner->sign_message(pData, ulDataLen, *session->rng);
 
+#ifdef SOFTHSM_SIGVER
+  // Verify signature
+  session->pkSigVerData->append(pData, ulDataLen);
+  bool verResult = session->pkSigVer->verify_message(*(session->pkSigVerData), signResult);
+
+  // Clean up
+  delete session->pkSigVer;
+  session->pkSigVer = NULL_PTR;
+
+  if(!verResult) {
+    char errorMsg[65536];
+    char tempHex[3];
+    byte element;
+    int msgLen, maxDataLen;
+
+    snprintf(errorMsg, sizeof(errorMsg), "Error: Could not verify signature. Data: ");
+
+    msgLen = strlen(errorMsg);
+    maxDataLen = session->pkSigVerData->size();
+    if(maxDataLen > ((65535 - msgLen) / 2)) {
+      maxDataLen = (65535 - msgLen) / 2;
+    }
+    for(int i = 0; i < maxDataLen; i++) {
+      element = session->pkSigVerData->begin()[i];
+      snprintf(tempHex, 3, "%02X", element);
+      strcat(errorMsg, tempHex);
+    }
+
+    if((65535 - strlen(errorMsg)) > 7) {
+      strcat(errorMsg, " Sign: ");
+      msgLen = strlen(errorMsg);
+      maxDataLen = signResult.size();
+      if(maxDataLen > ((65535 - msgLen) / 2)) {
+        maxDataLen = (65535 - msgLen) / 2;
+      }
+      for(int i = 0; i < maxDataLen; i++) {
+        element = signResult.begin()[i];
+        snprintf(tempHex, 3, "%02X", element);
+        strcat(errorMsg, tempHex);
+      }
+    }
+    
+    ERROR_MSG("C_Sign", errorMsg);
+
+    // Finalizing
+    session->signSize = 0;
+    delete session->pkSigner;
+    session->pkSigner = NULL_PTR;
+    session->signInitialized = false;
+    delete session->pkSigVerData;
+    session->pkSigVerData = NULL_PTR;
+
+    softHSM->unlockMutex();
+
+    return CKR_GENERAL_ERROR;
+  }
+
+  delete session->pkSigVerData;
+  session->pkSigVerData = NULL_PTR;
+
+#endif
+
   // Returns the result
   memcpy(pSignature, signResult.begin(), session->signSize);
   *pulSignatureLen = session->signSize;
@@ -1386,6 +1476,9 @@ CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPar
 
   // Buffer
   session->pkSigner->update(pPart, ulPartLen);
+#ifdef SOFTHSM_SIGVER
+  session->pkSigVerData->append(pPart, ulPartLen);
+#endif
 
   softHSM->unlockMutex();
 
@@ -1451,6 +1544,66 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
 
   // Sign
   SecureVector<byte> signResult = session->pkSigner->signature(*session->rng);
+
+#ifdef SOFTHSM_SIGVER
+  // Verify signature
+  bool verResult = session->pkSigVer->verify_message(*(session->pkSigVerData), signResult);
+
+  // Clean up
+  delete session->pkSigVer;
+  session->pkSigVer = NULL_PTR;
+
+  if(!verResult) {
+    char errorMsg[65536];
+    char tempHex[3];
+    byte element;
+    int msgLen, maxDataLen;
+
+    snprintf(errorMsg, sizeof(errorMsg), "Error: Could not verify signature. Data: ");
+
+    msgLen = strlen(errorMsg);
+    maxDataLen = session->pkSigVerData->size();
+    if(maxDataLen > ((65535 - msgLen) / 2)) {
+      maxDataLen = (65535 - msgLen) / 2;
+    }
+    for(int i = 0; i < maxDataLen; i++) {
+      element = session->pkSigVerData->begin()[i];
+      snprintf(tempHex, 3, "%02X", element);
+      strcat(errorMsg, tempHex);
+    }
+
+    if((65535 - strlen(errorMsg)) > 7) {
+      strcat(errorMsg, " Sign: ");
+      msgLen = strlen(errorMsg);
+      maxDataLen = signResult.size();
+      if(maxDataLen > ((65535 - msgLen) / 2)) {
+        maxDataLen = (65535 - msgLen) / 2;
+      }
+      for(int i = 0; i < maxDataLen; i++) {
+        element = signResult.begin()[i];
+        snprintf(tempHex, 3, "%02X", element);
+        strcat(errorMsg, tempHex);
+      }
+    }
+
+    ERROR_MSG("C_Sign", errorMsg);
+
+    // Finalizing
+    session->signSize = 0;
+    delete session->pkSigner;
+    session->pkSigner = NULL_PTR;
+    session->signInitialized = false;
+    delete session->pkSigVerData;
+    session->pkSigVerData = NULL_PTR;
+
+    softHSM->unlockMutex();
+
+    return CKR_GENERAL_ERROR;
+  }
+
+  delete session->pkSigVerData;
+  session->pkSigVerData = NULL_PTR;
+#endif
 
   // Returns the result
   memcpy(pSignature, signResult.begin(), session->signSize);
