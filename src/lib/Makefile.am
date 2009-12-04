@@ -21,7 +21,7 @@ libsofthsm_la_SOURCES =		main.cpp \
 				SoftFind.cpp \
 				SoftDatabase.cpp \
 				SoftKeyStore.cpp
-libsofthsm_la_LIBADD =		@BOTAN_LIBS@ @SQLITE3_LIBS@
+libsofthsm_la_LIBADD =		@BOTAN_LIBS@ @SQLITE3_LIBS@ @YIELD_LIB@
 libsofthsm_la_LDFLAGS =		-version-info @VERSION_INFO@
 
 EXTRA_DIST =			$(srcdir)/*.h \
