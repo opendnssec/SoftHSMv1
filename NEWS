@@ -2,7 +2,7 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
-SoftHSM trunk - 2009-XX-XX
+SoftHSM 1.1.1 - 2009-12-04
 
 * Bugfix: Signing could not be done when another application had a lock
   on the database.
