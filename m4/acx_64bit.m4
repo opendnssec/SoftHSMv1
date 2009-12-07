@@ -1,4 +1,4 @@
-# $Id: acx_64bit.m4 1122 2009-06-24 10:37:50Z jakob $
+# $Id: acx_64bit.m4 2575 2009-12-07 13:23:13Z jakob $
 
 AC_DEFUN([ACX_64BIT],[
 	AC_ARG_ENABLE(
@@ -23,9 +23,9 @@ AC_DEFUN([ACX_64BIT],[
 	                ],[
 	                        AC_MSG_RESULT(no)
 	                        AC_MSG_ERROR([Don't know how to compile in 64-bit mode.])
+	        		CFLAGS=$tmp_CFLAGS
 	                ]
 	        )
-	        CFLAGS=$tmp_CFLAGS
 	fi
 
 ])
