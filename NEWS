@@ -2,6 +2,11 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
+SoftHSM trunk
+
+* Documentation on how to do backup.
+* Bugfix: --enable-64bit configure option did not work correctly.
+
 SoftHSM 1.1.1 - 2009-12-04
 
 * Bugfix: Signing could not be done when another application had a lock

@@ -77,11 +77,12 @@ INSTALLING
         4:/home/user/token.database
 
     NOTE:
-    The token databases does not exist at this stage. The given paths are just an
-    indication to SoftHSM on where it should store the information for each token.
-    Each token are now treated as uninitialized.
+    The token databases does not exist at this stage. The given paths are just
+    an indication to SoftHSM on where it should store the information for each
+    token. Each token are now treated as uninitialized.
 
-  5. Initialize your tokens. Use either the softhsm tool or the PKCS#11 interface.
+  5. Initialize your tokens. Use either the softhsm tool or the PKCS#11 
+     interface.
 
     softhsm --init-token --slot 0 --label "My token 1"
 
@@ -99,19 +100,20 @@ KEY MANAGEMENT
 
   1. Importing a key pair
 
-    Use the PKCS#11 interface or the softhsm tool where you specify the path to 
-    the key file, slot number, label and ID of the new objects, and the user PIN.
-    The file must be in PKCS#8 format.
+    Use the PKCS#11 interface or the softhsm tool where you specify the path 
+    to the key file, slot number, label and ID of the new objects, and the 
+    user PIN. The file must be in PKCS#8 format.
     
-      softhsm --import key1.pem --slot 1 --label "My key" --id A1B2 --pin 123456
+      softhsm --import key1.pem --slot 1 --label "My key" --id A1B2 \ 
+              --pin 123456
 
     Add, --file-pin <PIN>, if the key file is encrypted. 
     Use, softhsm --help, for more info.
 
   2. Exporting a key pair
 
-    All keys can be exported from the token database by using the softhsm tool.
-    The file will be exported in PKCS#8 format.
+    All keys can be exported from the token database by using the softhsm 
+    tool. The file will be exported in PKCS#8 format.
 
       softhsm --export key2.pem --slot 1 --id A1B2 --pin 123456
 
@@ -120,15 +122,16 @@ KEY MANAGEMENT
 
 CONVERTING KEYS TO/FROM BIND
 
-  The softhsm-keyconv tool can convert keys between BIND .private-key format and 
-  PKCS#8 key file format.
+  The softhsm-keyconv tool can convert keys between BIND .private-key format 
+  and PKCS#8 key file format.
 
   1. Convert from BIND .private to PKCS#8
 
-    Keys used for DNSSEC in BIND can be converted over to PKCS#8. Thus possible to
-    import them into SoftHSM.
+    Keys used for DNSSEC in BIND can be converted over to PKCS#8. Thus 
+    possible to import them into SoftHSM.
 
-      softhsm-keyconv --topkcs8 --in Kexample.com.+007+05474.private --out rsa.pem
+      softhsm-keyconv --topkcs8 --in Kexample.com.+007+05474.private \ 
+                      --out rsa.pem
 
     Add, --pin <PIN>, if you want an encrypted PKCS#8 file.
     Use, softhsm-keyconv --help, for more info.
@@ -148,3 +151,12 @@ CONVERTING KEYS TO/FROM BIND
 
       Kexample.com.+007+05474.private
       Kexample.com.+007+05474.key
+
+BACKUP
+
+  A token can be backed up by issuing the command:
+
+    sqlite3 <PATH TO TOKEN> .dump | sqlite3 copy.db
+
+  Copy the "copy.db" to a secure location. To restore the token, just copy 
+  the file back to the system and add it to a slot in the file softhsm.conf.
