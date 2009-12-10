@@ -111,7 +111,7 @@ AC_DEFINE_UNQUOTED(
 )
 AC_DEFINE_UNQUOTED(
   [MAX_SESSION_COUNT],
-  [2048],
+  [256],
   [Maximum number of concurrent sessions]
 )
 AC_DEFINE_UNQUOTED(
