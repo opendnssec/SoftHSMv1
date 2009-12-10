@@ -5,7 +5,10 @@ NEWS for SoftHSM -- History of user visible changes
 SoftHSM trunk
 
 * Documentation on how to do backup.
+* Limiting the number of concurrent sessions to 256, because SQLite has a
+  limit on the number of database connections.
 * Bugfix: --enable-64bit configure option did not work correctly.
+
 
 SoftHSM 1.1.1 - 2009-12-04
 
