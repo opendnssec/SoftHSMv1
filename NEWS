@@ -7,6 +7,7 @@ SoftHSM trunk
 * Documentation on how to do backup.
 * Limiting the number of concurrent sessions to 256, because SQLite has a
   limit on the number of database connections.
+* Install a sample of the configuration file.
 * Bugfix: --enable-64bit configure option did not work correctly.
 
 
