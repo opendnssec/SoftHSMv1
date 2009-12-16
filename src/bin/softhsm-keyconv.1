@@ -1,0 +1,124 @@
+./" $Id$
+
+.TH softhsm-keyconv 1 "16 December 2009"
+.SH NAME
+softhsm-keyconv \- converting between BIND and PKCS#8 key file formats.
+.SH SYNOPSIS
+.B softhsm-keyconv 
+[OPTIONS]
+
+.SH DESCRIPTION
+
+\fBsofthsm-keyconv\fR can convert between BIND .private-key files and the PKCS#8 file format.
+This is so that you can import the PKCS#8 file into libsofthsm using the command \fBsofthsm\fR.
+If you have another file format, then \fBopenssl\fR probably can help you to convert it into
+the PKCS#8 file format.
+
+.SH OPTIONS
+.TP
+.TP
+\fB--topkcs8\fR
+Convert from BIND .private-key format to PKCS#8.
+Use with \fB--in\fR, \fB--out\fR, and \fB--pin\fR.
+
+.TP
+\fB--tobind\fR
+Convert from PKCS#8 to BIND .private-key format.
+Use with \fB--in\fR, \fB--pin\fR, \fB--name\fR, \fB--ttl\fR, \fB--ksk\fR, and \fB--algorithm\fR.
+
+.TP
+\fB--tobind\fR
+Convert from PKCS#8 to BIND .private-key format.
+Use with \fB--in\fR, \fB--pin\fR, \fB--name\fR, \fB--ttl\fR, \fB--ksk\fR, and \fB--algorithm\fR.
+
+.TP
+\fB--algorithm \fI<algorithm>\fR
+Specifies which DNSSEC algorithm to use in file.
+RSAMD5
+DSA
+RSASHA1
+RSASHA1-NSEC3-SHA1
+DSA-NSEC3-SHA1
+RSASHA256
+RSASHA512
+
+.TP
+\fB--help, -h\fR
+Show the help screen.
+
+.TP
+\fB--in \fI<path>\fR
+The path to the input file.
+
+.TP
+\fB--ksk\fR
+This will set the flag field to 257 instead of 256 in the DNSKEY RR in the .key file. Indicating that the key is a Key Signing Key. Can be used when 
+converting to BIND format.
+
+.TP
+\fB--name \fI<name>\fR
+The owner name. Do not forget the trailing dot, e.g. "example.com."
+
+.TP
+\fB--out \fI<path>\fR
+The path to the output file.
+
+.TP
+\fB--pin \fI<PIN>\fR
+To encrypt/decrypt PKCS#8 file. Optional.
+
+.TP
+\fB--ttl \fI<ttl>\fR
+The TTL to use for the DNSKEY RR. Optional, will default to 3600 seconds.
+
+.SH AUTHOR
+Written by Rickard Bellgrim.
+
+.SH REPORTING BUGS
+Report bugs on <www.opendnssec.org>. 
+
+.SH COPYRIGHT
+Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
+.br
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+.br
+modification, are permitted provided that the following conditions
+.br
+are met:
+.br
+1. Redistributions of source code must retain the above copyright
+.br
+   notice, this list of conditions and the following disclaimer.
+.br
+2. Redistributions in binary form must reproduce the above copyright
+.br
+   notice, this list of conditions and the following disclaimer in the
+.br
+   documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR
+.br
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+.br
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.br
+ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+.br
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.br
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+.br
+GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+.br
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+.br
+IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+.br
+OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+.br
+IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+.SH "SEE ALSO"
+softhsm(1), softhsm.conf(5)
