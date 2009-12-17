@@ -1,83 +1,125 @@
 ./" $Id$
 
-.TH softhsm-keyconv 1 "16 December 2009"
+.TH softhsm-keyconv 1 "17 December 2009"
+
 .SH NAME
 softhsm-keyconv \- converting between BIND and PKCS#8 key file formats.
+
 .SH SYNOPSIS
-.B softhsm-keyconv 
-[OPTIONS]
+
+.B softhsm-keyconv --topkcs8
+\fB--in \fIpath\fR \fB--out \fIpath\fR [\fB--pin \fIPIN\fR]
+.br
+.B softhsm-keyconv --tobind
+\fB--in \fIpath\fR [\fB--pin \fIPIN\fR] \fB--name \fIname\fR [\fB--ttl \fIttl\fR \fB--ksk\fR] \fB--algorithm \fIalgorithm\fR
 
 .SH DESCRIPTION
 
 \fBsofthsm-keyconv\fR can convert between BIND .private-key files and the PKCS#8 file format.
 This is so that you can import the PKCS#8 file into libsofthsm using the command \fBsofthsm\fR.
-If you have another file format, then \fBopenssl\fR probably can help you to convert it into
-the PKCS#8 file format.
+If you have another file format, then \fBopenssl\fR probably can help you to convert it into the PKCS#8 file format.
 
 .SH OPTIONS
+
 .TP
 .TP
 \fB--topkcs8\fR
 Convert from BIND .private-key format to PKCS#8.
+.br
 Use with \fB--in\fR, \fB--out\fR, and \fB--pin\fR.
 
 .TP
 \fB--tobind\fR
 Convert from PKCS#8 to BIND .private-key format.
+.br
 Use with \fB--in\fR, \fB--pin\fR, \fB--name\fR, \fB--ttl\fR, \fB--ksk\fR, and \fB--algorithm\fR.
 
 .TP
-\fB--tobind\fR
-Convert from PKCS#8 to BIND .private-key format.
-Use with \fB--in\fR, \fB--pin\fR, \fB--name\fR, \fB--ttl\fR, \fB--ksk\fR, and \fB--algorithm\fR.
+\fB--algorithm \fIalgorithm\fR
+Specifies which DNSSEC \fIalgorithm\fR to use when converting to BIND format.
 
-.TP
-\fB--algorithm \fI<algorithm>\fR
-Specifies which DNSSEC algorithm to use in file.
-RSAMD5
-DSA
-RSASHA1
-RSASHA1-NSEC3-SHA1
-DSA-NSEC3-SHA1
-RSASHA256
-RSASHA512
+The supported algorithms are:
+    RSAMD5
+    DSA
+    RSASHA1
+    RSASHA1-NSEC3-SHA1
+    DSA-NSEC3-SHA1
+    RSASHA256
+    RSASHA512
 
 .TP
 \fB--help, -h\fR
 Show the help screen.
 
 .TP
-\fB--in \fI<path>\fR
-The path to the input file.
+\fB--in \fIpath\fR
+The \fIpath\fR to the input file.
 
 .TP
 \fB--ksk\fR
-This will set the flag field to 257 instead of 256 in the DNSKEY RR in the .key file. Indicating that the key is a Key Signing Key. Can be used when 
-converting to BIND format.
+This will set the flag field to 257 instead of 256 in the DNSKEY RR in the .key file.
+Indicating that the key is a Key Signing Key. Can be used when converting to BIND format.
 
 .TP
-\fB--name \fI<name>\fR
-The owner name. Do not forget the trailing dot, e.g. "example.com."
+\fB--name \fIname\fR
+The owner \fIname\fR to use in the BIND file name and in the DNSKEY RR.
+Do not forget the trailing dot, e.g. "example.com."
 
 .TP
-\fB--out \fI<path>\fR
-The path to the output file.
+\fB--out \fIpath\fR
+The \fIpath\fR to the output file.
 
 .TP
-\fB--pin \fI<PIN>\fR
-To encrypt/decrypt PKCS#8 file. Optional.
+\fB--pin \fIPIN\fR
+The \fIPIN\fR will be used to encrypt or decrypt the PKCS#8 file depending if we are converting to or from PKCS#8.
+If not given then the PKCS#8 file is assumed to be unencrypted.
 
 .TP
-\fB--ttl \fI<ttl>\fR
-The TTL to use for the DNSKEY RR. Optional, will default to 3600 seconds.
+\fB--ttl \fITTL\fR
+The \fITTL\fR to use for the DNSKEY RR. Optional, will default to 3600 seconds.
+
+.SH BIND KEY FILES
+
+The following files will be created when converting to BIND file format:
+.TP
+K\fIname\fR+\fIalg_id\fR+\fIkey_tag\fR.key
+Public key in RR format
+.TP
+K\fIname\fR+\fIalg_id\fR+\fIkey_tag\fR.private
+Private key in BIND key format
+
+.TP
+The three parts of the file name means the following:
+.TP
+    \fIname\fR
+The owner name given by the \fB--name\fR argument.
+.TP
+    \fIalg_id\fR
+A numeric representation of the \fB--algorithm\fR argument.
+.TP
+    \fIkey_tag\fR
+Is a checksum of the DNSKEY RDATA.
+
+.SH EXAMPLES
+
+To convert a BIND .private-key file to a PKCS#8 file, the following command can be used:
+
+    softhsm-keyconv --in Kexample.com.+007+05474.private --out rsa.pem
+
+To convert a PKCS#8 file to BIND key files, the following command can be used:
+
+    softhsm-keyconv --in rsa.pem --name example.com. --ksk --algorithm RSASHA1-NSEC3-SHA1
 
 .SH AUTHOR
+
 Written by Rickard Bellgrim.
 
 .SH REPORTING BUGS
+
 Report bugs on <www.opendnssec.org>. 
 
 .SH COPYRIGHT
+
 Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
 .br
 All rights reserved.
