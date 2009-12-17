@@ -7,7 +7,7 @@ AM_CPPFLAGS = 		-I$(srcdir)/../lib \
 			@BOTAN_INCLUDES@ \
 			@SQLITE3_INCLUDES@
 
-dist_man_MANS = 	softhsm-keyconv.1
+dist_man_MANS = 	softhsm.1 softhsm-keyconv.1
 
 bin_PROGRAMS =		softhsm softhsm-keyconv
 

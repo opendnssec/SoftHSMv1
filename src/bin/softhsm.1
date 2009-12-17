@@ -1,0 +1,116 @@
+./" $Id$
+
+.TH softhsm 1 "17 December 2009"
+
+.SH NAME
+softhsm \- support tool for libsofthsm
+
+.SH SYNOPSIS
+
+.B softhsm --show-slots
+.br
+.B softhsm --init-token
+\fB--slot \fInumber\fR \fB--label \fItext\fR [\fB--so-pin \fIPIN\fR \fB--pin \fIPIN\fR]
+.br
+.B softhsm --import \fIpath\fR
+[\fB--file-pin \fIPIN\fR] \fB--slot \fInumber\fR \fB--pin \fIPIN\fR \fB--label \fItext\fR \fB--id \fIhex\fR
+.br
+.B softhsm --export \fIpath\fR
+[\fB--file-pin \fIPIN\fR] \fB--slot \fInumber\fR \fB--pin \fIPIN\fR \fB--id \fIhex\fR
+
+.SH DESCRIPTION
+
+\fBsofthsm\fR is a support tool for libsofthsm. Read the sections below to get more information on 
+the libsofthsm and PKCS#11.
+
+Most applications assumes that the token they want to use is already initialized. It is then up to the user
+to initialize the PKCS#11 token. This is done by using the PKCS#11 interface, but instead of writing your own
+tool you can use the \fBsofthsm\fR tool.
+
+Keys are usually created directly in the token, but the user may want to use an existing key pair.
+Keys can be imported to a token by using the PKCS#11 interface, but this tool can also be used if the
+user has the key pair in a PKCS#8 file.
+
+A key may not always be exportable through the PKCS#11 interface, but the export command can
+pull the key data directly from the token database.
+
+.SH LIBSOFTHSM
+
+libsofthsm, known as SoftHSM, provides cryptographic functionality by using the PKCS#11 API. 
+It was developed as a part of the OpenDNSSEC project, thus designed to meet the requirements 
+of OpenDNSSEC, but can also work together with other software that want to use the functionality
+of PKCS#11.
+
+SoftHSM is a software implementation of a generic cryptographic device with a PKCS#11 interface.
+These devices are often called tokens. Read in the manual softhsm.conf(5) on how to create these 
+tokens and how they are added to a slot in SoftHSM.
+
+.SH PKCS#11
+
+PKCS#11 can be used to handle and store cryptographic keys. This interface 
+specifies how to communicate with cryptographic devices such as HSM:s 
+(Hardware Security Modules) and smart cards. The purpose of these devices 
+is, among others, to generate cryptographic keys and sign information without 
+revealing private-key material to the outside world. They are often designed 
+to perform well on these specific tasks compared to ordinary processes in a normal computer.
+
+.SH CONFIGURATION FILE
+
+.SH OPTIONS
+
+.SH EXAMPLES
+
+.SH AUTHOR
+
+Written by Rickard Bellgrim.
+
+.SH REPORTING BUGS
+
+Report bugs on <www.opendnssec.org>. 
+
+.SH COPYRIGHT
+
+Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
+.br
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+.br
+modification, are permitted provided that the following conditions
+.br
+are met:
+.br
+1. Redistributions of source code must retain the above copyright
+.br
+   notice, this list of conditions and the following disclaimer.
+.br
+2. Redistributions in binary form must reproduce the above copyright
+.br
+   notice, this list of conditions and the following disclaimer in the
+.br
+   documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR
+.br
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+.br
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.br
+ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+.br
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.br
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+.br
+GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+.br
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+.br
+IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+.br
+OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+.br
+IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+.SH "SEE ALSO"
+softhsm-keyconv(1), softhsm.conf(5)
