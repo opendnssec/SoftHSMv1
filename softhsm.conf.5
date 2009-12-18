@@ -1,0 +1,73 @@
+./" $Id$
+
+.TH softhsm.conf 5 "18 December 2009"
+
+.SH NAME
+softhsm.conf \- SoftHSM configuration file
+
+.SH SYNOPSIS
+
+.B softhsm.conf
+
+.SH DESCRIPTION
+
+In PKCS#11 you need tokens in order to do cryptographic operations.
+Tokens can be viewed as object stores where you can store e.g. private
+and public keys. A token must then be attached to a slot so that you
+can use it.
+
+Slots and tokens are handled by the SoftHSM configuration file. The file
+is by default located in the system configuration directory. But 
+this location can be change by setting the environment variable. If this
+variable is present, then SoftHSM will use that path instead of the
+default one.
+
+    export SOFTHSM_CONF=/home/user/config.file
+
+The given paths in the configuration file are just an indication to 
+SoftHSM on where it should store the information for each token. The token
+databases will be created when the tokens gets initialized.
+
+.SH FILE FORMAT
+
+Each pair of slot and token are configured on one line. Starting with an unsigned
+integer as the slot ID and the a path where SoftHSM can create a SQLite database.
+These parameters are separated by a semicolon. It is ok to have extra space between
+the parameters, since these will be ignored.
+
+    \fI<Slot_ID>\fR:\fI<Path_to_the_token_database>\fR
+
+It is also possible to add comments in the file by using the hash sign. Anything
+after the hash sign will be ignored.
+
+    #\fI<text>\fR
+
+Any line that does not have the correct format will be ignored.
+
+.SH EXAMPLE
+
+    # A comment
+    0:/var/softhsm/slot0.db
+
+    1: /home/user/token.database # My own token
+
+.SH FILES
+
+.TP
+.I /etc/softhsm.conf
+default location of the SoftHSM configuration file
+
+.TP
+.I /etc/softhsm.conf.sample
+an example of a SoftHSM configuration file
+
+.SH AUTHOR
+
+Written by Rickard Bellgrim.
+
+.SH REPORTING BUGS
+
+Report bugs on <www.opendnssec.org>. 
+
+.SH "SEE ALSO"
+softhsm(1), softhsm-keyconv(1)

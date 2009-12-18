@@ -13,6 +13,8 @@ MAINTAINERCLEANFILES = \
 
 SUBDIRS = src checks
 
+dist_man_MANS = softhsm.conf.5
+
 EXTRA_DIST = $(srcdir)/m4/*.m4
 
 install-data-hook:
