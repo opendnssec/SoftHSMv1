@@ -22,7 +22,7 @@ Starting with an unsigned
 integer as the slot ID and then a path where
 SoftHSM can create a SQLite database.
 These parameters are separated by a semicolon.
-It is ok to have extra space between
+It is OK to have extra space between
 the parameters, since these will be ignored.
 .LP
 .RS
