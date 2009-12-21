@@ -2,7 +2,7 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
-SoftHSM trunk
+SoftHSM 1.1.2 - 2009-12-21
 
 * Documentation on how to do backup.
 * Limiting the number of concurrent sessions to 256, because SQLite has a
