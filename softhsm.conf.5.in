@@ -66,8 +66,6 @@ default location of the SoftHSM configuration file
 an example of a SoftHSM configuration file
 .SH AUTHOR
 Written by Rickard Bellgrim.
-.SH BUGS
-Report bugs on <www.opendnssec.org>. 
 .SH "SEE ALSO"
 .IR softhsm (1),
 .IR softhsm-keyconv (1).

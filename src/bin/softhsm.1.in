@@ -124,7 +124,7 @@ Use with
 and
 .BR \-\-pin .
 .TP
-\fB\-\-import\fR \fIpath\fR
+.B \-\-import \fIpath\fR
 Import a key pair from the given
 .IR path .
 The file must be in PKCS#8-format.
@@ -137,7 +137,7 @@ Use with
 and
 .BR \-\-id .
 .TP
-\fB\-\-export\fR \fIpath\fR
+.B \-\-export \fIpath\fR
 Export a key pair to the given
 .IR path .
 The file will be written in PKCS#8-format.
@@ -149,7 +149,7 @@ Use with
 and
 .BR \-\-id .
 .TP
-\fB\-\-file-pin\fR \fIPIN\fR
+.B \-\-file-pin \fIPIN\fR
 The
 .I PIN
 will be used to encrypt or decrypt the PKCS#8
@@ -159,30 +159,30 @@ If not given then the PKCS#8 file is assumed to be unencrypted.
 .B \-\-force 
 Use this option to override the warnings and force the given action.
 .TP
-\fB\-\-help\fR, \fB\-h\fR
+.B \-\-help\fR, \fB\-h\fR
 Show the help information.
 .TP
-\fB\-\-id\fR \fIhex\fR
+.B \-\-id \fIhex\fR
 Choose an ID of the key pair.
 The ID is in hexadecimal with a variable length.
 Use with
 .B \-\-force 
 when importing a key pair if the ID already exists.
 .TP
-\fB\-\-label\fR \fItext\fR
+.B \-\-label \fItext\fR
 Defines the
 .I label
 of the object or the token.
 .TP
-\fB\-\-pin\fR \fIPIN\fR
+.B \-\-pin \fIPIN\fR
 The
 .I PIN
 for the normal user.
 .TP
-\fB\-\-slot\fR \fInumber\fR
+.B \-\-slot \fInumber\fR
 The slot where the token is located.
 .TP
-\fB\-\-so-pin\fR \fIPIN\fR
+.B \-\-so-pin \fIPIN\fR
 The
 .I PIN
 for the Security Officer (SO).
@@ -253,10 +253,6 @@ See softhsm.conf(5) for more information.
 .SH AUTHOR
 .LP
 Written by Rickard Bellgrim.
-.LP
-.SH BUGS
-.LP
-Report bugs on <www.opendnssec.org>.
 .LP
 .SH "SEE ALSO"
 .IR softhsm-keyconv (1),

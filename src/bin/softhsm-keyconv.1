@@ -83,7 +83,7 @@ Use with
 and
 .BR \-\-algorithm .
 .TP
-\fB\-\-algorithm\fR \fIalgorithm\fR
+.B \-\-algorithm \fIalgorithm\fR
 Specifies which DNSSEC
 .I algorithm
 to use when converting to BIND format.
@@ -102,10 +102,10 @@ RSASHA512
 .RE
 .RE
 .TP
-\fB\-\-help\fR, \fB\-h\fR
+.B \-\-help\fR, \fB\-h\fR
 Shows the help screen.
 .TP
-\fB\-\-in\fR \fIpath\fR
+.B \-\-in \fIpath\fR
 The 
 .I path
 to the input file.
@@ -116,25 +116,25 @@ in the DNSKEY RR in the .key file.
 Indicating that the key is a Key Signing Key.
 Can be used when converting to BIND format.
 .TP
-\fB\-\-name\fR \fIname\fR
+.B \-\-name \fIname\fR
 The owner
 .I name
 to use in the BIND file name and in the DNSKEY RR.
 Do not forget the trailing dot, e.g. "example.com."
 .TP
-\fB\-\-out\fR \fIpath\fR
+.B \-\-out \fIpath\fR
 The
 .I path
 to the output file.
 .TP
-\fB\-\-pin\fR \fIPIN\fR
+.B \-\-pin \fIPIN\fR
 The
 .I PIN
 will be used to encrypt or decrypt the PKCS#8
 file depending if we are converting to or from PKCS#8.
 If not given then the PKCS#8 file is assumed to be unencrypted.
 .TP
-\fB\-\-ttl\fR \fITTL\fR
+.B \-\-ttl \fITTL\fR
 The
 .I TTL
 to use for the DNSKEY RR.
@@ -162,8 +162,6 @@ softhsm-keyconv \-\-in rsa.pem \-\-name example.com. \\
 .LP
 .SH AUTHOR
 Written by Rickard Bellgrim.
-.SH REPORTING BUGS
-Report bugs on <www.opendnssec.org>. 
 .SH "SEE ALSO"
 .IR softhsm (1),
 .IR softhsm.conf (5),
