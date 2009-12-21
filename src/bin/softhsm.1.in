@@ -1,0 +1,263 @@
+.TH SOFTHSM 1 "21 December 2009" "SoftHSM"
+.\" $Id$
+.SH NAME
+softhsm \- support tool for libsofthsm
+.SH SYNOPSIS
+.B softhsm \-\-show-slots
+.br
+.B softhsm \-\-init-token
+.B \-\-slot
+.I number
+.B \-\-label
+.I text
+\\
+.ti +0.7i
+.RB [ \-\-so-pin
+.I PIN
+.B \-\-pin
+.IR PIN ]
+.br
+.B softhsm \-\-import
+.I path
+.RB [ \-\-file-pin
+.IR PIN ]
+.B \-\-slot
+.I number
+\\
+.ti +0.7i
+.B \-\-pin
+.I PIN
+.B \-\-label
+.I text
+.B \-\-id
+.I hex
+.br
+.B softhsm \-\-export
+.I path
+.RB [ \-\-file-pin
+.IR PIN ]
+.B \-\-slot
+.I number
+\\
+.ti +0.7i
+.B \-\-pin
+.I PIN
+.B \-\-id
+.I hex
+.SH DESCRIPTION
+.B softhsm
+is a support tool for libsofthsm.
+Read the sections below to get more information on
+the libsofthsm and PKCS#11.
+Most applications assumes that the token they want
+to use is already initialized.
+It is then up to the user
+to initialize the PKCS#11 token.
+This is done by using the PKCS#11 interface,
+but instead of writing your own
+tool you can use the
+.B softhsm
+tool.
+.PP
+Keys are usually created directly in the token,
+but the user may want to use an existing key pair.
+Keys can be imported to a token by using the PKCS#11 interface,
+but this tool can also be used if the
+user has the key pair in a PKCS#8 file.
+If you need to convert keys from
+BIND .private-key format over to PKCS#8,
+one can
+use
+.BR softhsm-keyconv .
+.PP
+A key may not always be exportable through the PKCS#11 interface,
+but the export command can
+pull the key data directly from the token database.
+.LP
+The libary
+.BR libsofthsm ,
+known as SoftHSM, provides cryptographic functionality
+by using the PKCS#11 API.
+It was developed as a part of the OpenDNSSEC project,
+thus designed to meet the requirements
+of OpenDNSSEC,
+but can also work together with other
+software that want to use the functionality
+of the PKCS#11 API.
+.PP
+SoftHSM is a software implementation of a generic cryptographic device with a PKCS#11 interface.
+These devices are often called tokens.
+Read in the manual softhsm.conf(5) on how to create these
+tokens and how they are added to a slot in SoftHSM.
+.LP
+The 
+.B PKCS#11
+API
+can be used to handle and store cryptographic keys.
+This interface
+specifies how to communicate with cryptographic devices such as HSMs
+(Hardware Security Modules) and smart cards.
+The purpose of these devices
+is, among others,
+to generate cryptographic keys and sign information without
+revealing private-key material to the outside world.
+They are often designed
+to perform well on these specific tasks
+compared to ordinary processes in a normal computer.
+.LP
+.SH OPTIONS
+.TP
+.B \-\-show-slots
+Display all the available slots and their current status.
+.TP
+.B \-\-init-token
+Initialize the token at a given slot.
+If the token is already initialized then this command
+will reinitialize it, thus erasing all the objects in the token.
+The matching Security Officer (SO) PIN must also
+be provided when doing reinitialization.
+.br
+Use with
+.BR \-\-slot ,
+.BR \-\-label .
+.BR \-\-so-pin ,
+and
+.BR \-\-pin .
+.TP
+\fB\-\-import\fR \fIpath\fR
+Import a key pair from the given
+.IR path .
+The file must be in PKCS#8-format.
+.br
+Use with
+.BR \-\-file-pin ,
+.BR \-\-slot ,
+.BR \-\-pin ,
+.BR \-\-label ,
+and
+.BR \-\-id .
+.TP
+\fB\-\-export\fR \fIpath\fR
+Export a key pair to the given
+.IR path .
+The file will be written in PKCS#8-format.
+.br
+Use with
+.BR \-\-file-pin ,
+.BR \-\-slot ,
+.BR \-\-pin ,
+and
+.BR \-\-id .
+.TP
+\fB\-\-file-pin\fR \fIPIN\fR
+The
+.I PIN
+will be used to encrypt or decrypt the PKCS#8
+file depending if we are writing or reading.
+If not given then the PKCS#8 file is assumed to be unencrypted.
+.TP
+.B \-\-force 
+Use this option to override the warnings and force the given action.
+.TP
+\fB\-\-help\fR, \fB\-h\fR
+Show the help information.
+.TP
+\fB\-\-id\fR \fIhex\fR
+Choose an ID of the key pair.
+The ID is in hexadecimal with a variable length.
+Use with
+.B \-\-force 
+when importing a key pair if the ID already exists.
+.TP
+\fB\-\-label\fR \fItext\fR
+Defines the
+.I label
+of the object or the token.
+.TP
+\fB\-\-pin\fR \fIPIN\fR
+The
+.I PIN
+for the normal user.
+.TP
+\fB\-\-slot\fR \fInumber\fR
+The slot where the token is located.
+.TP
+\fB\-\-so-pin\fR \fIPIN\fR
+The
+.I PIN
+for the Security Officer (SO).
+.SH EXAMPLES
+.LP
+The token can be initialized using this command:
+.LP
+.RS
+.nf
+softhsm \-\-init-token \-\-slot 1 \-\-label "A token"
+.fi
+.RE
+.LP
+A key pair can be imported using the softhsm tool where you specify the path
+to the key file, slot number, label and ID of the new objects, and the
+user PIN.
+The file must be in PKCS#8 format.
+.LP
+.RS
+.nf
+softhsm \-\-import key1.pem \-\-slot 1 \-\-label "My key" \\
+.ti +0.7i
+\-\-id A1B2 \-\-pin 123456
+.fi
+(Add, \-\-file-pin
+.IR PIN ,
+if the key file is encrypted.)
+.RE
+.LP
+All keys can be exported from the token database by using the softhsm
+tool.
+The file will be exported in PKCS#8 format.
+.LP
+.RS
+.nf
+softhsm \-\-export key2.pem \-\-slot 1 \-\-id A1B2 \-\-pin 123456
+.fi
+(Add, \-\-file-pin
+.IR PIN ,
+if you want to output an encrypted file.)
+.RE
+.LP
+A token can be backed up by issuing the command:
+.LP
+.RS
+.nf
+sqlite3 <PATH TO TOKEN> .dump | sqlite3 copy.db
+.fi
+.RE
+.LP
+Move the file "copy.db" to a secure location.
+To restore the token, just copy
+the file back to the system and add it to a slot
+in the configuration (softhsm.conf).
+.LP
+.SH ENVIRONMENT
+.TP
+SOFTHSM_CONF
+When defined, the value
+will be used
+as path to the configuration file.
+.SH FILES
+.TP
+.I @default_softhsm_conf@
+This configuration file handles the slots and the tokens.
+See softhsm.conf(5) for more information.
+.LP
+.SH AUTHOR
+.LP
+Written by Rickard Bellgrim.
+.LP
+.SH BUGS
+.LP
+Report bugs on <www.opendnssec.org>.
+.LP
+.SH "SEE ALSO"
+.IR softhsm-keyconv (1),
+.IR softhsm.conf (5)

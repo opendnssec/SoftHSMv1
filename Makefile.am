@@ -13,9 +13,9 @@ MAINTAINERCLEANFILES = \
 
 SUBDIRS = src checks
 
-dist_man_MANS = softhsm.conf.5
+man_MANS = softhsm.conf.5
 
-EXTRA_DIST = $(srcdir)/m4/*.m4
+EXTRA_DIST = $(srcdir)/m4/*.m4 $(srcdir)/softhsm.conf.5.in
 
 install-data-hook:
 	test -d ${sysconfdir} || \

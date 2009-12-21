@@ -1,85 +1,41 @@
-./" $Id$
-
-.TH softhsm-keyconv 1 "18 December 2009"
-
+.TH SOFTHSM-KEYCONV 1 "21 December 2009" "SoftHSM"
+.\" $Id$
 .SH NAME
 softhsm-keyconv \- converting between BIND and PKCS#8 key file formats
-
 .SH SYNOPSIS
-
-.B softhsm-keyconv --topkcs8
-\fB--in \fIpath\fR \fB--out \fIpath\fR [\fB--pin \fIPIN\fR]
+.B softhsm-keyconv \-\-topkcs8
+.B \-\-in
+.I path
+.B \-\-out
+.I path
+.RB [ \-\-pin
+.IR PIN ]
 .br
-.B softhsm-keyconv --tobind
-\fB--in \fIpath\fR [\fB--pin \fIPIN\fR] \fB--name \fIname\fR [\fB--ttl \fIttl\fR \fB--ksk\fR] \fB--algorithm \fIalgorithm\fR
-
+.B softhsm-keyconv \-\-tobind
+.B \-\-in
+.I path
+.RB [ \-\-pin
+.IR PIN ]
+\\
+.br
+.ti +0.7i
+.B \-\-name
+.I name
+.RB [ \-\-ttl
+.I ttl
+.BR \-\-ksk ]
+.B \-\-algorithm
+.I algorithm
 .SH DESCRIPTION
-
-\fBsofthsm-keyconv\fR can convert between BIND .private-key files and the PKCS#8 file format.
-This is so that you can import the PKCS#8 file into libsofthsm using the command \fBsofthsm\fR.
-If you have another file format, then \fBopenssl\fR probably can help you to convert it into the PKCS#8 file format.
-
-.SH OPTIONS
-
-.TP
-.TP
-\fB--topkcs8\fR
-Convert from BIND .private-key format to PKCS#8.
-.br
-Use with \fB--in\fR, \fB--out\fR, and \fB--pin\fR.
-
-.TP
-\fB--tobind\fR
-Convert from PKCS#8 to BIND .private-key format.
-.br
-Use with \fB--in\fR, \fB--pin\fR, \fB--name\fR, \fB--ttl\fR, \fB--ksk\fR, and \fB--algorithm\fR.
-
-.TP
-\fB--algorithm \fIalgorithm\fR
-Specifies which DNSSEC \fIalgorithm\fR to use when converting to BIND format.
-
-The supported algorithms are:
-    RSAMD5
-    DSA
-    RSASHA1
-    RSASHA1-NSEC3-SHA1
-    DSA-NSEC3-SHA1
-    RSASHA256
-    RSASHA512
-
-.TP
-\fB--help, -h\fR
-Show the help screen.
-
-.TP
-\fB--in \fIpath\fR
-The \fIpath\fR to the input file.
-
-.TP
-\fB--ksk\fR
-This will set the flag field to 257 instead of 256 in the DNSKEY RR in the .key file.
-Indicating that the key is a Key Signing Key. Can be used when converting to BIND format.
-
-.TP
-\fB--name \fIname\fR
-The owner \fIname\fR to use in the BIND file name and in the DNSKEY RR.
-Do not forget the trailing dot, e.g. "example.com."
-
-.TP
-\fB--out \fIpath\fR
-The \fIpath\fR to the output file.
-
-.TP
-\fB--pin \fIPIN\fR
-The \fIPIN\fR will be used to encrypt or decrypt the PKCS#8 file depending if we are converting to or from PKCS#8.
-If not given then the PKCS#8 file is assumed to be unencrypted.
-
-.TP
-\fB--ttl \fITTL\fR
-The \fITTL\fR to use for the DNSKEY RR. Optional, will default to 3600 seconds.
-
-.SH BIND KEY FILES
-
+.B softhsm-keyconv
+can convert between BIND .private-key files and the PKCS#8 file format.
+This is so that you can import the PKCS#8 file into
+libsofthsm using the command
+.BR softhsm .
+If you have another file format, then
+.B openssl
+probably can help you to convert it into the PKCS#8 file format.
+.LP
 The following files will be created when converting to BIND file format:
 .TP
 K\fIname\fR+\fIalg_id\fR+\fIkey_tag\fR.key
@@ -87,36 +43,131 @@ Public key in RR format
 .TP
 K\fIname\fR+\fIalg_id\fR+\fIkey_tag\fR.private
 Private key in BIND key format
-
 .TP
 The three parts of the file name means the following:
+.RS
 .TP
-    \fIname\fR
-The owner name given by the \fB--name\fR argument.
+.I name
+The owner name given by the
+.B \-\-name
+argument.
 .TP
-    \fIalg_id\fR
-A numeric representation of the \fB--algorithm\fR argument.
+.I alg_id
+A numeric representation of the
+.B \-\-algorithm
+argument.
 .TP
-    \fIkey_tag\fR
+.I key_tag
 Is a checksum of the DNSKEY RDATA.
-
+.RE
+.SH OPTIONS
+.TP
+.B \-\-topkcs8
+Convert from BIND .private-key format to PKCS#8.
+.br
+Use with
+.BR \-\-in ,
+.BR \-\-out ,
+and
+.BR \-\-pin .
+.TP
+.B \-\-tobind
+Convert from PKCS#8 to BIND .private-key format.
+.br
+Use with
+.BR \-\-in ,
+.BR \-\-pin ,
+.BR \-\-name ,
+.BR \-\-ttl ,
+.BR \-\-ksk ,
+and
+.BR \-\-algorithm .
+.TP
+\fB\-\-algorithm\fR \fIalgorithm\fR
+Specifies which DNSSEC
+.I algorithm
+to use when converting to BIND format.
+The supported algorithms are:
+.RS
+.RS
+.nf
+RSAMD5
+DSA
+RSASHA1
+RSASHA1-NSEC3-SHA1
+DSA-NSEC3-SHA1
+RSASHA256
+RSASHA512
+.fi
+.RE
+.RE
+.TP
+\fB\-\-help\fR, \fB\-h\fR
+Shows the help screen.
+.TP
+\fB\-\-in\fR \fIpath\fR
+The 
+.I path
+to the input file.
+.TP
+.B \-\-ksk
+This will set the flag field to 257 instead of 256
+in the DNSKEY RR in the .key file.
+Indicating that the key is a Key Signing Key.
+Can be used when converting to BIND format.
+.TP
+\fB\-\-name\fR \fIname\fR
+The owner
+.I name
+to use in the BIND file name and in the DNSKEY RR.
+Do not forget the trailing dot, e.g. "example.com."
+.TP
+\fB\-\-out\fR \fIpath\fR
+The
+.I path
+to the output file.
+.TP
+\fB\-\-pin\fR \fIPIN\fR
+The
+.I PIN
+will be used to encrypt or decrypt the PKCS#8
+file depending if we are converting to or from PKCS#8.
+If not given then the PKCS#8 file is assumed to be unencrypted.
+.TP
+\fB\-\-ttl\fR \fITTL\fR
+The
+.I TTL
+to use for the DNSKEY RR.
+Optional, this will default to 3600 seconds.
 .SH EXAMPLES
-
 To convert a BIND .private-key file to a PKCS#8 file, the following command can be used:
-
-    softhsm-keyconv --in Kexample.com.+007+05474.private --out rsa.pem
-
+.LP
+.RS
+.nf
+softhsm-keyconv \-\-in Kexample.com.+007+05474.private \\
+.ti +0.7i
+\-\-out rsa.pem
+.fi
+.RE
+.LP
 To convert a PKCS#8 file to BIND key files, the following command can be used:
-
-    softhsm-keyconv --in rsa.pem --name example.com. --ksk --algorithm RSASHA1-NSEC3-SHA1
-
+.LP
+.RS
+.nf
+softhsm-keyconv \-\-in rsa.pem \-\-name example.com. \\
+.ti +0.7i
+\-\-ksk \-\-algorithm RSASHA1-NSEC3-SHA1
+.fi
+.RE
+.LP
 .SH AUTHOR
-
 Written by Rickard Bellgrim.
-
 .SH REPORTING BUGS
-
 Report bugs on <www.opendnssec.org>. 
-
 .SH "SEE ALSO"
-softhsm(1), softhsm.conf(5)
+.IR softhsm (1),
+.IR softhsm.conf (5),
+.IR openssl (1),
+.IR named (1),
+.IR dnssec-keygen (1),
+.IR dnssec-signzone (1)

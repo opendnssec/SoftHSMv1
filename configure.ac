@@ -92,6 +92,7 @@ AC_CHECK_HEADERS([sys/time.h dlfcn.h], [], [],
 # Set full directory paths
 full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 full_localstatedir=`eval eval eval eval eval echo "${localstatedir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+default_softhsm_conf="`eval echo ${full_sysconfdir} | sed s,NONE,$ac_default_prefix,g`/softhsm.conf"
 
 # Define some variables for the code
 AC_DEFINE_UNQUOTED(
@@ -126,7 +127,7 @@ AC_DEFINE_UNQUOTED(
 )
 AC_DEFINE_UNQUOTED(
   [DEFAULT_SOFTHSM_CONF],
-  ["`eval echo ${full_sysconfdir} | sed s,NONE,$ac_default_prefix,g`/softhsm.conf"],
+  ["$default_softhsm_conf"],
   [The default location of softhsm.conf]
 )
 if test "x$enable_sigver" = "xyes"
@@ -140,6 +141,7 @@ AC_PROG_LIBTOOL
 
 softhsmdbdir=${full_localstatedir}/softhsm
 AC_SUBST([softhsmdbdir])
+AC_SUBST([default_softhsm_conf])
 
 # Generate the make files
 AC_CONFIG_FILES([
@@ -149,6 +151,8 @@ AC_CONFIG_FILES([
 	src/bin/Makefile
 	checks/Makefile
 	softhsm.conf
+	softhsm.conf.5
+	src/bin/softhsm.1
 ])
 
 AC_OUTPUT

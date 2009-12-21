@@ -7,7 +7,8 @@ AM_CPPFLAGS = 		-I$(srcdir)/../lib \
 			@BOTAN_INCLUDES@ \
 			@SQLITE3_INCLUDES@
 
-dist_man_MANS = 	softhsm.1 softhsm-keyconv.1
+dist_man_MANS = 	softhsm-keyconv.1
+man_MANS =		softhsm.1
 
 bin_PROGRAMS =		softhsm softhsm-keyconv
 
@@ -17,4 +18,4 @@ softhsm_LDADD =		../lib/libsofthsm.la -lstdc++
 softhsm_keyconv_SOURCES =	softhsm-keyconv.cpp base64.c
 softhsm_keyconv_LDADD =		@BOTAN_LIBS@ -lstdc++
 
-EXTRA_DIST =		$(srcdir)/*.h
+EXTRA_DIST =		$(srcdir)/*.h $(srcdir)/softhsm.1.in
