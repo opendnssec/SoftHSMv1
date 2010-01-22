@@ -29,7 +29,7 @@
 #ifndef SOFTHSM_TOKENHANDLING_H
 #define SOFTHSM_TOKENHANDLING_H 1
 
-#include "pkcs11_unix.h"
+#include "pkcs11.h"
 #include "SoftSlot.h"
 
 CK_RV softInitToken(SoftSlot *currentSlot, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen, CK_UTF8CHAR_PTR pLabel);

@@ -2,8 +2,7 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-AM_CPPFLAGS = 		-I$(srcdir)/../lib \
-			-I$(srcdir)/../lib/cryptoki \
+AM_CPPFLAGS = 		-I$(srcdir)/../lib/cryptoki_compat \
 			@BOTAN_INCLUDES@ \
 			@SQLITE3_INCLUDES@
 

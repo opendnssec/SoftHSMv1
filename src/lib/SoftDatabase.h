@@ -35,7 +35,7 @@
 #ifndef SOFTHSM_SOFTDATABASE_H
 #define SOFTHSM_SOFTDATABASE_H 1
 
-#include "pkcs11_unix.h"
+#include "pkcs11.h"
 
 // The SQLite header
 #include <sqlite3.h>

@@ -37,7 +37,7 @@
 
 #include "SoftSession.h"
 
-#include "pkcs11_unix.h"
+#include "pkcs11.h"
 
 // Includes for the crypto library
 #include <botan/rng.h>

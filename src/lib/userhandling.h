@@ -29,7 +29,7 @@
 #ifndef SOFTHSM_USERHANDLING_H
 #define SOFTHSM_USERHANDLING_H 1
 
-#include "pkcs11_unix.h"
+#include "pkcs11.h"
 
 CK_BBOOL userAuthorization(CK_STATE sessionState, CK_BBOOL isTokenObject, CK_BBOOL isPrivateObject, int userAction);
 char* digestPIN(CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen);

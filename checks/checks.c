@@ -28,7 +28,7 @@
 
 #include <config.h>
 #include "checks.h"
-#include "pkcs11_unix.h"
+#include "pkcs11.h"
 
 #include <stdio.h>
 #include <stdlib.h>

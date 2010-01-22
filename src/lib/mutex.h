@@ -37,7 +37,7 @@
 #ifndef SOFTHSM_MUTEX_H
 #define SOFTHSM_MUTEX_H 1
 
-#include "pkcs11_unix.h"
+#include "pkcs11.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -6,7 +6,7 @@ CLEANFILES = no.token token.db K*.key* K*.private* *.pkcs8
 
 noinst_PROGRAMS = checks
 
-AM_CPPFLAGS = 	-I$(srcdir)/../src/lib -I$(srcdir)/../src/lib/cryptoki \
+AM_CPPFLAGS = 	-I$(srcdir)/../src/lib/cryptoki_compat \
 		-DCHECKS_SOFTHSM_CONF='"$(srcdir)/softhsm.conf"'
 
 EXTRA_DIST =	$(srcdir)/*.h \

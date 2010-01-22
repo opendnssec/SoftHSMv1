@@ -29,7 +29,7 @@
 #ifndef SOFTHSM_FILE_H
 #define SOFTHSM_FILE_H 1
 
-#include "pkcs11_unix.h"
+#include "pkcs11.h"
 
 CK_RV readConfigFile();
 

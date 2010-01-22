@@ -1,8 +1,8 @@
 # $Id$
 
-MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+MAINTAINERCLEANFILES =		$(srcdir)/Makefile.in
 
-AM_CPPFLAGS =			-I$(srcdir)/cryptoki \
+AM_CPPFLAGS =			-I$(srcdir)/cryptoki_compat \
 				@BOTAN_INCLUDES@ \
 				@SQLITE3_INCLUDES@
 
@@ -25,4 +25,4 @@ libsofthsm_la_LIBADD =		@BOTAN_LIBS@ @SQLITE3_LIBS@ @YIELD_LIB@
 libsofthsm_la_LDFLAGS =		-version-info @VERSION_INFO@
 
 EXTRA_DIST =			$(srcdir)/*.h \
-				$(srcdir)/cryptoki/*.h
+				$(srcdir)/cryptoki_compat/*.h

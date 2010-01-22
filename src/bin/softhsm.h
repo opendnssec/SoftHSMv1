@@ -29,7 +29,7 @@
 #ifndef SOFTHSM_SOFTHSM_H
 #define SOFTHSM_SOFTHSM_H 1
 
-#include "pkcs11_unix.h"
+#include "pkcs11.h"
 #include <sqlite3.h>
 
 // Includes for the crypto library
