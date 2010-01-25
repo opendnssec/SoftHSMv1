@@ -2,6 +2,15 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
+SoftHSM trunk - 2010-0X-XX
+
+* Only check for the SQLite3 library. The binary is not needed.
+* Switch to PKCS#11 header file from the Scute project.
+* KNOWN BUG: A bug in Botan made some of the checks to fail on Debian
+  unstable. The bug may appear on other platforms.
+  Please upgrade to Botan 1.8.9 when it is available.
+
+
 SoftHSM 1.1.2 - 2009-12-21
 
 * Documentation on how to do backup.
