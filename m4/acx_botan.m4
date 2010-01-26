@@ -1,4 +1,4 @@
-# $Id: acx_botan.m4 1756 2009-09-01 09:51:50Z rb $
+# $Id$
 
 AC_DEFUN([ACX_BOTAN],[
 	AC_ARG_WITH(botan,

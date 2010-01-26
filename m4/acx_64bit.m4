@@ -1,4 +1,4 @@
-# $Id: acx_64bit.m4 2575 2009-12-07 13:23:13Z jakob $
+# $Id$
 
 AC_DEFUN([ACX_64BIT],[
 	AC_ARG_ENABLE(
