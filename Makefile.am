@@ -18,10 +18,10 @@ man_MANS = softhsm.conf.5
 EXTRA_DIST = $(srcdir)/m4/*.m4 $(srcdir)/softhsm.conf.5.in
 
 install-data-hook:
-	test -d ${sysconfdir} || \
+	test -d ${DESTDIR}${sysconfdir} || \
 		${INSTALL} -d ${DESTDIR}${sysconfdir}
-	test -f ${sysconfdir}/softhsm.conf || \
+	test -f ${DESTDIR}${sysconfdir}/softhsm.conf || \
 		${INSTALL_DATA} ${top_builddir}/softhsm.conf ${DESTDIR}${sysconfdir}
 	${INSTALL_DATA} ${top_builddir}/softhsm.conf ${DESTDIR}${sysconfdir}/softhsm.conf.sample
-	test -d ${softhsmdbdir} || \
+	test -d ${DESTDIR}${softhsmdbdir} || \
 		${INSTALL} -d -m 700 ${DESTDIR}${softhsmdbdir}
