@@ -4,7 +4,7 @@ AC_DEFUN([ACX_64BIT],[
 	AC_ARG_ENABLE(
 	        [64bit],
         	[AS_HELP_STRING([--enable-64bit],[enable 64-bit compiling])],
-	        [enable_64bit="yes"],
+	        [enable_64bit="${enableval}"],
 	        [enable_64bit="no"])
 
 	if test "x$enable_64bit" = "xyes"
