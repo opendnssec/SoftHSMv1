@@ -186,6 +186,9 @@ The slot where the token is located.
 The
 .I PIN
 for the Security Officer (SO).
+.TP
+.B \-\-version\fR, \fB\-v\fR
+Show the version info.
 .SH EXAMPLES
 .LP
 The token can be initialized using this command:

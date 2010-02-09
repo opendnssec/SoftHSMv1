@@ -75,6 +75,8 @@ void usage() {
   printf("  --out <path>        The path to the output file.\n");
   printf("  --pin <PIN>         To encrypt/decrypt PKCS#8 file. Optional.\n");
   printf("  --ttl <ttl>         The TTL to use for the DNSKEY RR. Optional.\n");
+  printf("  -v                  Show version info.\n");
+  printf("  --version           Show version info.\n");
   printf("\n");
   printf("  The following files will be created:\n");
   printf("    K<name>+<alg id>+<key tag>.key\tPublic key in RR format\n");
@@ -94,7 +96,8 @@ enum {
   OPT_NAME,
   OPT_OUT,
   OPT_PIN,
-  OPT_TTL
+  OPT_TTL,
+  OPT_VERSION
 };
 
 // Define the options
@@ -109,6 +112,7 @@ static const struct option long_options[] = {
   { "out",        1, NULL, OPT_OUT },
   { "pin",        1, NULL, OPT_PIN },
   { "ttl",        0, NULL, OPT_TTL },
+  { "version",    0, NULL, OPT_VERSION },
   { NULL,         0, NULL, 0 }
 };
 
@@ -128,7 +132,7 @@ int main(int argc, char *argv[]) {
   int key_flag = 256;
   int ttl = 3600;
 
-  while ((opt = getopt_long(argc, argv, "h", long_options, &option_index)) != -1) {
+  while ((opt = getopt_long(argc, argv, "hv", long_options, &option_index)) != -1) {
     switch (opt) {
       case OPT_TOPKCS8:
         do_to_pkcs8 = 1;
@@ -158,6 +162,11 @@ int main(int argc, char *argv[]) {
         break;
       case OPT_TTL:
         ttl = atoi(optarg);
+        break;
+      case OPT_VERSION:
+      case 'v':
+        printf("%s\n", PACKAGE_VERSION);
+        exit(0);
         break;
       case OPT_HELP:
       case 'h':

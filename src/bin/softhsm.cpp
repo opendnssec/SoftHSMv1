@@ -74,6 +74,8 @@ void usage() {
   printf("  --pin <PIN>       The PIN for the normal user.\n");
   printf("  --slot <number>   The slot where the token is located.\n");
   printf("  --so-pin <PIN>    The PIN for the Security Officer (SO).\n");
+  printf("  -v                Show version info.\n");
+  printf("  --version         Show version info.\n");
   printf("\n");
   printf("\n");
   printf("You also need to have a configuration file to specify path to the\n");
@@ -102,7 +104,8 @@ enum {
   OPT_PIN,
   OPT_FILE_PIN,
   OPT_FORCE,
-  OPT_HELP
+  OPT_HELP,
+  OPT_VERSION
 };
 
 static const struct option long_options[] = {
@@ -118,6 +121,7 @@ static const struct option long_options[] = {
   { "file-pin",        1, NULL, OPT_FILE_PIN },
   { "force",           0, NULL, OPT_FORCE },
   { "help",            0, NULL, OPT_HELP },
+  { "version",         0, NULL, OPT_VERSION },
   { NULL,              0, NULL, 0 }
 };
 
@@ -141,7 +145,7 @@ int main(int argc, char *argv[]) {
   int doExport = 0;
   int action = 0;
 
-  while ((opt = getopt_long(argc, argv, "h", long_options, &option_index)) != -1) {
+  while ((opt = getopt_long(argc, argv, "hv", long_options, &option_index)) != -1) {
     switch (opt) {
       case OPT_SHOW_SLOTS:
         doShowSlots = 1;
@@ -181,6 +185,11 @@ int main(int argc, char *argv[]) {
         break;
       case OPT_FORCE:
         forceExec = 1;
+        break;
+      case OPT_VERSION:
+      case 'v':
+        printf("%s\n", PACKAGE_VERSION);
+        exit(0);
         break;
       case OPT_HELP:
       case 'h':
