@@ -13,6 +13,7 @@ bin_PROGRAMS =		softhsm softhsm-keyconv
 
 softhsm_SOURCES =	softhsm.cpp
 softhsm_LDADD =		../lib/libsofthsm.la -lstdc++
+softhsm_LDFLAGS =	-static
 
 softhsm_keyconv_SOURCES =	softhsm-keyconv.cpp base64.c
 softhsm_keyconv_LDADD =		@BOTAN_LIBS@ -lstdc++
