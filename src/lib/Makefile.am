@@ -22,7 +22,8 @@ libsofthsm_la_SOURCES =		main.cpp \
 				SoftDatabase.cpp \
 				SoftKeyStore.cpp
 libsofthsm_la_LIBADD =		@BOTAN_LIBS@ @SQLITE3_LIBS@ @YIELD_LIB@
-libsofthsm_la_LDFLAGS =		-version-info @VERSION_INFO@
+libsofthsm_la_LDFLAGS =		-version-info @VERSION_INFO@ \
+				-avoid-version -module
 
 EXTRA_DIST =			$(srcdir)/*.h \
 				$(srcdir)/cryptoki_compat/*.h
