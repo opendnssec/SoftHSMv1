@@ -111,7 +111,7 @@ static const struct option long_options[] = {
   { "name",       1, NULL, OPT_NAME },
   { "out",        1, NULL, OPT_OUT },
   { "pin",        1, NULL, OPT_PIN },
-  { "ttl",        0, NULL, OPT_TTL },
+  { "ttl",        1, NULL, OPT_TTL },
   { "version",    0, NULL, OPT_VERSION },
   { NULL,         0, NULL, 0 }
 };
