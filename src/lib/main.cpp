@@ -62,6 +62,7 @@
 #include <botan/filters.h>
 #include <botan/pipe.h>
 #include <botan/emsa3.h>
+#include <botan/emsa_raw.h>
 #include <botan/pk_keys.h>
 #include <botan/bigint.h>
 #include <botan/rsa.h>
@@ -1212,6 +1213,13 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
 #endif
       session->signSinglePart = true;
       break;
+    case CKM_RSA_X_509:
+      hashFunc = new EMSA_Raw();
+#ifdef SOFTHSM_SIGVER
+      hashFuncVer = new EMSA_Raw();
+#endif
+      session->signSinglePart = true;
+      break;
     case CKM_MD5_RSA_PKCS:
       hashFunc = new EMSA3(new MD5);
 #ifdef SOFTHSM_SIGVER
@@ -1699,6 +1707,10 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
   switch(pMechanism->mechanism) {
     case CKM_RSA_PKCS:
       hashFunc = new EMSA3_Raw();
+      session->verifySinglePart = true;
+      break;
+    case CKM_RSA_X_509:
+      hashFunc = new EMSA_Raw();
       session->verifySinglePart = true;
       break;
     case CKM_MD5_RSA_PKCS:

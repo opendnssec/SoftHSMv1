@@ -48,6 +48,7 @@ CK_RV getMechanismInfo(CK_MECHANISM_TYPE type, CK_MECHANISM_INFO_PTR pInfo) {
       pInfo->flags = CKF_GENERATE_KEY_PAIR | CKF_HW;
       break;
     case CKM_RSA_PKCS:
+    case CKM_RSA_X_509:
       pInfo->ulMinKeySize = 512;
       pInfo->ulMaxKeySize = 4096;
       pInfo->flags = CKF_SIGN | CKF_VERIFY | CKF_HW;

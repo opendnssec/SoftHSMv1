@@ -2,6 +2,11 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
+SoftHSM trunk
+
+* Added mechanism CKM_RSA_X_509
+
+
 SoftHSM 1.1.4 - 2010-04-06
 
 * Respect --disable-64bit
