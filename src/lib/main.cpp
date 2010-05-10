@@ -44,6 +44,7 @@
 #include "userhandling.h"
 #include "util.h"
 #include "mechanisms.h"
+#include "string.h"
 
 // Standard includes
 #include <stdio.h>
@@ -1198,11 +1199,12 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     return CKR_ARGUMENTS_BAD;
   }
 
+  session->signSinglePart = false;
+#ifdef BOTAN_PRE_1_9_4_FIX
   EMSA *hashFunc = NULL_PTR;
 #ifdef SOFTHSM_SIGVER
   EMSA *hashFuncVer = NULL_PTR;
 #endif
-  session->signSinglePart = false;
 
   // Selects the correct padding and hash algorithm.
   switch(pMechanism->mechanism) {
@@ -1270,6 +1272,45 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     DEBUG_MSG("C_SignInit", "Could not create the hash function");
     return CKR_DEVICE_MEMORY;
   }
+#else
+  std::string emsa;
+
+  // Selects the correct padding and hash algorithm.
+  switch(pMechanism->mechanism) {
+    case CKM_RSA_PKCS:
+      emsa = "EMSA3(Raw)";
+      session->signSinglePart = true;
+      break;
+    case CKM_RSA_X_509:
+      emsa = "Raw";
+      session->signSinglePart = true;
+      break;
+    case CKM_MD5_RSA_PKCS:
+      emsa = "EMSA3(MD5)";
+      break;
+    case CKM_RIPEMD160_RSA_PKCS:
+      emsa = "EMSA3(RIPEMD-160)";
+      break;
+    case CKM_SHA1_RSA_PKCS:
+      emsa = "EMSA3(SHA-160)";
+      break;
+    case CKM_SHA256_RSA_PKCS:
+      emsa = "EMSA3(SHA-256)";
+      break;
+    case CKM_SHA384_RSA_PKCS:
+      emsa = "EMSA3(SHA-384)";
+      break;
+    case CKM_SHA512_RSA_PKCS:
+      emsa = "EMSA3(SHA-512)";
+      break;
+    default:
+      softHSM->unlockMutex();
+
+      DEBUG_MSG("C_SignInit", "The selected mechanism is not supported");
+      return CKR_MECHANISM_INVALID;
+      break;
+  }
+#endif
 
   // Get the key from the session key store.
   Public_Key *cryptoKey = session->getKey(hKey);
@@ -1281,12 +1322,21 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   }
 
   // Creates the signer with given key and mechanism.
+#ifdef BOTAN_PRE_1_9_4_FIX
   PK_Signing_Key *signKey = dynamic_cast<PK_Signing_Key*>(cryptoKey);
   session->signSize = (cryptoKey->max_input_bits() + 7) / 8;
   session->pkSigner = new PK_Signer(*signKey, &*hashFunc);
 #ifdef SOFTHSM_SIGVER
   session->pkSigVer = new PK_Verifier_with_MR(*dynamic_cast<PK_Verifying_with_MR_Key*>(cryptoKey), &*hashFuncVer);
   session->pkSigVerData = new SecureVector<byte>();
+#endif
+#else
+  session->signSize = (cryptoKey->max_input_bits() + 7) / 8;
+  session->pkSigner = new PK_Signer(*dynamic_cast<Private_Key*>(cryptoKey), emsa);
+#ifdef SOFTHSM_SIGVER
+  session->pkSigVer = new PK_Verifier(*cryptoKey, emsa);
+  session->pkSigVerData = new SecureVector<byte>();
+#endif
 #endif
 
   if(!session->pkSigner) {
@@ -1700,8 +1750,9 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
     return CKR_ARGUMENTS_BAD;
   }
 
-  EMSA *hashFunc = NULL_PTR;
   session->verifySinglePart = false;
+#ifdef BOTAN_PRE_1_9_4_FIX
+  EMSA *hashFunc = NULL_PTR;
 
   // Selects the correct padding and hash algorithm.
   switch(pMechanism->mechanism) {
@@ -1744,7 +1795,46 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
 
     DEBUG_MSG("C_VerifyInit", "Could not create the hash function");
     return CKR_DEVICE_MEMORY;
+  } 
+#else
+  std::string emsa;
+
+  // Selects the correct padding and hash algorithm.
+  switch(pMechanism->mechanism) {
+    case CKM_RSA_PKCS:
+      emsa = "EMSA3(Raw)";
+      session->verifySinglePart = true;
+      break;
+    case CKM_RSA_X_509:
+      emsa = "Raw";
+      session->verifySinglePart = true;
+      break;
+    case CKM_MD5_RSA_PKCS:
+      emsa = "EMSA3(MD5)";
+      break;
+    case CKM_RIPEMD160_RSA_PKCS:
+      emsa = "EMSA3(RIPEMD-160)";
+      break;
+    case CKM_SHA1_RSA_PKCS:
+      emsa = "EMSA3(SHA-160)";
+      break;
+    case CKM_SHA256_RSA_PKCS:
+      emsa = "EMSA3(SHA-256)";
+      break;
+    case CKM_SHA384_RSA_PKCS:
+      emsa = "EMSA3(SHA-384)";
+      break;
+    case CKM_SHA512_RSA_PKCS:
+      emsa = "EMSA3(SHA-512)";
+      break;
+    default:
+      softHSM->unlockMutex();
+
+      DEBUG_MSG("C_VerifyInit", "The selected mechanism is not supported");
+      return CKR_MECHANISM_INVALID;
+      break;
   }
+#endif
 
   // Get the key from the session key store.
   Public_Key *cryptoKey = session->getKey(hKey);
@@ -1756,9 +1846,14 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
   }
 
   // Creates the verifier with given key and mechanism
+#ifdef BOTAN_PRE_1_9_4_FIX
   PK_Verifying_with_MR_Key *verifyKey = dynamic_cast<PK_Verifying_with_MR_Key*>(cryptoKey);
   session->verifySize = (cryptoKey->max_input_bits() + 7) / 8;
   session->pkVerifier = new PK_Verifier_with_MR(*verifyKey, &*hashFunc);
+#else
+  session->verifySize = (cryptoKey->max_input_bits() + 7) / 8;
+  session->pkVerifier = new PK_Verifier(*cryptoKey, emsa);
+#endif
 
   if(!session->pkVerifier) {
     softHSM->unlockMutex();

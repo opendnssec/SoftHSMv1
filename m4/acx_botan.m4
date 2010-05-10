@@ -60,6 +60,22 @@ AC_DEFUN([ACX_BOTAN],[
 			[Fixes an API problem within Botan]
 		)]
 	)
+	AC_LINK_IFELSE(
+		[AC_LANG_PROGRAM([#include <botan/init.h>
+			#include <botan/version.h>],
+			[using namespace Botan;
+			LibraryInitializer::initialize();
+			#if BOTAN_VERSION_CODE < BOTAN_VERSION_CODE_FOR(1,9,4)
+			#error "Old API";
+			#endif])],
+		[AC_MSG_RESULT([checking for Botan 1.9.4 API change ... yes])],
+		[AC_MSG_RESULT([checking for Botan 1.9.4 API change ... no])
+		AC_DEFINE_UNQUOTED(
+			[BOTAN_PRE_1_9_4_FIX],
+			[1],
+			[Fixes an API change within Botan]
+		)]
+	)
 	AC_LANG_POP([C++])
 
 	CPPFLAGS=$tmp_CPPFLAGS
