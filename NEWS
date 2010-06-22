@@ -5,6 +5,8 @@ NEWS for SoftHSM -- History of user visible changes
 SoftHSM trunk
 
 * Added mechanism CKM_RSA_X_509
+* The softhsm command now have the option --module <path>
+  To use another PKCS#11 library other than SoftHSM.
 
 
 SoftHSM 1.1.4 - 2010-04-06

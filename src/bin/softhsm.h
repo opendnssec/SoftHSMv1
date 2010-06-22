@@ -92,6 +92,9 @@ BigInt getBigIntAttribute(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDL
 
 /// Config
 char* getDBPath(CK_SLOT_ID slotID);
+CK_C_GetFunctionList loadLibrary(char *module);
+static void *moduleHandle;
+static CK_FUNCTION_LIST_PTR p11;
 
 /// PKCS#11 support
 CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, char *objID, int objIDLen);

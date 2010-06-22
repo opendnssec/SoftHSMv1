@@ -12,8 +12,7 @@ man_MANS =		softhsm.1
 bin_PROGRAMS =		softhsm softhsm-keyconv
 
 softhsm_SOURCES =	softhsm.cpp
-softhsm_LDADD =		../lib/libsofthsm.la -lstdc++
-softhsm_LDFLAGS =	-static
+softhsm_LDADD =		@SQLITE3_LIBS@ @BOTAN_LIBS@
 
 softhsm_keyconv_SOURCES =	softhsm-keyconv.cpp base64.c
 softhsm_keyconv_LDADD =		@BOTAN_LIBS@ -lstdc++

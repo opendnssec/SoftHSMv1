@@ -74,6 +74,7 @@ ACX_64BIT
 # Check for library include arguments
 ACX_BOTAN
 ACX_LIBSQLITE3
+ACX_DLOPEN
 
 YIELD_LIB=
 dnl Solaris has sched_yield in librt, not in libpthread or libc.

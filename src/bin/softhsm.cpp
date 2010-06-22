@@ -47,6 +47,9 @@
 #include <unistd.h>
 #include <iostream>
 #include <fstream>
+#if defined(HAVE_DLOPEN)
+#include <dlfcn.h>
+#endif
 
 void usage() {
   printf("Support tool for libsofthsm\n");
@@ -71,6 +74,7 @@ void usage() {
   printf("                    Use with --force if multiple key pairs may share\n");
   printf("                    the same ID.\n");
   printf("  --label <text>    Defines the label of the object or the token.\n");
+  printf("  --module <path>   Use another PKCS#11 library than SoftHSM.\n");
   printf("  --pin <PIN>       The PIN for the normal user.\n");
   printf("  --slot <number>   The slot where the token is located.\n");
   printf("  --so-pin <PIN>    The PIN for the Security Officer (SO).\n");
@@ -99,6 +103,7 @@ enum {
   OPT_EXPORT,
   OPT_SLOT,
   OPT_LABEL,
+  OPT_MODULE,
   OPT_ID,
   OPT_SO_PIN,
   OPT_PIN,
@@ -115,6 +120,7 @@ static const struct option long_options[] = {
   { "export",          1, NULL, OPT_EXPORT },
   { "slot",            1, NULL, OPT_SLOT },
   { "label",           1, NULL, OPT_LABEL },
+  { "module",          1, NULL, OPT_MODULE },
   { "id",              1, NULL, OPT_ID },
   { "so-pin",          1, NULL, OPT_SO_PIN },
   { "pin",             1, NULL, OPT_PIN },
@@ -135,6 +141,7 @@ int main(int argc, char *argv[]) {
   char *userPIN = NULL;
   char *filePIN = NULL;
   char *label = NULL;
+  char *module = NULL;
   char *objectID = NULL;
   char *slot = NULL;
   int forceExec = 0;
@@ -144,6 +151,9 @@ int main(int argc, char *argv[]) {
   int doImport = 0;
   int doExport = 0;
   int action = 0;
+
+  moduleHandle = NULL;
+  p11 = NULL;
 
   while ((opt = getopt_long(argc, argv, "hv", long_options, &option_index)) != -1) {
     switch (opt) {
@@ -170,6 +180,9 @@ int main(int argc, char *argv[]) {
         break;
       case OPT_LABEL:
         label = optarg;
+        break;
+      case OPT_MODULE:
+        module = optarg;
         break;
       case OPT_ID:
         objectID = optarg;
@@ -204,7 +217,14 @@ int main(int argc, char *argv[]) {
   if(action == 0) {
     usage();
   } else {
-    CK_RV rv = C_Initialize(NULL_PTR);
+    CK_C_GetFunctionList pGetFunctionList = loadLibrary(module);
+    if(pGetFunctionList == NULL) {
+      fprintf(stderr, "Error: Could not load the library.\n");
+      exit(1);
+    }
+    (*pGetFunctionList)(&p11);
+
+    CK_RV rv = p11->C_Initialize(NULL_PTR);
     if(rv != CKR_OK) {
       fprintf(stderr, "Error: Could not initialize libsofthsm. Probably missing the configuration file.\n");
       exit(1);
@@ -228,14 +248,72 @@ int main(int argc, char *argv[]) {
 
   // Export a key pair to the given path
   if(doExport) {
-    exportKeyPair(outPath, filePIN, slot, userPIN, objectID);
+    if(module) {
+      fprintf(stderr, "Error: Cannot perform export in combination with the module option.\n");
+    } else {
+      exportKeyPair(outPath, filePIN, slot, userPIN, objectID);
+    }
   }
 
   if(action) {
-    C_Finalize(NULL_PTR);
+    p11->C_Finalize(NULL_PTR);
+    if(moduleHandle) {
+#if defined(HAVE_LOADLIBRARY)
+      // no idea
+#elif defined(HAVE_DLOPEN)
+      dlclose(moduleHandle);
+#endif
+    }
   }
 
   return 0;
+}
+
+// Load the PKCS#11 library
+CK_C_GetFunctionList loadLibrary(char *module) {
+  CK_C_GetFunctionList pGetFunctionList = NULL;
+
+#if defined(HAVE_LOADLIBRARY)
+  // Load PKCS #11 library
+  if(module) {
+    HINSTANCE hDLL = LoadLibrary(_T(module));
+  } else {
+    HINSTANCE hDLL = LoadLibrary(_T("libsofthsm.so"));
+  }
+
+  if(hDLL == NULL) {
+    // Failed to load the PKCS #11 library
+    return NULL;
+  }
+
+  // Retrieve the entry point for C_GetFunctionList
+  pGetFunctionList = (CK_C_GetFunctionList) GetProcAddress(hDLL, _T("C_GetFunctionList"));
+            
+#elif defined(HAVE_DLOPEN)
+  // Load PKCS #11 library
+  void* pDynLib;
+  if(module) {
+    pDynLib = dlopen(module, RTLD_NOW | RTLD_LOCAL);
+  } else {
+    pDynLib = dlopen("libsofthsm.so", RTLD_NOW | RTLD_LOCAL);
+  }
+
+  if(pDynLib == NULL) {
+    // Failed to load the PKCS #11 library
+    return NULL;
+  }
+
+  // Retrieve the entry point for C_GetFunctionList
+  pGetFunctionList = (CK_C_GetFunctionList) dlsym(pDynLib, "C_GetFunctionList");
+
+  // Store the handle so we can dlclose it later
+  moduleHandle = pDynLib;
+
+#else
+  return NULL;
+#endif
+
+  return pGetFunctionList;
 }
 
 // Creates a SoftHSM token at the given location.
@@ -308,7 +386,7 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
   memset(paddedLabel, ' ', sizeof(paddedLabel));
   memcpy(paddedLabel, label, strlen(label));
 
-  CK_RV rv = C_InitToken(slotID, (CK_UTF8CHAR_PTR)so_pin_copy, soLength, paddedLabel);
+  CK_RV rv = p11->C_InitToken(slotID, (CK_UTF8CHAR_PTR)so_pin_copy, soLength, paddedLabel);
 
   switch(rv) {
     case CKR_OK:
@@ -333,19 +411,19 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
   }
 
   CK_SESSION_HANDLE hSession;
-  rv = C_OpenSession(slotID, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession);
+  rv = p11->C_OpenSession(slotID, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession);
   if(rv != CKR_OK) {
     fprintf(stderr, "Error: Could not open a session with the library.\n");
     return;
   }
 
-  rv = C_Login(hSession, CKU_SO, (CK_UTF8CHAR_PTR)so_pin_copy, soLength);
+  rv = p11->C_Login(hSession, CKU_SO, (CK_UTF8CHAR_PTR)so_pin_copy, soLength);
   if(rv != CKR_OK) {
     fprintf(stderr, "Error: Could not log in on the token.\n");
     return;
   }
 
-  rv = C_InitPIN(hSession, (CK_UTF8CHAR_PTR)user_pin_copy, userLength);
+  rv = p11->C_InitPIN(hSession, (CK_UTF8CHAR_PTR)user_pin_copy, userLength);
   if(rv != CKR_OK) {
     fprintf(stderr, "Error: Could not initialize the user PIN.\n");
     return;
@@ -356,14 +434,14 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
 
 void showSlots() {
   CK_ULONG ulSlotCount;
-  CK_RV rv = C_GetSlotList(CK_FALSE, NULL_PTR, &ulSlotCount);
+  CK_RV rv = p11->C_GetSlotList(CK_FALSE, NULL_PTR, &ulSlotCount);
   if(rv != CKR_OK) {
     fprintf(stderr, "Error: Could not get the number of slots.\n");
     return;
   }
 
   CK_SLOT_ID_PTR pSlotList = (CK_SLOT_ID_PTR)malloc(ulSlotCount*sizeof(CK_SLOT_ID));
-  rv = C_GetSlotList(CK_FALSE, pSlotList, &ulSlotCount);
+  rv = p11->C_GetSlotList(CK_FALSE, pSlotList, &ulSlotCount);
   if (rv != CKR_OK) {
     fprintf(stderr, "Error: Could not get the slot list.\n");
     return;
@@ -375,7 +453,7 @@ void showSlots() {
     CK_SLOT_INFO slotInfo;
     CK_TOKEN_INFO tokenInfo;
 
-    rv = C_GetSlotInfo(pSlotList[i], &slotInfo);
+    rv = p11->C_GetSlotInfo(pSlotList[i], &slotInfo);
     if(rv != CKR_OK) {  
       fprintf(stderr, "Error: Could not get the slot info.\n");
       free(pSlotList);
@@ -389,7 +467,7 @@ void showSlots() {
     } else {
       printf("yes\n");
 
-      rv = C_GetTokenInfo(pSlotList[i], &tokenInfo);
+      rv = p11->C_GetTokenInfo(pSlotList[i], &tokenInfo);
       if(rv != CKR_OK) {
         fprintf(stderr, "Error: Could not get the token info.\n");
         return;
@@ -449,7 +527,7 @@ void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
 
   CK_SLOT_ID slotID = atoi(slot);
   CK_SESSION_HANDLE hSession;
-  CK_RV rv = C_OpenSession(slotID, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession);
+  CK_RV rv = p11->C_OpenSession(slotID, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession);
   if(rv != CKR_OK) {
     if(rv == CKR_SLOT_ID_INVALID) {
       fprintf(stderr, "Error: The given slot does not exist.\n");
@@ -460,7 +538,7 @@ void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
     return;
   }
 
-  rv = C_Login(hSession, CKU_USER, (CK_UTF8CHAR_PTR)userPIN, strlen(userPIN));
+  rv = p11->C_Login(hSession, CKU_USER, (CK_UTF8CHAR_PTR)userPIN, strlen(userPIN));
   if(rv != CKR_OK) {
     if(rv == CKR_PIN_INCORRECT) {
       fprintf(stderr, "Error: The given user PIN does not match the one in the token.\n");
@@ -519,7 +597,7 @@ void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
   };
 
   CK_OBJECT_HANDLE hKey1, hKey2;
-  rv = C_CreateObject(hSession, privTemplate, 16, &hKey1);
+  rv = p11->C_CreateObject(hSession, privTemplate, 16, &hKey1);
   if(rv != CKR_OK) {
     freeKeyMaterial(keyMat);
     free(objID);
@@ -527,13 +605,13 @@ void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
     return;
   }
 
-  rv = C_CreateObject(hSession, pubTemplate, 10, &hKey2);
+  rv = p11->C_CreateObject(hSession, pubTemplate, 10, &hKey2);
 
   freeKeyMaterial(keyMat);
   free(objID);
 
   if(rv != CKR_OK) {
-    C_DestroyObject(hSession, hKey1);
+    p11->C_DestroyObject(hSession, hKey1);
     fprintf(stderr, "Error: Could not save the public key in the token.\n");
     return;
   }
@@ -573,7 +651,7 @@ void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
 
   CK_SLOT_ID slotID = atoi(slot);
   CK_SESSION_HANDLE hSession;
-  CK_RV rv = C_OpenSession(slotID, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession);
+  CK_RV rv = p11->C_OpenSession(slotID, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession);
   if(rv != CKR_OK) {
     if(rv == CKR_SLOT_ID_INVALID) {
       fprintf(stderr, "Error: The given slot does not exist.\n");
@@ -584,7 +662,7 @@ void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
     return;
   }
 
-  rv = C_Login(hSession, CKU_USER, (CK_UTF8CHAR_PTR)userPIN, strlen(userPIN));
+  rv = p11->C_Login(hSession, CKU_USER, (CK_UTF8CHAR_PTR)userPIN, strlen(userPIN));
   if(rv != CKR_OK) {
     if(rv == CKR_PIN_INCORRECT) {
       fprintf(stderr, "Error: The given user PIN does not match the one in the token.\n");
@@ -794,19 +872,19 @@ CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, char *objID, int objID
     { CKA_ID,    objID,   objIDLen }
   };
 
-  CK_RV rv = C_FindObjectsInit(hSession, objTemplate, 2);
+  CK_RV rv = p11->C_FindObjectsInit(hSession, objTemplate, 2);
   if(rv != CKR_OK) {
     fprintf(stderr, "Error: Could not prepare the object search.\n");
     return CK_INVALID_HANDLE;
   }
 
-  rv = C_FindObjects(hSession, &hObject, 1, &objectCount);
+  rv = p11->C_FindObjects(hSession, &hObject, 1, &objectCount);
   if(rv != CKR_OK) {
     fprintf(stderr, "Error: Could not get the search results.\n");
     return CK_INVALID_HANDLE;
   }
 
-  rv = C_FindObjectsFinal(hSession);
+  rv = p11->C_FindObjectsFinal(hSession);
   if(rv != CKR_OK) {
     fprintf(stderr, "Error: Could not finalize the search.\n");
     return CK_INVALID_HANDLE;
