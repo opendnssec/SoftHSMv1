@@ -619,7 +619,7 @@ void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
     return;
   }
 
-  printf("The key pair has been imported to the token in slot %i.\n", slotID);
+  printf("The key pair has been imported to the token in slot %lu.\n", slotID);
 }
 
 void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectID) {
