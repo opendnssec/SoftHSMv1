@@ -140,7 +140,11 @@ and
 .B \-\-export \fIpath\fR
 Export a key pair to the given
 .IR path .
-The file will be written in PKCS#8-format.
+The file will be written in PKCS#8-format. Cannot be used in 
+combination with 
+.BR \-\-module ,
+since the keys are extracted from the SoftHSM database,
+thus not using PKCS#11.
 .br
 Use with
 .BR \-\-file-pin ,

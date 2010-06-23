@@ -64,6 +64,9 @@ void usage() {
   printf("                    Use with --file-pin, --slot, --label, --id and --pin.\n");
   printf("  --export <path>   Export a key pair to the given path.\n");
   printf("                    The file will be written in PKCS#8-format.\n");
+  printf("                    Cannot be used in combination with --module,\n");
+  printf("                    since the keys are extracted from the SoftHSM database,\n");
+  printf("                    thus not using PKCS#11.\n");
   printf("                    Use with --file-pin (will encrypt file), --slot, --id\n");
   printf("                    and --pin.\n");
   printf("  --file-pin <PIN>  Supply a PIN if the file is encrypted.\n");
