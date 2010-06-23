@@ -278,7 +278,7 @@ CK_C_GetFunctionList loadLibrary(char *module) {
   if(module) {
     HINSTANCE hDLL = LoadLibrary(_T(module));
   } else {
-    HINSTANCE hDLL = LoadLibrary(_T("libsofthsm.so"));
+    HINSTANCE hDLL = LoadLibrary(_T(DEFAULT_PKCS11_LIB));
   }
 
   if(hDLL == NULL) {
@@ -295,7 +295,7 @@ CK_C_GetFunctionList loadLibrary(char *module) {
   if(module) {
     pDynLib = dlopen(module, RTLD_NOW | RTLD_LOCAL);
   } else {
-    pDynLib = dlopen("libsofthsm.so", RTLD_NOW | RTLD_LOCAL);
+    pDynLib = dlopen(DEFAULT_PKCS11_LIB, RTLD_NOW | RTLD_LOCAL);
   }
 
   if(pDynLib == NULL) {

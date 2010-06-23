@@ -93,6 +93,7 @@ AC_CHECK_HEADERS([sys/time.h dlfcn.h], [], [],
 # Set full directory paths
 full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 full_localstatedir=`eval eval eval eval eval echo "${localstatedir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+full_libdir=`eval eval eval eval eval echo "${libdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 default_softhsm_conf="`eval echo ${full_sysconfdir} | sed s,NONE,$ac_default_prefix,g`/softhsm.conf"
 
 # Define some variables for the code
@@ -130,6 +131,11 @@ AC_DEFINE_UNQUOTED(
   [DEFAULT_SOFTHSM_CONF],
   ["$default_softhsm_conf"],
   [The default location of softhsm.conf]
+)
+AC_DEFINE_UNQUOTED(
+  [DEFAULT_PKCS11_LIB],
+  ["$full_libdir/libsofthsm.so"],
+  [The default PKCS#11 library]
 )
 if test "x$enable_sigver" = "xyes"
 then
