@@ -13,7 +13,7 @@ EXTRA_DIST =	$(srcdir)/*.h \
 		$(srcdir)/softhsm.conf
 
 checks_LDADD = ../src/lib/libsofthsm.la -lstdc++
-checks_LDFLAGS = -no-install
+checks_LDFLAGS = -no-install -static
 
 check-local:
 	./checks -z
