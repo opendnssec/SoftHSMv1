@@ -276,7 +276,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
           error = 1;
           break;
         }
-        if(m != FILE_MAJOR_VERSION || n != FILE_MINOR_VERSION) {
+        if(m > FILE_MAJOR_VERSION_MAX || (m == FILE_MAJOR_VERSION_MAX && n > FILE_MINOR_VERSION_MAX)) {
           fprintf(stderr, "Error: Cannot parse this version of file format, v%i.%i.\n", m, n);
           error = 1;
         }
@@ -370,6 +370,9 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
       case TAG_EXP2:
       case TAG_COEFF:
       case TAG_PUBVAL:
+      case TAG_CREATED:
+      case TAG_PUBLISH:
+      case TAG_ACTIVATE:
       default:
         break;
     }

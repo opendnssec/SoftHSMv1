@@ -69,7 +69,11 @@ int b64_ntop(const unsigned char *, size_t, char *, size_t);
 }
 #endif
 
-// The BIND file version number.
+// The BIND file version number support for import
+#define FILE_MAJOR_VERSION_MAX  1
+#define FILE_MINOR_VERSION_MAX  3
+
+// The BIND file version number for generated output.
 #define FILE_MAJOR_VERSION	1
 #define FILE_MINOR_VERSION	2
 
@@ -103,6 +107,9 @@ static const char *file_tags[] = {
   "Public_value(y):",
   "Subprime(q):",
   "Base(g):",
+  "Created:",
+  "Publish:",
+  "Activate:",
   NULL
 };
 
@@ -123,7 +130,10 @@ enum FILE_TAGS {
   TAG_PRIVVAL,
   TAG_PUBVAL,
   TAG_SUBPRIME,
-  TAG_BASE
+  TAG_BASE,
+  TAG_CREATED,
+  TAG_PUBLISH,
+  TAG_ACTIVATE
 };
 
 #endif /* SOFTHSM_SOFTHSM_KEYCONV_H */

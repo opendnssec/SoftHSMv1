@@ -4,9 +4,11 @@ NEWS for SoftHSM -- History of user visible changes
 
 SoftHSM trunk
 
-* Added mechanism CKM_RSA_X_509
+* Added mechanism CKM_RSA_X_509 (use Botan 1.9.7 to fix a bug
+  when verifying these signatures)
 * The softhsm command now have the option --module <path>
-  To use another PKCS#11 library other than SoftHSM.
+  To use a PKCS#11 library other than SoftHSM.
+* Ticket #163: softhsm-keyconv now support BIND format v1.3
 
 
 SoftHSM 1.1.4 - 2010-04-06
