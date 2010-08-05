@@ -39,6 +39,7 @@
 #include <botan/pkcs8.h>
 #include <botan/bigint.h>
 #include <botan/if_algo.h>
+#include <botan/init.h>
 using namespace Botan;
 
 typedef struct key_material_t {

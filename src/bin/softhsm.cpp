@@ -157,6 +157,7 @@ int main(int argc, char *argv[]) {
 
   moduleHandle = NULL;
   p11 = NULL;
+  bool was_initialized = false;
 
   while ((opt = getopt_long(argc, argv, "hv", long_options, &option_index)) != -1) {
     switch (opt) {
@@ -219,6 +220,7 @@ int main(int argc, char *argv[]) {
   // No action given, display the usage.
   if(action == 0) {
     usage();
+    return 0;
   } else {
     CK_C_GetFunctionList pGetFunctionList = loadLibrary(module);
     if(pGetFunctionList == NULL) {
@@ -232,6 +234,20 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "Error: Could not initialize libsofthsm. Probably missing the configuration file.\n");
       exit(1);
     }
+  }
+
+  // The PKCS#11 library might be using Botan
+  // Check if it has already initialized Botan
+  Library_State* state = swap_global_state(0);
+  // now put it back
+  swap_global_state(state);
+
+  if(state) {
+    was_initialized = true;
+  }
+
+  if(was_initialized == false) {
+    LibraryInitializer::initialize("thread_safe=true");
   }
 
   // We should create the token.
@@ -256,6 +272,10 @@ int main(int argc, char *argv[]) {
     } else {
       exportKeyPair(outPath, filePIN, slot, userPIN, objectID);
     }
+  }
+
+  if(was_initialized == false) {
+    LibraryInitializer::deinitialize();
   }
 
   if(action) {
