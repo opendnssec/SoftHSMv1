@@ -9,6 +9,7 @@ SoftHSM trunk
 * The softhsm command now have the option --module <path>
   To use a PKCS#11 library other than SoftHSM.
 * Ticket #163: softhsm-keyconv now support BIND format v1.3
+* Write message to stderr when the config file cannot be found
 
 
 SoftHSM 1.1.4 - 2010-04-06

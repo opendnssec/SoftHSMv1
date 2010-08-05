@@ -63,6 +63,7 @@ CK_RV readConfigFile() {
     char errorMsg[1024];
     snprintf(errorMsg, sizeof(errorMsg), "Could not open the config file: %s", confPath);
 
+    fprintf(stderr, "SoftHSM: %s\n", errorMsg);
     ERROR_MSG("C_Initialize", errorMsg);
     return CKR_GENERAL_ERROR;
   }
