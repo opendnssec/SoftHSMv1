@@ -544,12 +544,14 @@ CK_OBJECT_HANDLE SoftDatabase::importPublicKey(CK_ATTRIBUTE_PTR pTemplate, CK_UL
 
   CK_BBOOL ckTrue = CK_TRUE, ckFalse = CK_FALSE;
   CK_DATE emptyDate;
+  CK_MECHANISM_TYPE mechType = CK_UNAVAILABLE_INFORMATION;
 
   // Created by db handle. So we can remove the correct session objects in the future.
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VENDOR_DEFINED, &db, sizeof(db)) != CKR_OK);
 
   // General information
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_LOCAL, &ckFalse, sizeof(ckFalse)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_KEY_GEN_MECHANISM, &mechType, sizeof(mechType)) != CKR_OK);
 
   // Default values, may be changed by the template.
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_LABEL, NULL_PTR, 0) != CKR_OK);
@@ -603,12 +605,14 @@ CK_OBJECT_HANDLE SoftDatabase::importPrivateKey(CK_ATTRIBUTE_PTR pTemplate, CK_U
 
   CK_BBOOL ckTrue = CK_TRUE, ckFalse = CK_FALSE;
   CK_DATE emptyDate;
+  CK_MECHANISM_TYPE mechType = CK_UNAVAILABLE_INFORMATION;
 
   // Created by db handle. So we can remove the correct session objects in the future.
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VENDOR_DEFINED, &db, sizeof(db)) != CKR_OK);
 
   // General information
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_LOCAL, &ckFalse, sizeof(ckFalse)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_KEY_GEN_MECHANISM, &mechType, sizeof(mechType)) != CKR_OK);
 
   // Default values, may be changed by the template.
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_LABEL, NULL_PTR, 0) != CKR_OK);

@@ -12,6 +12,8 @@ SoftHSM trunk
 * Write message to stderr when the config file cannot be found
 * CKA_WRAP_WITH_TRUSTED was not handled correctly. But it has not
   been a problem since wrapping is not supported.
+* Set CKA_KEY_GEN_MECHANISM to CK_UNAVAILABLE_INFORMATION when
+  importing objects.
 
 
 SoftHSM 1.1.4 - 2010-04-06
