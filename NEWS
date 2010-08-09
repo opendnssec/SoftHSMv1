@@ -10,6 +10,8 @@ SoftHSM trunk
   To use a PKCS#11 library other than SoftHSM.
 * Ticket #163: softhsm-keyconv now support BIND format v1.3
 * Write message to stderr when the config file cannot be found
+* CKA_WRAP_WITH_TRUSTED was not handled correctly. But it has not
+  been a problem since wrapping is not supported.
 
 
 SoftHSM 1.1.4 - 2010-04-06

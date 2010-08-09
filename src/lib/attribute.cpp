@@ -179,6 +179,7 @@ CK_RV valAttributePrivRSA(RandomNumberGenerator *rng, CK_ATTRIBUTE_PTR pTemplate
       case CKA_UNWRAP:
       case CKA_SENSITIVE:
       case CKA_EXTRACTABLE:
+      case CKA_WRAP_WITH_TRUSTED:
         // Check for the correct size
         if(pTemplate[i].ulValueLen != sizeof(CK_BBOOL)) {
           return CKR_ATTRIBUTE_VALUE_INVALID;
@@ -200,7 +201,6 @@ CK_RV valAttributePrivRSA(RandomNumberGenerator *rng, CK_ATTRIBUTE_PTR pTemplate
       case CKA_KEY_GEN_MECHANISM:
       case CKA_ALWAYS_SENSITIVE:
       case CKA_NEVER_EXTRACTABLE:
-      case CKA_WRAP_WITH_TRUSTED:
         // Must not be specified when object is created with C_CreateObject
         return CKR_ATTRIBUTE_VALUE_INVALID;
       case CKA_PUBLIC_EXPONENT:
