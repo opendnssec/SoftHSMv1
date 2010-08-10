@@ -11,10 +11,11 @@ man_MANS =		softhsm.1
 
 bin_PROGRAMS =		softhsm softhsm-keyconv
 
-softhsm_SOURCES =	softhsm.cpp
+softhsm_SOURCES =	softhsm.cpp softhsm.h
 softhsm_LDADD =		@SQLITE3_LIBS@ @BOTAN_LIBS@
 
-softhsm_keyconv_SOURCES =	softhsm-keyconv.cpp base64.c
+softhsm_keyconv_SOURCES =	softhsm-keyconv.cpp softhsm-keyconv.h \
+ 				base64.c
 softhsm_keyconv_LDADD =		@BOTAN_LIBS@ -lstdc++
 
-EXTRA_DIST =		$(srcdir)/*.h $(srcdir)/softhsm.1.in
+EXTRA_DIST =		$(srcdir)/softhsm.1.in

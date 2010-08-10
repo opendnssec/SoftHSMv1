@@ -7,23 +7,23 @@ AM_CPPFLAGS =			-I$(srcdir)/cryptoki_compat \
 				@SQLITE3_INCLUDES@
 
 lib_LTLIBRARIES =		libsofthsm.la
-libsofthsm_la_SOURCES =		main.cpp \
-				mutex.cpp \
-				file.cpp \
-				log.cpp \
-				attribute.cpp \
-				userhandling.cpp \
-				tokenhandling.cpp \
-				mechanisms.cpp \
-				SoftHSMInternal.cpp \
-				SoftSlot.cpp \
-				SoftSession.cpp \
-				SoftFind.cpp \
-				SoftDatabase.cpp \
-				SoftKeyStore.cpp
+libsofthsm_la_SOURCES =		main.cpp main.h \
+				mutex.cpp mutex.h \
+				file.cpp file.h \
+				log.cpp log.h \
+				attribute.cpp attribute.h \
+				userhandling.cpp userhandling.h \
+				tokenhandling.cpp tokenhandling.h \
+				mechanisms.cpp mechanisms.h \
+				SoftHSMInternal.cpp SoftHSMInternal.h \
+				SoftSlot.cpp SoftSlot.h \
+				SoftSession.cpp SoftSession.h \
+				SoftFind.cpp SoftFind.h \
+				SoftDatabase.cpp SoftDatabase.h \
+				SoftKeyStore.cpp SoftKeyStore.h \
+				pkcs11_unix.h \
+				util.h \
+				cryptoki_compat/pkcs11.h
 libsofthsm_la_LIBADD =		@BOTAN_LIBS@ @SQLITE3_LIBS@ @YIELD_LIB@
 libsofthsm_la_LDFLAGS =		-version-info @VERSION_INFO@ \
 				-avoid-version -module
-
-EXTRA_DIST =			$(srcdir)/*.h \
-				$(srcdir)/cryptoki_compat/*.h
