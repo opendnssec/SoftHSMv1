@@ -48,22 +48,34 @@ typedef struct key_material_t {
   CK_ULONG sizeD;
   CK_ULONG sizeP;
   CK_ULONG sizeQ;
+  CK_ULONG sizeDMP1;
+  CK_ULONG sizeDMQ1;
+  CK_ULONG sizeIQMP;
   CK_VOID_PTR bigE;
   CK_VOID_PTR bigN;
   CK_VOID_PTR bigD;
   CK_VOID_PTR bigP;
   CK_VOID_PTR bigQ;
+  CK_VOID_PTR bigDMP1;
+  CK_VOID_PTR bigDMQ1;
+  CK_VOID_PTR bigIQMP;
   key_material_t() {
     sizeE = 0;
     sizeN = 0;
     sizeD = 0;
     sizeP = 0;
     sizeQ = 0;
+    sizeDMP1 = 0;
+    sizeDMQ1 = 0;
+    sizeIQMP = 0;
     bigE = NULL_PTR;
     bigN = NULL_PTR;
     bigD = NULL_PTR;
     bigP = NULL_PTR;
     bigQ = NULL_PTR;
+    bigDMP1 = NULL_PTR;
+    bigDMQ1 = NULL_PTR;
+    bigIQMP = NULL_PTR;
   }
 } key_material_t;
 

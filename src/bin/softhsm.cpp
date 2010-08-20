@@ -616,11 +616,14 @@ void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
     { CKA_MODULUS,          keyMat->bigN, keyMat->sizeN },
     { CKA_PRIVATE_EXPONENT, keyMat->bigD, keyMat->sizeD },
     { CKA_PRIME_1,          keyMat->bigP, keyMat->sizeP },
-    { CKA_PRIME_2,          keyMat->bigQ, keyMat->sizeQ }
+    { CKA_PRIME_2,          keyMat->bigQ, keyMat->sizeQ },
+    { CKA_EXPONENT_1,       keyMat->bigDMP1, keyMat->sizeDMP1 },
+    { CKA_EXPONENT_2,       keyMat->bigDMQ1, keyMat->sizeDMQ1 },
+    { CKA_COEFFICIENT,      keyMat->bigIQMP, keyMat->sizeIQMP }
   };
 
   CK_OBJECT_HANDLE hKey1, hKey2;
-  rv = p11->C_CreateObject(hSession, privTemplate, 16, &hKey1);
+  rv = p11->C_CreateObject(hSession, privTemplate, 19, &hKey1);
   if(rv != CKR_OK) {
     freeKeyMaterial(keyMat);
     free(objID);
@@ -842,16 +845,25 @@ key_material_t* importKeyMat(char *filePath, char *filePIN) {
   keyMat->sizeD = ifKeyPriv->get_d().bytes();
   keyMat->sizeP = ifKeyPriv->get_p().bytes();
   keyMat->sizeQ = ifKeyPriv->get_q().bytes();
+  keyMat->sizeDMP1 = ifKeyPriv->get_d1().bytes();
+  keyMat->sizeDMQ1 = ifKeyPriv->get_d2().bytes();
+  keyMat->sizeIQMP = ifKeyPriv->get_c().bytes();
   keyMat->bigE = (CK_VOID_PTR)malloc(keyMat->sizeE);
   keyMat->bigN = (CK_VOID_PTR)malloc(keyMat->sizeN);
   keyMat->bigD = (CK_VOID_PTR)malloc(keyMat->sizeD);
   keyMat->bigP = (CK_VOID_PTR)malloc(keyMat->sizeP);
   keyMat->bigQ = (CK_VOID_PTR)malloc(keyMat->sizeQ);
+  keyMat->bigDMP1 = (CK_VOID_PTR)malloc(keyMat->sizeDMP1);
+  keyMat->bigDMQ1 = (CK_VOID_PTR)malloc(keyMat->sizeDMQ1);
+  keyMat->bigIQMP = (CK_VOID_PTR)malloc(keyMat->sizeIQMP);
   ifKeyPriv->get_e().binary_encode((byte *)keyMat->bigE);
   ifKeyPriv->get_n().binary_encode((byte *)keyMat->bigN);
   ifKeyPriv->get_d().binary_encode((byte *)keyMat->bigD);
   ifKeyPriv->get_p().binary_encode((byte *)keyMat->bigP);
   ifKeyPriv->get_q().binary_encode((byte *)keyMat->bigQ);
+  ifKeyPriv->get_d1().binary_encode((byte *)keyMat->bigDMP1);
+  ifKeyPriv->get_d2().binary_encode((byte *)keyMat->bigDMQ1);
+  ifKeyPriv->get_c().binary_encode((byte *)keyMat->bigIQMP);
   delete privKey;
 
   return keyMat;
@@ -876,6 +888,16 @@ void freeKeyMaterial(key_material_t *keyMaterial) {
     if(keyMaterial->bigQ != NULL) {
       free(keyMaterial->bigQ);
     }
+    if(keyMaterial->bigDMP1 != NULL) {
+      free(keyMaterial->bigDMP1);
+    }
+    if(keyMaterial->bigDMQ1 != NULL) {
+      free(keyMaterial->bigDMQ1);
+    }
+    if(keyMaterial->bigIQMP != NULL) {
+      free(keyMaterial->bigIQMP);
+    }
+
     free(keyMaterial);
   }
 }

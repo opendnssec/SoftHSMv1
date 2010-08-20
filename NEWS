@@ -8,6 +8,9 @@ SoftHSM trunk
   when verifying these signatures)
 * The softhsm command now have the option --module <path>
   To use a PKCS#11 library other than SoftHSM.
+* The softhsm command now import all parts of the RSA key.
+  CKA_EXPONENT_1, CKA_EXPONENT_2, and CKA_COEFFICIENT is not needed
+  by SoftHSM but might be needed by other HSM:s.
 * Ticket #163: softhsm-keyconv now support BIND format v1.3
 * Write message to stderr when the config file cannot be found
 * CKA_WRAP_WITH_TRUSTED was not handled correctly. But it has not
