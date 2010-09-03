@@ -33,13 +33,8 @@
 #include <sqlite3.h>
 
 // Includes for the crypto library
-#include <botan/auto_rng.h>
 #include <botan/pk_keys.h>
-#include <botan/rsa.h>
-#include <botan/pkcs8.h>
 #include <botan/bigint.h>
-#include <botan/if_algo.h>
-#include <botan/init.h>
 using namespace Botan;
 
 typedef struct key_material_t {

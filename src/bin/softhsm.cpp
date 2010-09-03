@@ -51,6 +51,16 @@
 #include <dlfcn.h>
 #endif
 
+// Includes for the crypto library
+#include <botan/auto_rng.h>
+#include <botan/rsa.h>
+#include <botan/pkcs8.h>
+#include <botan/if_algo.h>
+#include <botan/init.h>
+#include <botan/libstate.h>
+#include <botan/numthry.h>
+using namespace Botan;
+
 void usage() {
   printf("Support tool for libsofthsm\n");
   printf("Usage: softhsm [OPTIONS]\n");
@@ -839,15 +849,18 @@ key_material_t* importKeyMat(char *filePath, char *filePIN) {
   }
 
   IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(privKey);
+  BigInt d1 = ifKeyPriv->get_d() % (ifKeyPriv->get_p() - 1);
+  BigInt d2 = ifKeyPriv->get_d() % (ifKeyPriv->get_q() - 1);
+  BigInt c = inverse_mod(ifKeyPriv->get_q(), ifKeyPriv->get_p());
   key_material_t *keyMat = (key_material_t *)malloc(sizeof(key_material_t));
   keyMat->sizeE = ifKeyPriv->get_e().bytes();
   keyMat->sizeN = ifKeyPriv->get_n().bytes();
   keyMat->sizeD = ifKeyPriv->get_d().bytes();
   keyMat->sizeP = ifKeyPriv->get_p().bytes();
   keyMat->sizeQ = ifKeyPriv->get_q().bytes();
-  keyMat->sizeDMP1 = ifKeyPriv->get_d1().bytes();
-  keyMat->sizeDMQ1 = ifKeyPriv->get_d2().bytes();
-  keyMat->sizeIQMP = ifKeyPriv->get_c().bytes();
+  keyMat->sizeDMP1 = d1.bytes();
+  keyMat->sizeDMQ1 = d2.bytes();
+  keyMat->sizeIQMP = c.bytes();
   keyMat->bigE = (CK_VOID_PTR)malloc(keyMat->sizeE);
   keyMat->bigN = (CK_VOID_PTR)malloc(keyMat->sizeN);
   keyMat->bigD = (CK_VOID_PTR)malloc(keyMat->sizeD);
@@ -861,9 +874,9 @@ key_material_t* importKeyMat(char *filePath, char *filePIN) {
   ifKeyPriv->get_d().binary_encode((byte *)keyMat->bigD);
   ifKeyPriv->get_p().binary_encode((byte *)keyMat->bigP);
   ifKeyPriv->get_q().binary_encode((byte *)keyMat->bigQ);
-  ifKeyPriv->get_d1().binary_encode((byte *)keyMat->bigDMP1);
-  ifKeyPriv->get_d2().binary_encode((byte *)keyMat->bigDMQ1);
-  ifKeyPriv->get_c().binary_encode((byte *)keyMat->bigIQMP);
+  d1.binary_encode((byte *)keyMat->bigDMP1);
+  d2.binary_encode((byte *)keyMat->bigDMQ1);
+  c.binary_encode((byte *)keyMat->bigIQMP);
   delete privKey;
 
   return keyMat;
