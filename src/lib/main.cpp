@@ -240,6 +240,8 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved) {
 CK_RV C_GetInfo(CK_INFO_PTR pInfo) {
   DEBUG_MSG("C_GetInfo", "Calling");
 
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GetInfo", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
   CHECK_DEBUG_RETURN(pInfo == NULL_PTR, "C_GetInfo", "pInfo must not be a NULL_PTR",
                      CKR_ARGUMENTS_BAD);
 

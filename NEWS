@@ -17,6 +17,8 @@ SoftHSM trunk
   been a problem since wrapping is not supported.
 * Set CKA_KEY_GEN_MECHANISM to CK_UNAVAILABLE_INFORMATION when
   importing objects.
+* C_GetInfo now returns CKR_CRYPTOKI_NOT_INITIALIZED if library
+  is not initialized.
 
 
 SoftHSM 1.1.4 - 2010-04-06
