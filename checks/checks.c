@@ -257,6 +257,8 @@ void runInfoCheck(unsigned int counter) {
 
     /* No init */
 
+    rv = C_GetInfo(NULL_PTR);
+    assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
     rv = C_GetSlotList(CK_FALSE, NULL_PTR, NULL_PTR);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
     rv = C_GetSlotInfo(slotInvalid, NULL_PTR);
@@ -268,14 +270,6 @@ void runInfoCheck(unsigned int counter) {
     rv = C_GetMechanismInfo(slotInvalid, CKM_VENDOR_DEFINED, NULL_PTR);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
 
-    /* C_GetInfo */
-
-    rv = C_GetInfo(NULL_PTR);
-    assert(rv == CKR_ARGUMENTS_BAD);
-
-    rv = C_GetInfo(&ckInfo);
-    assert(rv == CKR_OK);
-
     /* C_GetFunctionList */
     
     rv = C_GetFunctionList(NULL_PTR);
@@ -284,10 +278,18 @@ void runInfoCheck(unsigned int counter) {
     rv = C_GetFunctionList(&ckFuncList);
     assert(rv == CKR_OK);
 
-    /* C_GetSlotList */
+    /* C_GetInfo */
 
     rv = C_Initialize(NULL_PTR);
     assert(rv == CKR_OK);
+
+    rv = C_GetInfo(NULL_PTR);
+    assert(rv == CKR_ARGUMENTS_BAD);
+
+    rv = C_GetInfo(&ckInfo);
+    assert(rv == CKR_OK);
+
+    /* C_GetSlotList */
 
     rv = C_GetSlotList(CK_FALSE, NULL_PTR, NULL_PTR);
     assert(rv == CKR_ARGUMENTS_BAD);
