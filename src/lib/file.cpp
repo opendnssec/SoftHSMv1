@@ -43,13 +43,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <memory>
 
-extern SoftHSMInternal *softHSM;
+extern std::auto_ptr<SoftHSMInternal> state;
 
 // Reads the config file
 
 CK_RV readConfigFile() {
   FILE *fp;
+  SoftHSMInternal *softHSM = state.get();
 
   const char *confPath = getenv("SOFTHSM_CONF");
 

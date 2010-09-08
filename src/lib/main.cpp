@@ -49,6 +49,7 @@
 // Standard includes
 #include <stdio.h>
 #include <stdlib.h>
+#include <memory>
 
 // C POSIX library header
 #include <sys/time.h>
@@ -70,7 +71,7 @@
 using namespace Botan;
 
 // Keeps the internal state
-SoftHSMInternal *softHSM = NULL_PTR;
+std::auto_ptr<SoftHSMInternal> state(NULL);
 
 // A list with Cryptoki version number
 // and pointers to the API functions.
@@ -152,9 +153,10 @@ extern CK_FUNCTION_LIST function_list;
 CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
   DEBUG_MSG("C_Initialize", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM != NULL_PTR, "C_Initialize", "Already initialized",
+  CHECK_DEBUG_RETURN(state.get() != NULL, "C_Initialize", "Already initialized",
                      CKR_CRYPTOKI_ALREADY_INITIALIZED);
 
+  SoftHSMInternal *softHSM = NULL;
   CK_C_INITIALIZE_ARGS_PTR args = (CK_C_INITIALIZE_ARGS_PTR)pInitArgs;
 
   // Do we have any arguments?
@@ -197,11 +199,12 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
     softHSM = new SoftHSMInternal(false);
   }
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_Initialize", "Coult not allocate memory", CKR_HOST_MEMORY);
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_Initialize", "Coult not allocate memory", CKR_HOST_MEMORY);
+  state = std::auto_ptr<SoftHSMInternal>(softHSM);
 
   CK_RV rv = readConfigFile();
   if(rv != CKR_OK) {
-    delete softHSM;
+    state.reset(NULL);
     DEBUG_MSG("C_Initialize", "Error in config file");
     return rv;
   }
@@ -222,11 +225,10 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved) {
   CHECK_DEBUG_RETURN(pReserved != NULL_PTR, "C_Finalize", "pReserved must be NULL_PTR",
                      CKR_ARGUMENTS_BAD);
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_Finalize", "Library is not initialized",
+  CHECK_DEBUG_RETURN(state.get() == NULL, "C_Finalize", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  delete softHSM;
-  softHSM = NULL_PTR;
+  state.reset(NULL);
 
   // Deinitialize the Botan crypto lib
   LibraryInitializer::deinitialize();
@@ -240,7 +242,7 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved) {
 CK_RV C_GetInfo(CK_INFO_PTR pInfo) {
   DEBUG_MSG("C_GetInfo", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GetInfo", "Library is not initialized",
+  CHECK_DEBUG_RETURN(state.get() == NULL, "C_GetInfo", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
   CHECK_DEBUG_RETURN(pInfo == NULL_PTR, "C_GetInfo", "pInfo must not be a NULL_PTR",
                      CKR_ARGUMENTS_BAD);
@@ -280,7 +282,8 @@ CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList) {
 CK_RV C_GetSlotList(CK_BBOOL tokenPresent, CK_SLOT_ID_PTR pSlotList, CK_ULONG_PTR pulCount) {
   DEBUG_MSG("C_GetSlotList", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GetSlotList", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_GetSlotList", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
   CHECK_DEBUG_RETURN(pulCount == NULL_PTR, "C_GetSlotList", "pulCount must not be a NULL_PTR",
                      CKR_ARGUMENTS_BAD);
@@ -344,7 +347,8 @@ CK_RV C_GetSlotList(CK_BBOOL tokenPresent, CK_SLOT_ID_PTR pSlotList, CK_ULONG_PT
 CK_RV C_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
   DEBUG_MSG("C_GetSlotInfo", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GetSlotInfo", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_GetSlotInfo", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
   CHECK_DEBUG_RETURN(pInfo == NULL_PTR, "C_GetSlotInfo", "pInfo must not be a NULL_PTR",
                      CKR_ARGUMENTS_BAD);
@@ -374,7 +378,8 @@ CK_RV C_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
 CK_RV C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
   DEBUG_MSG("C_GetTokenInfo", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GetTokenInfo", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_GetTokenInfo", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
   CHECK_DEBUG_RETURN(pInfo == NULL_PTR, "C_GetTokenInfo", "pInfo must not be a NULL_PTR",
                      CKR_ARGUMENTS_BAD);
@@ -429,7 +434,8 @@ CK_RV C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
 CK_RV C_GetMechanismList(CK_SLOT_ID slotID, CK_MECHANISM_TYPE_PTR pMechanismList, CK_ULONG_PTR pulCount) {
   DEBUG_MSG("C_GetMechanismList", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GetMechanismList", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_GetMechanismList", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
   CHECK_DEBUG_RETURN(pulCount == NULL_PTR, "C_GetMechanismList", "pulCount must not be a NULL_PTR",
                      CKR_ARGUMENTS_BAD);
@@ -468,7 +474,8 @@ CK_RV C_GetMechanismList(CK_SLOT_ID slotID, CK_MECHANISM_TYPE_PTR pMechanismList
 CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type, CK_MECHANISM_INFO_PTR pInfo) {
   DEBUG_MSG("C_GetMechanismInfo", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GetMechanismInfo", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_GetMechanismInfo", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   SoftSlot *currentSlot = softHSM->slots->getSlot(slotID);
@@ -482,7 +489,8 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type, CK_MECHANISM
 CK_RV C_InitToken(CK_SLOT_ID slotID, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen, CK_UTF8CHAR_PTR pLabel) {
   DEBUG_MSG("C_InitToken", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_InitToken", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_InitToken", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -495,7 +503,8 @@ CK_RV C_InitToken(CK_SLOT_ID slotID, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen, CK
 CK_RV C_InitPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen) {
   DEBUG_MSG("C_InitPIN", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_InitPIN", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_InitPIN", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -508,7 +517,8 @@ CK_RV C_InitPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPin
 CK_RV C_SetPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pOldPin, CK_ULONG ulOldLen, CK_UTF8CHAR_PTR pNewPin, CK_ULONG ulNewLen) {
   DEBUG_MSG("C_SetPIN", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_SetPIN", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_SetPIN", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -523,7 +533,8 @@ CK_RV C_SetPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pOldPin, CK_ULONG ulO
 CK_RV C_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags, CK_VOID_PTR pApplication, CK_NOTIFY Notify, CK_SESSION_HANDLE_PTR phSession) {
   DEBUG_MSG("C_OpenSession", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_OpenSession", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_OpenSession", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -538,7 +549,8 @@ CK_RV C_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags, CK_VOID_PTR pApplication,
 CK_RV C_CloseSession(CK_SESSION_HANDLE hSession) {
   DEBUG_MSG("C_CloseSession", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_CloseSession", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_CloseSession", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -553,7 +565,8 @@ CK_RV C_CloseSession(CK_SESSION_HANDLE hSession) {
 CK_RV C_CloseAllSessions(CK_SLOT_ID slotID) {
   DEBUG_MSG("C_CloseAllSessions", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_CloseAllSessions", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_CloseAllSessions", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -568,7 +581,8 @@ CK_RV C_CloseAllSessions(CK_SLOT_ID slotID) {
 CK_RV C_GetSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INFO_PTR pInfo) {
   DEBUG_MSG("C_GetSessionInfo", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GetSessionInfo", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_GetSessionInfo", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -598,7 +612,8 @@ CK_RV C_SetOperationState(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG, CK_OBJECT_HA
 CK_RV C_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen) {
   DEBUG_MSG("C_Login", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_Login", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_Login", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -614,7 +629,8 @@ CK_RV C_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, CK_UTF8CHAR_PTR
 CK_RV C_Logout(CK_SESSION_HANDLE hSession) {
   DEBUG_MSG("C_Logout", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_Logout", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_Logout", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -627,7 +643,8 @@ CK_RV C_Logout(CK_SESSION_HANDLE hSession) {
 CK_RV C_CreateObject(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount, CK_OBJECT_HANDLE_PTR phObject) {
   DEBUG_MSG("C_CreateObject", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_CreateObject", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_CreateObject", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -649,7 +666,8 @@ CK_RV C_CopyObject(CK_SESSION_HANDLE, CK_OBJECT_HANDLE, CK_ATTRIBUTE_PTR, CK_ULO
 CK_RV C_DestroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject) {
   DEBUG_MSG("C_DestroyObject", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_DestroyObject", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_DestroyObject", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -671,7 +689,8 @@ CK_RV C_GetObjectSize(CK_SESSION_HANDLE, CK_OBJECT_HANDLE, CK_ULONG_PTR) {
 CK_RV C_GetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
   DEBUG_MSG("C_GetAttributeValue", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GetAttributeValue", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_GetAttributeValue", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -687,7 +706,8 @@ CK_RV C_GetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
 CK_RV C_SetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
   DEBUG_MSG("C_SetAttributeValue", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_SetAttributeValue", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_SetAttributeValue", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -703,7 +723,8 @@ CK_RV C_SetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
 CK_RV C_FindObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
   DEBUG_MSG("C_FindObjectsInit", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_FindObjectsInit", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_FindObjectsInit", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -718,7 +739,8 @@ CK_RV C_FindObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, 
 CK_RV C_FindObjects(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE_PTR phObject, CK_ULONG ulMaxObjectCount, CK_ULONG_PTR pulObjectCount) {
   DEBUG_MSG("C_FindObjects", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_FindObjects", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_FindObjects", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -767,7 +789,8 @@ CK_RV C_FindObjects(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE_PTR phObject, C
 CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE hSession) {
   DEBUG_MSG("C_FindObjectsFinal", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_FindObjectsFinal", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_FindObjectsFinal", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -859,7 +882,8 @@ CK_RV C_DecryptFinal(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG_PTR) {
 CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
   DEBUG_MSG("C_DigestInit", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_DigestInit", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_DigestInit", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -957,7 +981,8 @@ CK_RV C_Digest(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
       CK_BYTE_PTR pDigest, CK_ULONG_PTR pulDigestLen) {
   DEBUG_MSG("C_Digest", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_Digest", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_Digest", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -1033,7 +1058,8 @@ CK_RV C_Digest(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
 CK_RV C_DigestUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen) {
   DEBUG_MSG("C_DigestUpdate", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_DigestUpdate", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_DigestUpdate", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -1082,7 +1108,8 @@ CK_RV C_DigestKey(CK_SESSION_HANDLE, CK_OBJECT_HANDLE) {
 CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest, CK_ULONG_PTR pulDigestLen) {
   DEBUG_MSG("C_DigestFinal", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_DigestFinal", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_DigestFinal", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -1149,7 +1176,8 @@ CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest, CK_ULONG_PT
 CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
   DEBUG_MSG("C_SignInit", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_SignInit", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_SignInit", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -1362,7 +1390,8 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
       CK_ULONG_PTR pulSignatureLen) {
   DEBUG_MSG("C_Sign", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_Sign", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_Sign", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -1499,7 +1528,8 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
 CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen) {
   DEBUG_MSG("C_SignUpdate", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_SignUpdate", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_SignUpdate", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -1551,7 +1581,8 @@ CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPar
 CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_PTR pulSignatureLen) {
   DEBUG_MSG("C_SignFinal", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_SignFinal", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_SignFinal", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -1700,7 +1731,8 @@ CK_RV C_SignRecover(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG, CK_BYTE_PTR, CK_UL
 CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
   DEBUG_MSG("C_VerifyInit", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_VerifyInit", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_VerifyInit", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -1878,7 +1910,8 @@ CK_RV C_Verify(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
       CK_ULONG ulSignatureLen) {
   DEBUG_MSG("C_Verify", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_Verify", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_Verify", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -1947,7 +1980,8 @@ CK_RV C_Verify(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
 CK_RV C_VerifyUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen) {
   DEBUG_MSG("C_VerifyUpdate", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_VerifyUpdate", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_VerifyUpdate", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -1996,7 +2030,8 @@ CK_RV C_VerifyUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulP
 CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG ulSignatureLen) {
   DEBUG_MSG("C_VerifyFinal", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_VerifyFinal", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_VerifyFinal", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -2121,7 +2156,8 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
       CK_OBJECT_HANDLE_PTR phPublicKey, CK_OBJECT_HANDLE_PTR phPrivateKey) {
   DEBUG_MSG("C_GenerateKeyPair", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GenerateKeyPair", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_GenerateKeyPair", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -2221,7 +2257,8 @@ CK_RV C_DeriveKey(CK_SESSION_HANDLE, CK_MECHANISM_PTR, CK_OBJECT_HANDLE, CK_ATTR
 CK_RV C_SeedRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSeed, CK_ULONG ulSeedLen) {
   DEBUG_MSG("C_SeedRandom", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_SeedRandom", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_SeedRandom", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
@@ -2260,7 +2297,8 @@ CK_RV C_SeedRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSeed, CK_ULONG ulSee
 CK_RV C_GenerateRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pRandomData, CK_ULONG ulRandomLen) {
   DEBUG_MSG("C_GenerateRandom", "Calling");
 
-  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GenerateRandom", "Library is not initialized",
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_GenerateRandom", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
