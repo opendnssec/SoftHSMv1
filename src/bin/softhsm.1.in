@@ -160,7 +160,7 @@ and
 .BR \-\-id .
 .TP
 .B \-\-optimize
-Clean up leftovers (session objects) from applications
+Clean up leftovers (session objects in the database) from applications
 that haven't closed down properly. Cannot be used in 
 combination with 
 .BR \-\-module .

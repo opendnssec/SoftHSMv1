@@ -79,8 +79,8 @@ void usage() {
   printf("                    thus not using PKCS#11.\n");
   printf("                    Use with --file-pin (will encrypt file), --slot, --id\n");
   printf("                    and --pin.\n");
-  printf("  --optimize        Clean up leftovers (session objects) from applications\n");
-  printf("                    that haven't closed down properly.\n");
+  printf("  --optimize        Clean up leftovers (session objects in the database) from\n");
+  printf("                    applications that haven't closed down properly.\n");
   printf("                    Cannot be used in combination with --module.\n");
   printf("                    Use with --slot and --pin.\n");
   printf("                    WARNING: Make sure that no application is currently\n");
