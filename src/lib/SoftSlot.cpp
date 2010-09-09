@@ -112,7 +112,7 @@ CK_SLOT_ID SoftSlot::getSlotID() {
 void SoftSlot::readDB() {
   tokenFlags = CKF_RNG | CKF_LOGIN_REQUIRED | CKF_CLOCK_ON_TOKEN;
 
-  SoftDatabase *db = new SoftDatabase();
+  SoftDatabase *db = new SoftDatabase(NULL);
   CK_RV rv = db->init(dbPath);
 
   if(rv == CKR_TOKEN_NOT_PRESENT) {

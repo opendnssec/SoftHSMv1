@@ -19,6 +19,8 @@ SoftHSM trunk
   importing objects.
 * C_GetInfo now returns CKR_CRYPTOKI_NOT_INITIALIZED if library
   is not initialized.
+* Force clean up if the app does not do C_Finalize (using auto_ptr)
+* Limit the scope of the session objects to the owner application
 
 
 SoftHSM 1.1.4 - 2010-04-06

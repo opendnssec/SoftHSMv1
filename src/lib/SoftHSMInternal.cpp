@@ -45,6 +45,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 // Includes for the crypto library
 #include <botan/pipe.h>
@@ -70,6 +72,13 @@ SoftHSMInternal::SoftHSMInternal(bool threading, CK_CREATEMUTEX cMutex,
   this->createMutex(&pHSMMutex);
 
   slots = new SoftSlot();
+
+  time_t rawtime;
+  time(&rawtime);
+  char dateTime[15];
+  strftime(dateTime, 15, "%Y%m%d%H%M%S", gmtime(&rawtime));
+
+  snprintf(appID, 32, "%s-%010i", dateTime, getpid());
 }
 
 SoftHSMInternal::~SoftHSMInternal() {
@@ -116,7 +125,7 @@ CK_RV SoftHSMInternal::openSession(CK_SLOT_ID slotID, CK_FLAGS flags, CK_VOID_PT
 
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] == NULL_PTR) {
-      sessions[i] = new SoftSession(flags & CKF_RW_SESSION, currentSlot);
+      sessions[i] = new SoftSession(flags & CKF_RW_SESSION, currentSlot, appID);
 
       // Check that we have a connection
       if(sessions[i]->db == NULL_PTR) {

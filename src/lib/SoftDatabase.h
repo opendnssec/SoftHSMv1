@@ -51,7 +51,7 @@ using namespace Botan;
 
 class SoftDatabase {
   public:
-    SoftDatabase();
+    SoftDatabase(char *appID);
     ~SoftDatabase();
 
     CK_RV init(char *dbPath);
@@ -69,6 +69,7 @@ class SoftDatabase {
     CK_RV setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate);
     CK_OBJECT_HANDLE* getMatchingObjects(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount, CK_ULONG *objectCount);
     CK_BBOOL hasObject(CK_OBJECT_HANDLE objectRef);
+    CK_BBOOL checkAccessObj(CK_OBJECT_HANDLE objectRef);
 
     CK_OBJECT_HANDLE addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
       CK_ULONG ulPublicKeyAttributeCount);
@@ -84,6 +85,7 @@ class SoftDatabase {
 
   private:
     sqlite3 *db;
+    char *appID;
 
     // Prepared statements
     sqlite3_stmt *token_info_sql;

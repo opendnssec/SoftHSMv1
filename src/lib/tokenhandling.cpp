@@ -127,7 +127,7 @@ CK_RV softInitToken(SoftSlot *currentSlot, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinL
   sqlite3_close(db);
 
   // Open a connection to the new db
-  SoftDatabase *softDB = new SoftDatabase();
+  SoftDatabase *softDB = new SoftDatabase(NULL);
   if(softDB->init(currentSlot->dbPath) != CKR_OK) {
     free(soPIN);
     delete softDB;

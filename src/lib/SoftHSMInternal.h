@@ -103,6 +103,8 @@ class SoftHSMInternal {
     CK_RV createMutex(CK_VOID_PTR_PTR newMutex);
     CK_RV destroyMutex(CK_VOID_PTR mutex);
     CK_VOID_PTR pHSMMutex;
+
+    char appID[32];
 };
 
 #endif /* SOFTHSM_SOFTHSMINTERNAL_H */

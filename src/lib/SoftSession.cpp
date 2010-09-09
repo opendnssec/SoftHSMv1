@@ -41,7 +41,7 @@
 #include <botan/rsa.h>
 using namespace Botan;
 
-SoftSession::SoftSession(CK_FLAGS rwSession, SoftSlot *givenSlot) {
+SoftSession::SoftSession(CK_FLAGS rwSession, SoftSlot *givenSlot, char *appID) {
   pApplication = NULL_PTR;
   Notify = NULL_PTR;
 
@@ -79,7 +79,7 @@ SoftSession::SoftSession(CK_FLAGS rwSession, SoftSlot *givenSlot) {
 
   currentSlot = givenSlot;
 
-  db = new SoftDatabase();
+  db = new SoftDatabase(appID);
   if(db->init(currentSlot->dbPath) != CKR_OK) {
     delete db;
     db = NULL_PTR;

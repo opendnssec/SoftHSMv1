@@ -64,7 +64,7 @@ using std::string;
   }
 
 
-SoftDatabase::SoftDatabase() {
+SoftDatabase::SoftDatabase(char *appID) {
   db = NULL_PTR;
   token_info_sql = NULL;
   insert_token_info_sql = NULL;
@@ -77,6 +77,7 @@ SoftDatabase::SoftDatabase() {
   select_session_obj_sql = NULL;
   delete_object_sql = NULL;
   select_an_attribute_sql = NULL;
+  this->appID = appID;
 }
 
 SoftDatabase::~SoftDatabase() {
@@ -299,8 +300,9 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE
   CK_BBOOL ckTrue = CK_TRUE, ckFalse = CK_FALSE;
   CK_DATE emptyDate;
 
-  // Created by db handle. So we can remove the correct session objects in the future.
+  // Created by db handle and application. So we can remove the correct session objects in the future.
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VENDOR_DEFINED, &db, sizeof(db)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VENDOR_DEFINED+1, appID, strlen(appID)) != CKR_OK);
 
   // General information
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_CLASS, &oClass, sizeof(oClass)) != CKR_OK);
@@ -408,8 +410,9 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(RSA_PrivateKey *rsaKey, CK_ATTRIBUT
   CK_BBOOL ckTrue = CK_TRUE, ckFalse = CK_FALSE;
   CK_DATE emptyDate;
 
-  // Created by db handle. So we can remove the correct session objects in the future.
+  // Created by db handle and application. So we can remove the correct session objects in the future.
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VENDOR_DEFINED, &db, sizeof(db)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VENDOR_DEFINED+1, appID, strlen(appID)) != CKR_OK);
 
   // General information
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_CLASS, &oClass, sizeof(oClass)) != CKR_OK);
@@ -546,8 +549,9 @@ CK_OBJECT_HANDLE SoftDatabase::importPublicKey(CK_ATTRIBUTE_PTR pTemplate, CK_UL
   CK_DATE emptyDate;
   CK_MECHANISM_TYPE mechType = CK_UNAVAILABLE_INFORMATION;
 
-  // Created by db handle. So we can remove the correct session objects in the future.
+  // Created by db handle and application. So we can remove the correct session objects in the future.
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VENDOR_DEFINED, &db, sizeof(db)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VENDOR_DEFINED+1, appID, strlen(appID)) != CKR_OK);
 
   // General information
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_LOCAL, &ckFalse, sizeof(ckFalse)) != CKR_OK);
@@ -607,8 +611,9 @@ CK_OBJECT_HANDLE SoftDatabase::importPrivateKey(CK_ATTRIBUTE_PTR pTemplate, CK_U
   CK_DATE emptyDate;
   CK_MECHANISM_TYPE mechType = CK_UNAVAILABLE_INFORMATION;
 
-  // Created by db handle. So we can remove the correct session objects in the future.
+  // Created by db handle and application. So we can remove the correct session objects in the future.
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VENDOR_DEFINED, &db, sizeof(db)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VENDOR_DEFINED+1, appID, strlen(appID)) != CKR_OK);
 
   // General information
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_LOCAL, &ckFalse, sizeof(ckFalse)) != CKR_OK);
@@ -892,6 +897,7 @@ CK_OBJECT_HANDLE* SoftDatabase::getMatchingObjects(CK_ATTRIBUTE_PTR pTemplate, C
   int max_object_count = 8;
   int counter = 0;
   CK_OBJECT_HANDLE *objects = NULL;
+  CK_OBJECT_HANDLE objectRef;
   int retSQL = 0;
 
   // Construct the query
@@ -920,12 +926,20 @@ CK_OBJECT_HANDLE* SoftDatabase::getMatchingObjects(CK_ATTRIBUTE_PTR pTemplate, C
   // Get the results
   while((retSQL = sqlite3_step(stmt)) == SQLITE_BUSY || retSQL == SQLITE_ROW) {
     if(retSQL == SQLITE_ROW) {
+      objectRef = (CK_OBJECT_HANDLE)sqlite3_column_int(stmt, 0);
+
+      // Check access
+      if (checkAccessObj(objectRef) == CK_FALSE) {
+        continue;
+      }
+
       // Increase the size if needed.
       if(counter == max_object_count) {
         max_object_count = max_object_count * 4;
         objects = (CK_OBJECT_HANDLE*)realloc(objects, max_object_count * sizeof(CK_OBJECT_HANDLE));
       }
-      objects[counter] = (CK_OBJECT_HANDLE)sqlite3_column_int(stmt, 0);
+
+      objects[counter] = objectRef;
       counter++;
     } else {
       sched_yield();
@@ -958,12 +972,54 @@ CK_BBOOL SoftDatabase::hasObject(CK_OBJECT_HANDLE objectRef) {
     sched_yield();
   }
 
-  // Check object id
+  // Check if this application can access the object
   if(retSQL == SQLITE_ROW) {
-    retVal = CK_TRUE;
+    retVal = checkAccessObj(objectRef);
   } 
 
   sqlite3_reset(select_object_id_sql);
+
+  return retVal;
+}
+
+// Check if the object can be accessed by this application
+
+CK_BBOOL SoftDatabase::checkAccessObj(CK_OBJECT_HANDLE objectRef) {
+  CK_BBOOL retVal = CK_TRUE;
+  int retSQL = 0;
+  CK_VOID_PTR pValue = NULL_PTR;
+  CK_ULONG length = 0;
+
+  // Allow access to token objects
+  if(getBooleanAttribute(objectRef, CKA_TOKEN, CK_TRUE) == CK_TRUE) {
+    return CK_TRUE;
+  }
+
+  sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
+  sqlite3_bind_int(select_an_attribute_sql, 2, CKA_VENDOR_DEFINED+1);
+
+  // Get result
+  while((retSQL = sqlite3_step(select_an_attribute_sql)) == SQLITE_BUSY) {
+    sched_yield();
+  }
+
+  // Get attribute
+  if(retSQL == SQLITE_ROW) {
+    pValue = (CK_VOID_PTR)sqlite3_column_blob(select_an_attribute_sql, 0);
+    length = sqlite3_column_int(select_an_attribute_sql, 1);
+  }
+
+  // Check if we have a matching application ID
+  if(pValue != NULL_PTR &&
+     appID != NULL &&
+     length == strlen(appID) && 
+     memcmp(pValue, appID, length) == 0) {
+    retVal = CK_TRUE;
+  } else {
+    retVal = CK_FALSE;
+  }
+
+  sqlite3_reset(select_an_attribute_sql);
 
   return retVal;
 }

@@ -58,7 +58,7 @@ class SoftSlot;
 
 class SoftSession {
   public:
-    SoftSession(CK_FLAGS rwSession, SoftSlot *givenSlot);
+    SoftSession(CK_FLAGS rwSession, SoftSlot *givenSlot, char *appID);
     ~SoftSession();
 
     SoftSlot *currentSlot;
