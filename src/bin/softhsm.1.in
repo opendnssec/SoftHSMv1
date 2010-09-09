@@ -46,6 +46,10 @@ softhsm \- support tool for libsofthsm
 .I hex
 .br
 .B softhsm \-\-optimize
+.B \-\-slot
+.I number
+.B \-\-pin
+.I PIN
 .SH DESCRIPTION
 .B softhsm
 is a support tool for libsofthsm.
