@@ -21,6 +21,8 @@ SoftHSM trunk
   is not initialized.
 * Force clean up if the app does not do C_Finalize (using auto_ptr)
 * Limit the scope of the session objects to the owner application
+* softhsm --optimize will clean up leftovers (session objects)
+  from applications that haven't closed down properly.
 
 
 SoftHSM 1.1.4 - 2010-04-06
