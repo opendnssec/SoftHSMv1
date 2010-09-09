@@ -47,6 +47,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <fstream>
+#include <sched.h>
 #if defined(HAVE_DLOPEN)
 #include <dlfcn.h>
 #endif
