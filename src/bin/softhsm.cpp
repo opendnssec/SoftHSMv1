@@ -79,6 +79,12 @@ void usage() {
   printf("                    thus not using PKCS#11.\n");
   printf("                    Use with --file-pin (will encrypt file), --slot, --id\n");
   printf("                    and --pin.\n");
+  printf("  --optimize        Clean up leftovers (session objects) from applications\n");
+  printf("                    that haven't closed down properly.\n");
+  printf("                    Cannot be used in combination with --module.\n");
+  printf("                    Use with --slot and --pin.\n");
+  printf("                    WARNING: Make sure that no application is currently\n");
+  printf("                    using SoftHSM and session objects.\n");
   printf("  --file-pin <PIN>  Supply a PIN if the file is encrypted.\n");
   printf("  --force           Override some warnings.\n");
   printf("  -h                Shows this help screen.\n");
@@ -114,6 +120,7 @@ enum {
   OPT_INIT_TOKEN,
   OPT_IMPORT,
   OPT_EXPORT,
+  OPT_OPTIMIZE,
   OPT_SLOT,
   OPT_LABEL,
   OPT_MODULE,
@@ -131,6 +138,7 @@ static const struct option long_options[] = {
   { "init-token",      0, NULL, OPT_INIT_TOKEN },
   { "import",          1, NULL, OPT_IMPORT },
   { "export",          1, NULL, OPT_EXPORT },
+  { "optimize",        0, NULL, OPT_OPTIMIZE },
   { "slot",            1, NULL, OPT_SLOT },
   { "label",           1, NULL, OPT_LABEL },
   { "module",          1, NULL, OPT_MODULE },
@@ -163,6 +171,7 @@ int main(int argc, char *argv[]) {
   int doShowSlots = 0;
   int doImport = 0;
   int doExport = 0;
+  int doOptimize = 0;
   int action = 0;
 
   moduleHandle = NULL;
@@ -188,6 +197,10 @@ int main(int argc, char *argv[]) {
         doExport = 1;
         action++;
         outPath = optarg;
+        break;
+      case OPT_OPTIMIZE:
+        doOptimize = 1;
+        action++;
         break;
       case OPT_SLOT:
         slot = optarg;
@@ -281,6 +294,15 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "Error: Cannot perform export in combination with the module option.\n");
     } else {
       exportKeyPair(outPath, filePIN, slot, userPIN, objectID);
+    }
+  }
+
+  // Remove session objects
+  if(doOptimize) {
+    if(module) {
+      fprintf(stderr, "Error: Cannot perform optimization in combination with the module option.\n");
+    } else {
+      optimize(slot, userPIN);
     }
   }
 
@@ -737,6 +759,100 @@ void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
   }
 
   delete privKey;
+}
+
+void optimize(char *slot, char *userPIN) {
+  if(slot == NULL) {
+    fprintf(stderr, "Error: A slot number must be supplied. Use --slot <number>\n");
+    return;
+  }
+
+  if(userPIN == NULL) {
+    fprintf(stderr, "Error: An user PIN must be supplied. Use --pin <PIN>\n");
+    return;
+  }
+
+  CK_SLOT_ID slotID = atoi(slot);
+  CK_SESSION_HANDLE hSession;
+  CK_RV rv = p11->C_OpenSession(slotID, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession);
+  if(rv != CKR_OK) {
+    if(rv == CKR_SLOT_ID_INVALID) {
+      fprintf(stderr, "Error: The given slot does not exist.\n");
+    } else {
+      fprintf(stderr, "Error: Could not open a session on the given slot.\n");
+    }
+    return;
+  }
+
+  rv = p11->C_Login(hSession, CKU_USER, (CK_UTF8CHAR_PTR)userPIN, strlen(userPIN));
+  if(rv != CKR_OK) {
+    if(rv == CKR_PIN_INCORRECT) {
+      fprintf(stderr, "Error: The given user PIN does not match the one in the token.\n");
+    } else {
+      fprintf(stderr, "Error: Could not log in on the token.\n");
+    }
+    return;
+  }
+
+  // Get the path to the token database
+  char *dbPath = getDBPath(slotID);
+  if(dbPath == NULL) {
+    return;
+  }
+
+  if(!removeSessionObjs(dbPath)) {
+    printf("Removed all session objects.\n");
+  }
+
+  free(dbPath);
+}
+
+int removeSessionObjs(char *dbPath) {
+  sqlite3 *db = NULL;
+  const char select_str[] = "SELECT objectID FROM Attributes WHERE type = ? AND value = ?;";
+  const char delete_str[] = "DELETE FROM Objects WHERE objectID = ?;";
+  sqlite3_stmt *select_sql = NULL;
+  sqlite3_stmt *delete_sql = NULL;
+  CK_BBOOL ckFalse = CK_FALSE;
+  int retVal = 0;
+
+  if(sqlite3_open(dbPath, &db) != 0) {
+    fprintf(stderr, "ERROR: Could not connect to database.\n");
+  }
+
+  if(sqlite3_prepare_v2(db, select_str, -1, &select_sql, NULL) != 0) {
+    fprintf(stderr, "ERROR: Could not prepare a SQL statement.\n");
+    sqlite3_close(db);
+    return 1;
+  }
+
+  if(sqlite3_prepare_v2(db, delete_str, -1, &delete_sql, NULL) != 0) {
+    fprintf(stderr, "ERROR: Could not prepare a SQL statement.\n");
+    sqlite3_finalize(select_sql);
+    sqlite3_close(db);
+    return 1;
+  }
+
+  sqlite3_bind_int(select_sql, 1, CKA_TOKEN);
+  sqlite3_bind_blob(select_sql, 2, &ckFalse, sizeof(ckFalse), SQLITE_TRANSIENT);
+
+  while((retVal = sqlite3_step(select_sql)) == SQLITE_BUSY || retVal == SQLITE_ROW) {
+    if(retVal == SQLITE_ROW) {
+      sqlite3_bind_int(delete_sql, 1, sqlite3_column_int(select_sql, 0));
+      while(sqlite3_step(delete_sql) == SQLITE_BUSY) {
+        sched_yield();
+      }
+      sqlite3_reset(delete_sql);
+    } else {
+      sched_yield();
+    }
+  }
+
+  sqlite3_finalize(delete_sql);
+  sqlite3_finalize(select_sql);
+  sqlite3_close(db);
+
+  return 0;
 }
 
 // Convert a char array of hexadecimal characters into a binary representation

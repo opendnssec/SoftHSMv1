@@ -81,6 +81,7 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN);
 void showSlots();
 void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectLabel, char *objectID, int forceExec);
 void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectID);
+void optimize(char *slot, char *userPIN);
 
 // Support functions
 
@@ -97,6 +98,7 @@ Private_Key* getPrivKey(char *dbPath, CK_OBJECT_HANDLE oHandle);
 CK_KEY_TYPE getKeyType(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDLE objectRef);
 CK_OBJECT_CLASS getObjectClass(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDLE objectRef);
 BigInt getBigIntAttribute(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type);
+int removeSessionObjs(char *dbPath);
 
 /// Config
 char* getDBPath(CK_SLOT_ID slotID);

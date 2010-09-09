@@ -44,6 +44,8 @@ softhsm \- support tool for libsofthsm
 .I PIN
 .B \-\-id
 .I hex
+.br
+.B softhsm \-\-optimize
 .SH DESCRIPTION
 .B softhsm
 is a support tool for libsofthsm.
@@ -152,6 +154,17 @@ Use with
 .BR \-\-pin ,
 and
 .BR \-\-id .
+.TP
+.B \-\-optimize
+Clean up leftovers (session objects) from applications
+that haven't closed down properly. Cannot be used in 
+combination with 
+.BR \-\-module .
+.br
+Use with
+.BR \-\-slot
+and
+.BR \-\-pin .
 .TP
 .B \-\-file-pin \fIPIN\fR
 The
