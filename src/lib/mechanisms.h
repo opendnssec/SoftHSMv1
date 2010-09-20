@@ -32,7 +32,7 @@
 #include "pkcs11.h"
 
 // The number of supported mechanisms
-#define NR_SUPPORTED_MECHANISMS 14
+#define NR_SUPPORTED_MECHANISMS 15
 
 // A list with the supported mechanisms
 static CK_MECHANISM_TYPE supportedMechanisms[] = {
