@@ -45,13 +45,13 @@ CK_RV getMechanismInfo(CK_MECHANISM_TYPE type, CK_MECHANISM_INFO_PTR pInfo) {
     case CKM_RSA_PKCS_KEY_PAIR_GEN:
       pInfo->ulMinKeySize = 512;
       pInfo->ulMaxKeySize = 4096;
-      pInfo->flags = CKF_GENERATE_KEY_PAIR | CKF_HW;
+      pInfo->flags = CKF_GENERATE_KEY_PAIR;
       break;
     case CKM_RSA_PKCS:
     case CKM_RSA_X_509:
       pInfo->ulMinKeySize = 512;
       pInfo->ulMaxKeySize = 4096;
-      pInfo->flags = CKF_SIGN | CKF_VERIFY | CKF_HW;
+      pInfo->flags = CKF_SIGN | CKF_VERIFY;
       break;
     case CKM_MD5:
     case CKM_RIPEMD160:
@@ -59,7 +59,9 @@ CK_RV getMechanismInfo(CK_MECHANISM_TYPE type, CK_MECHANISM_INFO_PTR pInfo) {
     case CKM_SHA256:
     case CKM_SHA384:
     case CKM_SHA512:
-      pInfo->flags = CKF_DIGEST | CKF_HW;
+      pInfo->ulMinKeySize = 0;
+      pInfo->ulMaxKeySize = 0;
+      pInfo->flags = CKF_DIGEST;
       break;
     case CKM_MD5_RSA_PKCS:
     case CKM_RIPEMD160_RSA_PKCS:
@@ -69,7 +71,7 @@ CK_RV getMechanismInfo(CK_MECHANISM_TYPE type, CK_MECHANISM_INFO_PTR pInfo) {
     case CKM_SHA512_RSA_PKCS:
       pInfo->ulMinKeySize = 512;
       pInfo->ulMaxKeySize = 4096;
-      pInfo->flags = CKF_SIGN | CKF_VERIFY | CKF_HW;
+      pInfo->flags = CKF_SIGN | CKF_VERIFY;
       break;
     default:
       DEBUG_MSG("C_GetMechanismInfo", "The selected mechanism is not supported");
