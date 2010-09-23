@@ -27,6 +27,8 @@ SoftHSM trunk
 * The ulMinKeySize and ulMaxKeySize are not used for the digesting
   mechanisms, but we set them to zero for applications that forget
   this.
+* Used wrong buffer size for signatures. This was only a problem
+  for keys where (key size % 8 == 1), e.g. 1025 bit keys. 
 
 
 SoftHSM 1.1.4 - 2010-04-06

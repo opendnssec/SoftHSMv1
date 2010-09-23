@@ -1354,14 +1354,14 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   // Creates the signer with given key and mechanism.
 #ifdef BOTAN_PRE_1_9_4_FIX
   PK_Signing_Key *signKey = dynamic_cast<PK_Signing_Key*>(cryptoKey);
-  session->signSize = (cryptoKey->max_input_bits() + 7) / 8;
+  session->signSize = (cryptoKey->max_input_bits() + 8) / 8;
   session->pkSigner = new PK_Signer(*signKey, &*hashFunc);
 #ifdef SOFTHSM_SIGVER
   session->pkSigVer = new PK_Verifier_with_MR(*dynamic_cast<PK_Verifying_with_MR_Key*>(cryptoKey), &*hashFuncVer);
   session->pkSigVerData = new SecureVector<byte>();
 #endif
 #else
-  session->signSize = (cryptoKey->max_input_bits() + 7) / 8;
+  session->signSize = (cryptoKey->max_input_bits() + 8) / 8;
   session->pkSigner = new PK_Signer(*dynamic_cast<Private_Key*>(cryptoKey), emsa);
 #ifdef SOFTHSM_SIGVER
   session->pkSigVer = new PK_Verifier(*cryptoKey, emsa);
@@ -1882,10 +1882,10 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
   // Creates the verifier with given key and mechanism
 #ifdef BOTAN_PRE_1_9_4_FIX
   PK_Verifying_with_MR_Key *verifyKey = dynamic_cast<PK_Verifying_with_MR_Key*>(cryptoKey);
-  session->verifySize = (cryptoKey->max_input_bits() + 7) / 8;
+  session->verifySize = (cryptoKey->max_input_bits() + 8) / 8;
   session->pkVerifier = new PK_Verifier_with_MR(*verifyKey, &*hashFunc);
 #else
-  session->verifySize = (cryptoKey->max_input_bits() + 7) / 8;
+  session->verifySize = (cryptoKey->max_input_bits() + 8) / 8;
   session->pkVerifier = new PK_Verifier(*cryptoKey, emsa);
 #endif
 
