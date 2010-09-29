@@ -29,6 +29,8 @@ SoftHSM trunk
   this.
 * Used wrong buffer size for signatures. This was only a problem
   for keys where (key size % 8 == 1), e.g. 1025 bit keys. 
+* C_Login now returns CKR_USER_ANOTHER_ALREADY_LOGGED_IN instead of
+  CKR_USER_TOO_MANY_TYPES
 
 
 SoftHSM 1.1.4 - 2010-04-06

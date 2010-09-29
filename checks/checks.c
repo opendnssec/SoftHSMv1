@@ -529,7 +529,7 @@ void runUserCheck(unsigned int counter) {
     rv = C_Login(hSession[0], CKU_CONTEXT_SPECIFIC, userPIN, sizeof(userPIN) - 1);
     assert(rv == CKR_OK);
     rv = C_Login(hSession[1], CKU_SO, soPIN, sizeof(soPIN) - 2);
-    assert(rv == CKR_USER_TOO_MANY_TYPES);
+    assert(rv == CKR_USER_ANOTHER_ALREADY_LOGGED_IN);
     rv = C_Logout(hSession[0]);
     assert(rv == CKR_OK);
     rv = C_Login(hSession[1], CKU_SO, soPIN, sizeof(soPIN) - 2);
@@ -543,7 +543,7 @@ void runUserCheck(unsigned int counter) {
     rv = C_Login(hSession[1], CKU_CONTEXT_SPECIFIC, soPIN, sizeof(soPIN) - 1);
     assert(rv == CKR_OK);
     rv = C_Login(hSession[1], CKU_USER, userPIN, sizeof(userPIN) - 2);
-    assert(rv == CKR_USER_TOO_MANY_TYPES);
+    assert(rv == CKR_USER_ANOTHER_ALREADY_LOGGED_IN);
 
     /* C_Logout */
 

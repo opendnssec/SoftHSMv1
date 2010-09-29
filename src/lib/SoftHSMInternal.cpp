@@ -261,7 +261,7 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
     case CKU_SO:
       // Only one user type can be logged in
       CHECK_DEBUG_RETURN(session->currentSlot->userPIN != NULL_PTR, "C_Login", "A normal user is already logged in",
-                         CKR_USER_TOO_MANY_TYPES);
+                         CKR_USER_ANOTHER_ALREADY_LOGGED_IN);
 
       // Check that we have no R/O session with the slot
       for (int i = 0; i < MAX_SESSION_COUNT; i++) {
@@ -275,7 +275,7 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
     case CKU_USER:
       // Only one user type can be logged in
       CHECK_DEBUG_RETURN(session->currentSlot->soPIN != NULL_PTR, "C_Login", "A SO is already logged in",
-                         CKR_USER_TOO_MANY_TYPES);
+                         CKR_USER_ANOTHER_ALREADY_LOGGED_IN);
 
       CHECK_DEBUG_RETURN(session->currentSlot->hashedUserPIN == NULL_PTR, "C_Login", "The normal user PIN is not initialized",
                          CKR_USER_PIN_NOT_INITIALIZED);
