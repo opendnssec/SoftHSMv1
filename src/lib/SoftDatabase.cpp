@@ -744,10 +744,11 @@ CK_RV SoftDatabase::saveAttributeBigInt(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_
 void SoftDatabase::destroySessObj() {
   int retVal = 0;
   CK_BBOOL ckFalse = CK_FALSE;
+  CK_ULONG type = CKA_VENDOR_DEFINED;
 
   sqlite3_bind_int(select_session_obj_sql, 1, CKA_TOKEN);
   sqlite3_bind_blob(select_session_obj_sql, 2, &ckFalse, sizeof(ckFalse), SQLITE_TRANSIENT);
-  sqlite3_bind_int(select_session_obj_sql, 3, CKA_VENDOR_DEFINED);
+  sqlite3_bind_int(select_session_obj_sql, 3, type);
   sqlite3_bind_blob(select_session_obj_sql, 4, &db, sizeof(db), SQLITE_TRANSIENT);
 
   while((retVal = sqlite3_step(select_session_obj_sql)) == SQLITE_BUSY || retVal == SQLITE_ROW) {
@@ -989,6 +990,7 @@ CK_BBOOL SoftDatabase::checkAccessObj(CK_OBJECT_HANDLE objectRef) {
   int retSQL = 0;
   CK_VOID_PTR pValue = NULL_PTR;
   CK_ULONG length = 0;
+  CK_ULONG type = CKA_VENDOR_DEFINED+1;
 
   // Allow access to token objects
   if(getBooleanAttribute(objectRef, CKA_TOKEN, CK_TRUE) == CK_TRUE) {
@@ -996,7 +998,7 @@ CK_BBOOL SoftDatabase::checkAccessObj(CK_OBJECT_HANDLE objectRef) {
   }
 
   sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
-  sqlite3_bind_int(select_an_attribute_sql, 2, CKA_VENDOR_DEFINED+1);
+  sqlite3_bind_int(select_an_attribute_sql, 2, type);
 
   // Get result
   while((retSQL = sqlite3_step(select_an_attribute_sql)) == SQLITE_BUSY) {
