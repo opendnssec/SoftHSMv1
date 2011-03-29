@@ -41,6 +41,7 @@
 #include "SoftDatabase.h"
 #include "SoftSession.h"
 #include "SoftSlot.h"
+#include "MutexFactory.h"
 
 class SoftFind;
 class SoftDatabase;
@@ -49,9 +50,7 @@ class SoftSlot;
 
 class SoftHSMInternal {
   public:
-    SoftHSMInternal(bool threading, CK_CREATEMUTEX cMutex = NULL_PTR, 
-      CK_DESTROYMUTEX dMutex = NULL_PTR, CK_LOCKMUTEX lMutex = NULL_PTR, 
-      CK_UNLOCKMUTEX uMutex = NULL_PTR);
+    SoftHSMInternal();
     ~SoftHSMInternal();
 
     // Session Handling
@@ -83,26 +82,14 @@ class SoftHSMInternal {
     CK_RV findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, 
       CK_ULONG ulCount);
 
-    // Mutex handling
-    CK_RV lockMutex();
-    CK_RV unlockMutex();
-
     // Slots
+    // No need for mutex. Created on init, then we only read from it.
     SoftSlot *slots;
 
   private:
     int openSessions;
     SoftSession *sessions[MAX_SESSION_COUNT];
-
-    CK_CREATEMUTEX createMutexFunc;
-    CK_DESTROYMUTEX destroyMutexFunc;
-    CK_LOCKMUTEX lockMutexFunc;
-    CK_UNLOCKMUTEX unlockMutexFunc;
-    bool usesThreading;
-
-    CK_RV createMutex(CK_VOID_PTR_PTR newMutex);
-    CK_RV destroyMutex(CK_VOID_PTR mutex);
-    CK_VOID_PTR pHSMMutex;
+    Mutex* sessionsMutex;
 
     char appID[32];
 };

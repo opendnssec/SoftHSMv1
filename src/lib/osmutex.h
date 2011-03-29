@@ -1,9 +1,10 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2008-2009 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2008-2010 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2010      SURFnet bv
  * All rights reserved.
- *
+ * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -12,7 +13,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- *
+ * 
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -26,30 +27,22 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/************************************************************
-*
-* These mutex functions are used if nothing is provided 
-* by the external application.
-* These function calls are POSIX specific.
-*
-************************************************************/
+/*****************************************************************************
+ osmutex.h
 
-#ifndef SOFTHSM_MUTEX_H
-#define SOFTHSM_MUTEX_H 1
+ Contains OS-specific implementations of intraprocess mutex functions.
+ *****************************************************************************/
 
+#ifndef _SOFTHSM_OSMUTEX_H
+#define _SOFTHSM_OSMUTEX_H
+
+#include "config.h"
 #include "pkcs11.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+CK_RV OSCreateMutex(CK_VOID_PTR_PTR newMutex);
+CK_RV OSDestroyMutex(CK_VOID_PTR mutex);
+CK_RV OSLockMutex(CK_VOID_PTR mutex);
+CK_RV OSUnlockMutex(CK_VOID_PTR mutex);
 
-CK_RV softHSMCreateMutex(CK_VOID_PTR_PTR newMutex);
-CK_RV softHSMDestroyMutex(CK_VOID_PTR mutex);
-CK_RV softHSMLockMutex(CK_VOID_PTR mutex);
-CK_RV softHSMUnlockMutex(CK_VOID_PTR mutex);
+#endif /* !_SOFTHSM_OSMUTEX_H */
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* SOFTHSM_MUTEX_H */

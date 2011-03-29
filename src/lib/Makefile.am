@@ -8,7 +8,8 @@ AM_CPPFLAGS =			-I$(srcdir)/cryptoki_compat \
 
 lib_LTLIBRARIES =		libsofthsm.la
 libsofthsm_la_SOURCES =		main.cpp main.h \
-				mutex.cpp mutex.h \
+				osmutex.cpp osmutex.h \
+				MutexFactory.cpp MutexFactory.h \
 				file.cpp file.h \
 				log.cpp log.h \
 				attribute.cpp attribute.h \

@@ -55,21 +55,13 @@
 #include <botan/sha2_32.h>
 using namespace Botan;
 
-SoftHSMInternal::SoftHSMInternal(bool threading, CK_CREATEMUTEX cMutex,
-  CK_DESTROYMUTEX dMutex, CK_LOCKMUTEX lMutex, CK_UNLOCKMUTEX uMutex) {
-
+SoftHSMInternal::SoftHSMInternal() {
   openSessions = 0;
 
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
     sessions[i] = NULL_PTR;
   }
-
-  createMutexFunc = cMutex;
-  destroyMutexFunc = dMutex;
-  lockMutexFunc = lMutex;
-  unlockMutexFunc = uMutex;
-  usesThreading = threading;
-  this->createMutex(&pHSMMutex);
+  sessionsMutex = MutexFactory::i()->getMutex();
 
   slots = new SoftSlot();
 
@@ -95,7 +87,7 @@ SoftHSMInternal::~SoftHSMInternal() {
 
   DELETE_PTR(slots);
 
-  this->destroyMutex(pHSMMutex);
+  MutexFactory::i()->recycleMutex(sessionsMutex);
 }
 
 int SoftHSMInternal::getSessionCount() {
@@ -106,6 +98,8 @@ int SoftHSMInternal::getSessionCount() {
 
 CK_RV SoftHSMInternal::openSession(CK_SLOT_ID slotID, CK_FLAGS flags, CK_VOID_PTR pApplication, CK_NOTIFY Notify, CK_SESSION_HANDLE_PTR phSession) {
   SoftSlot *currentSlot = slots->getSlot(slotID);
+
+  MutexLocker lock(sessionsMutex);
 
   CHECK_DEBUG_RETURN(currentSlot == NULL_PTR, "C_OpenSession", "The given slotID does not exist",
                      CKR_SLOT_ID_INVALID);
@@ -121,7 +115,6 @@ CK_RV SoftHSMInternal::openSession(CK_SLOT_ID slotID, CK_FLAGS flags, CK_VOID_PT
                      "Can not open a Read-Only session when in SO mode", CKR_SESSION_READ_WRITE_SO_EXISTS);
   CHECK_DEBUG_RETURN(!phSession, "C_OpenSession", "phSession must not be a NULL_PTR",
                      CKR_ARGUMENTS_BAD);
-
 
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] == NULL_PTR) {
@@ -153,6 +146,8 @@ CK_RV SoftHSMInternal::openSession(CK_SLOT_ID slotID, CK_FLAGS flags, CK_VOID_PT
 
 CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
   int sessID = hSession - 1;
+
+  MutexLocker lock(sessionsMutex);
 
   CHECK_DEBUG_RETURN(hSession > MAX_SESSION_COUNT || hSession < 1 || sessions[sessID] == NULL_PTR, "C_CloseSession", 
                      "The session does not exist", CKR_SESSION_HANDLE_INVALID);
@@ -193,6 +188,8 @@ CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
 
 CK_RV SoftHSMInternal::closeAllSessions(CK_SLOT_ID slotID) {
   SoftSlot *currentSlot = slots->getSlot(slotID);
+
+  MutexLocker lock(sessionsMutex);
 
   CHECK_DEBUG_RETURN(currentSlot == NULL_PTR, "C_CloseAllSessions", "The given slotID does not exist",
                      CKR_SLOT_ID_INVALID);
@@ -246,6 +243,8 @@ CK_RV SoftHSMInternal::getSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INF
 
 CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen) {
   SoftSession *session = getSession(hSession);
+
+  MutexLocker lock(sessionsMutex);
 
   CHECK_DEBUG_RETURN(session == NULL_PTR, "C_Login", "Can not find the session",
                      CKR_SESSION_HANDLE_INVALID);
@@ -387,6 +386,7 @@ CK_RV SoftHSMInternal::initToken(CK_SLOT_ID slotID, CK_UTF8CHAR_PTR pPin, CK_ULO
                      "The token is not present", CKR_TOKEN_NOT_PRESENT);
 
   // Check that we have no session with the slot.
+  MutexLocker lock(sessionsMutex);
   for (int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] != NULL_PTR) {
       CHECK_DEBUG_RETURN(sessions[i]->currentSlot->getSlotID() == slotID, "C_InitToken",
@@ -749,6 +749,7 @@ CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDL
                      CKR_OBJECT_HANDLE_INVALID);
 
   // Remove the key from the sessions' key cache
+  MutexLocker lock(sessionsMutex);
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] != NULL_PTR) {
       sessions[i]->keyStore->removeKey(hObject);
@@ -763,46 +764,3 @@ CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDL
   return CKR_OK;
 }
 
-// Wrapper for the mutex function.
-
-CK_RV SoftHSMInternal::createMutex(CK_VOID_PTR_PTR newMutex) {
-  if(!usesThreading) {
-    return CKR_OK;
-  }
-
-  // Calls the real mutex function via its function pointer.
-  return createMutexFunc(newMutex);
-}
-
-// Wrapper for the mutex function.
-
-CK_RV SoftHSMInternal::destroyMutex(CK_VOID_PTR mutex) {
-  if(!usesThreading) {
-    return CKR_OK;
-  }
-
-  // Calls the real mutex function via its function pointer.
-  return destroyMutexFunc(mutex);
-}
-
-// Wrapper for the mutex function.
-
-CK_RV SoftHSMInternal::lockMutex() {
-  if(!usesThreading) {
-    return CKR_OK;
-  }
-
-  // Calls the real mutex function via its function pointer.
-  return lockMutexFunc(pHSMMutex);
-}
-
-// Wrapper for the mutex function.
-
-CK_RV SoftHSMInternal::unlockMutex() {
-  if(!usesThreading) {
-    return CKR_OK;
-  }
-
-  // Calls the real mutex function via its function pointer.
-  return unlockMutexFunc(pHSMMutex);
-}

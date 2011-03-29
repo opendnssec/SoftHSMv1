@@ -37,7 +37,6 @@
 
 #include <config.h>
 #include "main.h"
-#include "mutex.h"
 #include "log.h"
 #include "file.h"
 #include "SoftHSMInternal.h"
@@ -45,6 +44,7 @@
 #include "util.h"
 #include "mechanisms.h"
 #include "string.h"
+#include "MutexFactory.h"
 
 // Standard includes
 #include <stdio.h>
@@ -173,14 +173,15 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
 
       // Can we create our own mutex functions?
       if(args->flags & CKF_OS_LOCKING_OK) {
-        softHSM = new SoftHSMInternal(true,
-                                      softHSMCreateMutex,
-                                      softHSMDestroyMutex,
-                                      softHSMLockMutex,
-                                      softHSMUnlockMutex);
+        // Use our own mutex functions.
+        MutexFactory::i()->setCreateMutex(OSCreateMutex);
+        MutexFactory::i()->setDestroyMutex(OSDestroyMutex);
+        MutexFactory::i()->setLockMutex(OSLockMutex);
+        MutexFactory::i()->setUnlockMutex(OSUnlockMutex);
+        MutexFactory::i()->enable();
       } else {
         // The external application is not using threading
-        softHSM = new SoftHSMInternal(false);
+        MutexFactory::i()->disable();
       }
     } else {
       // We must have all mutex functions
@@ -188,17 +189,18 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
                          args->LockMutex == NULL_PTR || args->UnlockMutex == NULL_PTR,
                          "C_Initialize", "Not all mutex functions are supplied", CKR_ARGUMENTS_BAD);
 
-      softHSM = new SoftHSMInternal(true,
-                                    args->CreateMutex,
-                                    args->DestroyMutex,
-                                    args->LockMutex,
-                                    args->UnlockMutex);
+      MutexFactory::i()->setCreateMutex(args->CreateMutex);
+      MutexFactory::i()->setDestroyMutex(args->DestroyMutex);
+      MutexFactory::i()->setLockMutex(args->LockMutex);
+      MutexFactory::i()->setUnlockMutex(args->UnlockMutex);
+      MutexFactory::i()->enable();
     }
   } else {
     // No concurrent access by multiple threads
-    softHSM = new SoftHSMInternal(false);
+    MutexFactory::i()->disable();
   }
 
+  softHSM = new SoftHSMInternal();
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_Initialize", "Coult not allocate memory", CKR_HOST_MEMORY);
   state = std::auto_ptr<SoftHSMInternal>(softHSM);
 
@@ -493,9 +495,7 @@ CK_RV C_InitToken(CK_SLOT_ID slotID, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen, CK
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_InitToken", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
   CK_RV rv = softHSM->initToken(slotID, pPin, ulPinLen, pLabel);
-  softHSM->unlockMutex();
 
   return rv;
 }
@@ -507,9 +507,7 @@ CK_RV C_InitPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPin
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_InitPIN", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
   CK_RV rv = softHSM->initPIN(hSession, pPin, ulPinLen);
-  softHSM->unlockMutex();
 
   return rv;
 }
@@ -521,9 +519,7 @@ CK_RV C_SetPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pOldPin, CK_ULONG ulO
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_SetPIN", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
   CK_RV rv = softHSM->setPIN(hSession, pOldPin, ulOldLen, pNewPin, ulNewLen);
-  softHSM->unlockMutex();
 
   return rv;
 }
@@ -537,9 +533,7 @@ CK_RV C_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags, CK_VOID_PTR pApplication,
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_OpenSession", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
   CK_RV rv = softHSM->openSession(slotID, flags, pApplication, Notify, phSession);
-  softHSM->unlockMutex();
 
   return rv;
 }
@@ -553,9 +547,7 @@ CK_RV C_CloseSession(CK_SESSION_HANDLE hSession) {
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_CloseSession", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
   CK_RV rv = softHSM->closeSession(hSession);
-  softHSM->unlockMutex();
 
   return rv;
 }
@@ -569,9 +561,7 @@ CK_RV C_CloseAllSessions(CK_SLOT_ID slotID) {
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_CloseAllSessions", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
   CK_RV rv = softHSM->closeAllSessions(slotID);
-  softHSM->unlockMutex();
 
   return rv;
 }
@@ -585,9 +575,7 @@ CK_RV C_GetSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INFO_PTR pInfo) {
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_GetSessionInfo", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
   CK_RV rv = softHSM->getSessionInfo(hSession, pInfo);
-  softHSM->unlockMutex();
 
   return rv;
 }
@@ -616,9 +604,7 @@ CK_RV C_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, CK_UTF8CHAR_PTR
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_Login", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
   CK_RV rv = softHSM->login(hSession, userType, pPin, ulPinLen);
-  softHSM->unlockMutex();
 
   return rv;
 }
@@ -633,9 +619,7 @@ CK_RV C_Logout(CK_SESSION_HANDLE hSession) {
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_Logout", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
   CK_RV rv = softHSM->logout(hSession);
-  softHSM->unlockMutex();
 
   return rv;
 }
@@ -647,9 +631,7 @@ CK_RV C_CreateObject(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, CK_
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_CreateObject", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
   CK_RV rv = softHSM->createObject(hSession, pTemplate, ulCount, phObject);
-  softHSM->unlockMutex();
 
   return rv;
 }
@@ -670,9 +652,7 @@ CK_RV C_DestroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject) {
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_DestroyObject", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
   CK_RV rv = softHSM->destroyObject(hSession, hObject);
-  softHSM->unlockMutex();
 
   return rv;
 }
@@ -693,9 +673,7 @@ CK_RV C_GetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_GetAttributeValue", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
   CK_RV rv = softHSM->getAttributeValue(hSession, hObject, pTemplate, ulCount);
-  softHSM->unlockMutex();
 
   return rv;
 }
@@ -710,9 +688,7 @@ CK_RV C_SetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_SetAttributeValue", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
   CK_RV rv = softHSM->setAttributeValue(hSession, hObject, pTemplate, ulCount);
-  softHSM->unlockMutex();
 
   return rv;
 }
@@ -727,9 +703,7 @@ CK_RV C_FindObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, 
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_FindObjectsInit", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
   CK_RV rv = softHSM->findObjectsInit(hSession, pTemplate, ulCount);
-  softHSM->unlockMutex();
 
   return rv;
 }
@@ -743,27 +717,19 @@ CK_RV C_FindObjects(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE_PTR phObject, C
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_FindObjects", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
-
   SoftSession *session = softHSM->getSession(hSession);
 
   if(session == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_FindObjects", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->findInitialized) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_FindObjects", "Find is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(phObject == NULL_PTR || pulObjectCount == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_FindObjects", "The arguments must not be NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
@@ -778,8 +744,6 @@ CK_RV C_FindObjects(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE_PTR phObject, C
 
   *pulObjectCount = i;
 
-  softHSM->unlockMutex();
-
   DEBUG_MSG("C_FindObjects", "OK");
   return CKR_OK;
 }
@@ -793,20 +757,14 @@ CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE hSession) {
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_FindObjectsFinal", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
-
   SoftSession *session = softHSM->getSession(hSession);
 
   if(session == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_FindObjectsFinal", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->findInitialized) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_FindObjectsFinal", "Find is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
@@ -814,8 +772,6 @@ CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE hSession) {
   DELETE_PTR(session->findAnchor);
   session->findCurrent = NULL_PTR;
   session->findInitialized = false;
-
-  softHSM->unlockMutex();
 
   DEBUG_MSG("C_FindObjectsFinal", "OK");
   return CKR_OK;
@@ -886,27 +842,19 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_DigestInit", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
-
   SoftSession *session = softHSM->getSession(hSession);
 
   if(session == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_DigestInit", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(session->digestInitialized) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_DigestInit", "Digest is already initialized");
     return CKR_OPERATION_ACTIVE;
   }
 
   if(pMechanism == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_DigestInit", "pMechanism must not be NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
@@ -941,16 +889,12 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
       hashFunc = new SHA_512;
       break;
     default:
-      softHSM->unlockMutex();
-
       DEBUG_MSG("C_DigestInit", "The selected mechanism is not supported");
       return CKR_MECHANISM_INVALID;
       break;
   }
 
   if(hashFunc == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_DigestInit", "Could not create the hash function");
     return CKR_DEVICE_MEMORY;
   }
@@ -960,16 +904,12 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
   session->digestPipe = new Pipe(new Hash_Filter(hashFunc));
 
   if(!session->digestPipe) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_DigestInit", "Could not create the digesting function");
     return CKR_DEVICE_MEMORY;
   }
 
   session->digestPipe->start_msg();
   session->digestInitialized = true;
-
-  softHSM->unlockMutex();
 
   DEBUG_MSG("C_DigestInit", "OK");
   return CKR_OK;
@@ -985,50 +925,36 @@ CK_RV C_Digest(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_Digest", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
-
   SoftSession *session = softHSM->getSession(hSession);
 
   if(session == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_Digest", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->digestInitialized) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_Digest", "Digest is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(pulDigestLen == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_Digest", "pulDigestLen must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
   if(pDigest == NULL_PTR) {
     *pulDigestLen = session->digestSize;
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_Digest", "OK, returning the size of the digest");
     return CKR_OK;
   }
 
   if(*pulDigestLen < session->digestSize) {
     *pulDigestLen = session->digestSize;
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_Digest", "The given buffer is too small");
     return CKR_BUFFER_TOO_SMALL;
   }
 
   if(pData == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_Digest", "pData must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
@@ -1047,8 +973,6 @@ CK_RV C_Digest(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
   session->digestPipe = NULL_PTR;
   session->digestInitialized = false;
 
-  softHSM->unlockMutex();
-
   DEBUG_MSG("C_Digest", "OK");
   return CKR_OK;
 }
@@ -1062,35 +986,25 @@ CK_RV C_DigestUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulP
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_DigestUpdate", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
-
   SoftSession *session = softHSM->getSession(hSession);
 
   if(session == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_DigestUpdate", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->digestInitialized) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_DigestUpdate", "Digest is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(pPart == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_DigestUpdate", "pPart must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
   // Digest
   session->digestPipe->write(pPart, ulPartLen);
-
-  softHSM->unlockMutex();
 
   DEBUG_MSG("C_DigestUpdate", "OK");
   return CKR_OK;
@@ -1112,43 +1026,31 @@ CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest, CK_ULONG_PT
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_DigestFinal", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
-
   SoftSession *session = softHSM->getSession(hSession);
 
   if(session == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_DigestFinal", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->digestInitialized) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_DigestFinal", "Digest is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(pulDigestLen == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_DigestFinal", "pulDigestLen must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
   if(pDigest == NULL_PTR) {
     *pulDigestLen = session->digestSize;
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_DigestFinal", "OK, returning the size of the digest");
     return CKR_OK;
   }
 
   if(*pulDigestLen < session->digestSize) {
     *pulDigestLen = session->digestSize;
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_DigestFinal", "The given buffer is too small");
     return CKR_BUFFER_TOO_SMALL;
   }
@@ -1165,8 +1067,6 @@ CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest, CK_ULONG_PT
   session->digestPipe = NULL_PTR;
   session->digestInitialized = false;
 
-  softHSM->unlockMutex();
-
   DEBUG_MSG("C_DigestFinal", "OK");
   return CKR_OK;
 }
@@ -1180,13 +1080,9 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_SignInit", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
-
   SoftSession *session = softHSM->getSession(hSession);
 
   if(session == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SignInit", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
@@ -1200,8 +1096,6 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
 
   if(hasObject == CK_FALSE || session->db->getObjectClass(hKey) != CKO_PRIVATE_KEY ||
      session->db->getKeyType(hKey) != CKK_RSA) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SignInit", "This key can not be used");
     return CKR_KEY_HANDLE_INVALID;
   }
@@ -1209,22 +1103,16 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   CK_BBOOL userAuth = userAuthorization(session->getSessionState(), session->db->getBooleanAttribute(hKey, CKA_TOKEN, CK_TRUE),
                                         session->db->getBooleanAttribute(hKey, CKA_PRIVATE, CK_TRUE), 0);
   if(userAuth == CK_FALSE) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SignInit", "User is not authorized");
     return CKR_KEY_HANDLE_INVALID;
   }
 
   if(session->signInitialized) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SignInit", "Sign is already initialized");
     return CKR_OPERATION_ACTIVE;
   }
 
   if(pMechanism == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SignInit", "pMechanism must not be NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
@@ -1289,16 +1177,12 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
 #endif
       break;
     default:
-      softHSM->unlockMutex();
-
       DEBUG_MSG("C_SignInit", "The selected mechanism is not supported");
       return CKR_MECHANISM_INVALID;
       break;
   }
 
   if(hashFunc == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SignInit", "Could not create the hash function");
     return CKR_DEVICE_MEMORY;
   }
@@ -1345,8 +1229,6 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   // Get the key from the session key store.
   Public_Key *cryptoKey = session->getKey(hKey);
   if(cryptoKey == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SignInit", "Could not load the crypto key");
     return CKR_GENERAL_ERROR;
   }
@@ -1370,15 +1252,11 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
 #endif
 
   if(!session->pkSigner) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SignInit", "Could not create the signing function");
     return CKR_DEVICE_MEMORY;
   }
 
   session->signInitialized = true;
-
-  softHSM->unlockMutex();
 
   DEBUG_MSG("C_SignInit", "OK");
   return CKR_OK;
@@ -1394,34 +1272,25 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_Sign", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
-
   SoftSession *session = softHSM->getSession(hSession);
 
   if(session == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_Sign", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->signInitialized) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_Sign", "Sign is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(pulSignatureLen == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_Sign", "pulSignatureLen must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
   if(pSignature == NULL_PTR) {
     *pulSignatureLen = session->signSize;
-    softHSM->unlockMutex();
 
     DEBUG_MSG("C_Sign", "OK, returning the size of the signature");
     return CKR_OK;
@@ -1429,15 +1298,12 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
 
   if(*pulSignatureLen < session->signSize) {
     *pulSignatureLen = session->signSize;
-    softHSM->unlockMutex();
 
     DEBUG_MSG("C_Sign", "The given buffer is too small");
     return CKR_BUFFER_TOO_SMALL;
   }
 
   if(pData == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_Sign", "pData must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
@@ -1497,8 +1363,6 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
     delete session->pkSigVerData;
     session->pkSigVerData = NULL_PTR;
 
-    softHSM->unlockMutex();
-
     return CKR_GENERAL_ERROR;
   }
 
@@ -1517,8 +1381,6 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
   session->pkSigner = NULL_PTR;
   session->signInitialized = false;
 
-  softHSM->unlockMutex();
-
   DEBUG_MSG("C_Sign", "OK");
   return CKR_OK;
 }
@@ -1532,34 +1394,24 @@ CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPar
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_SignUpdate", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
-
   SoftSession *session = softHSM->getSession(hSession);
 
   if(session == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SignUpdate", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->signInitialized) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SignUpdate", "Sign is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(session->signSinglePart) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SignUpdate", "The mechanism can only sign single part of data");
     return CKR_FUNCTION_NOT_SUPPORTED;
   }
 
   if(pPart == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SignUpdate", "pPart must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
@@ -1569,8 +1421,6 @@ CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPar
 #ifdef SOFTHSM_SIGVER
   session->pkSigVerData->append(pPart, ulPartLen);
 #endif
-
-  softHSM->unlockMutex();
 
   DEBUG_MSG("C_SignUpdate", "OK");
   return CKR_OK;
@@ -1585,41 +1435,30 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_SignFinal", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
-
   SoftSession *session = softHSM->getSession(hSession);
 
   if(session == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SignFinal", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->signInitialized) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SignFinal", "Sign is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(session->signSinglePart) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SignFinal", "The mechanism can only sign single part of data");
     return CKR_FUNCTION_NOT_SUPPORTED;
   }
 
   if(pulSignatureLen == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SignFinal", "pulSignatureLen must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
   if(pSignature == NULL_PTR) {
     *pulSignatureLen = session->signSize;
-    softHSM->unlockMutex();
 
     DEBUG_MSG("C_SignFinal", "OK, returning the size of the signature");
     return CKR_OK;
@@ -1627,7 +1466,6 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
 
   if(*pulSignatureLen < session->signSize) {
     *pulSignatureLen = session->signSize;
-    softHSM->unlockMutex();
 
     DEBUG_MSG("C_SignFinal", "The given buffer is to small");
     return CKR_BUFFER_TOO_SMALL;
@@ -1687,8 +1525,6 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
     delete session->pkSigVerData;
     session->pkSigVerData = NULL_PTR;
 
-    softHSM->unlockMutex();
-
     return CKR_GENERAL_ERROR;
   }
 
@@ -1705,8 +1541,6 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
   delete session->pkSigner;
   session->pkSigner = NULL_PTR;
   session->signInitialized = false;
-
-  softHSM->unlockMutex();
 
   DEBUG_MSG("C_SignFinal", "OK");
   return CKR_OK;
@@ -1735,13 +1569,9 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_VerifyInit", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
-
   SoftSession *session = softHSM->getSession(hSession);
 
   if(session == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_VerifyInit", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
@@ -1755,8 +1585,6 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
 
   if(hasObject == CK_FALSE || session->db->getObjectClass(hKey) != CKO_PUBLIC_KEY ||
      session->db->getKeyType(hKey) != CKK_RSA) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_VerifyInit", "This key can not be used");
     return CKR_KEY_HANDLE_INVALID;
   }
@@ -1764,22 +1592,16 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
   CK_BBOOL userAuth = userAuthorization(session->getSessionState(), session->db->getBooleanAttribute(hKey, CKA_TOKEN, CK_TRUE),
                                         session->db->getBooleanAttribute(hKey, CKA_PRIVATE, CK_TRUE), 0);
   if(userAuth == CK_FALSE) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_VerifyInit", "User is not authorized");
     return CKR_KEY_HANDLE_INVALID;
   }
 
   if(session->verifyInitialized) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_VerifyInit", "Verify is already initialized");
     return CKR_OPERATION_ACTIVE;
   }
 
   if(pMechanism == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_VerifyInit", "pMechanism must not be NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
@@ -1817,16 +1639,12 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
       hashFunc = new EMSA3(new SHA_512);
       break;
     default:
-      softHSM->unlockMutex();
-
       DEBUG_MSG("C_VerifyInit", "The selected mechanism is not supported");
       return CKR_MECHANISM_INVALID;
       break;
   }
 
   if(hashFunc == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_VerifyInit", "Could not create the hash function");
     return CKR_DEVICE_MEMORY;
   } 
@@ -1862,8 +1680,6 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
       emsa = "EMSA3(SHA-512)";
       break;
     default:
-      softHSM->unlockMutex();
-
       DEBUG_MSG("C_VerifyInit", "The selected mechanism is not supported");
       return CKR_MECHANISM_INVALID;
       break;
@@ -1873,8 +1689,6 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
   // Get the key from the session key store.
   Public_Key *cryptoKey = session->getKey(hKey);
   if(cryptoKey == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_VerifyInit", "Could not load the crypto key");
     return CKR_GENERAL_ERROR;
   }
@@ -1890,15 +1704,11 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
 #endif
 
   if(!session->pkVerifier) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_VerifyInit", "Could not create the verifying function");
     return CKR_DEVICE_MEMORY;
   }
 
   session->verifyInitialized = true;
-
-  softHSM->unlockMutex();
 
   DEBUG_MSG("C_VerifyInit", "OK");
   return CKR_OK;
@@ -1914,27 +1724,19 @@ CK_RV C_Verify(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_Verify", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
-
   SoftSession *session = softHSM->getSession(hSession);
 
   if(session == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_Verify", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->verifyInitialized) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_Verify", "Verify is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(pData == NULL_PTR || pSignature == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_Verify", "pData and pSignature must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
@@ -1949,8 +1751,6 @@ CK_RV C_Verify(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
     session->pkVerifier = NULL_PTR;
     session->verifyInitialized = false;
 
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_Verify", "The signatures does not have the same length");
     return CKR_SIGNATURE_LEN_RANGE;
   }
@@ -1962,8 +1762,6 @@ CK_RV C_Verify(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
   delete session->pkVerifier;
   session->pkVerifier = NULL_PTR;
   session->verifyInitialized = false;
-
-  softHSM->unlockMutex();
 
   // Returns the result
   if(verResult) {
@@ -1984,42 +1782,30 @@ CK_RV C_VerifyUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulP
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_VerifyUpdate", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
-
   SoftSession *session = softHSM->getSession(hSession);
 
   if(session == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_VerifyUpdate", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->verifyInitialized) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_VerifyUpdate", "Verify is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(session->verifySinglePart) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_VerifyUpdate", "The mechanism can only verify single part of data");
     return CKR_FUNCTION_NOT_SUPPORTED;
   }
 
   if(pPart == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_VerifyUpdate", "pPart must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
   // Add data
   session->pkVerifier->update(pPart, ulPartLen);
-
-  softHSM->unlockMutex();
 
   DEBUG_MSG("C_VerifyUpdate", "OK");
   return CKR_OK;
@@ -2034,34 +1820,24 @@ CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_VerifyFinal", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
-
   SoftSession *session = softHSM->getSession(hSession);
 
   if(session == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_VerifyFinal", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->verifyInitialized) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_VerifyFinal", "Verify is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(session->verifySinglePart) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_VerifyFinal", "The mechanism can only verify single part of data");
     return CKR_FUNCTION_NOT_SUPPORTED;
   }
 
   if(pSignature == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_VerifyFinal", "pSignature must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
@@ -2072,8 +1848,6 @@ CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG
     delete session->pkVerifier;
     session->pkVerifier = NULL_PTR;
     session->verifyInitialized = false;
-
-    softHSM->unlockMutex();
 
     DEBUG_MSG("C_VerifyFinal", "The signatures does not have the same length");
     return CKR_SIGNATURE_LEN_RANGE;
@@ -2086,8 +1860,6 @@ CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG
   delete session->pkVerifier;
   session->pkVerifier = NULL_PTR;
   session->verifyInitialized = false;
-
-  softHSM->unlockMutex();
 
   // Returns the result
   if(verResult) {
@@ -2160,21 +1932,15 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_GenerateKeyPair", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
-
   SoftSession *session = softHSM->getSession(hSession);
 
   if(session == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_GenerateKeyPair", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(pMechanism == NULL_PTR || pPublicKeyTemplate == NULL_PTR || pPrivateKeyTemplate == NULL_PTR ||
      phPublicKey == NULL_PTR || phPrivateKey == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_GenerateKeyPair", "The arguments must not be NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
@@ -2203,8 +1969,6 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
   // Check user credentials
   CK_BBOOL userAuth = userAuthorization(session->getSessionState(), isToken, isPrivate, 1);
   if(userAuth == CK_FALSE) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_GenerateKeyPair", "User is not authorized");
     return CKR_USER_NOT_LOGGED_IN;
   }
@@ -2215,14 +1979,11 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
     case CKM_RSA_PKCS_KEY_PAIR_GEN:
       rv = rsaKeyGen(session, pPublicKeyTemplate, ulPublicKeyAttributeCount, pPrivateKeyTemplate,
                      ulPrivateKeyAttributeCount, phPublicKey, phPrivateKey);
-      softHSM->unlockMutex();
       return rv;
       break;
     default:
       break;
   }
-
-  softHSM->unlockMutex();
 
   DEBUG_MSG("C_GenerateKeyPair", "The selected mechanism is not supported");
   return CKR_MECHANISM_INVALID;
@@ -2261,20 +2022,14 @@ CK_RV C_SeedRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSeed, CK_ULONG ulSee
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_SeedRandom", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
-
   SoftSession *session = softHSM->getSession(hSession);
 
   if(session == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SeedRandom", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(pSeed == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_SeedRandom", "pSeed must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
@@ -2285,8 +2040,6 @@ CK_RV C_SeedRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSeed, CK_ULONG ulSee
 #else
   session->rng->reseed();
 #endif
-
-  softHSM->unlockMutex();
 
   DEBUG_MSG("C_SeedRandom", "OK");
   return CKR_OK;
@@ -2301,27 +2054,19 @@ CK_RV C_GenerateRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pRandomData, CK_U
   CHECK_DEBUG_RETURN(softHSM == NULL, "C_GenerateRandom", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  softHSM->lockMutex();
-
   SoftSession *session = softHSM->getSession(hSession);
 
   if(session == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_GenerateRandom", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(pRandomData == NULL_PTR) {
-    softHSM->unlockMutex();
-
     DEBUG_MSG("C_GenerateRandom", "pRandomData must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
   session->rng->randomize(pRandomData, ulRandomLen);
-
-  softHSM->unlockMutex();
 
   DEBUG_MSG("C_GenerateRandom", "OK");
   return CKR_OK;

@@ -2,6 +2,12 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
+SoftHSM trunk
+
+* Backport mutex handling from v2 for increased multithreaded 
+  performance.
+
+
 SoftHSM 1.2.0 - 2010-09-30
 
 * Added mechanism CKM_RSA_X_509 (use Botan 1.9.7 to fix a bug
