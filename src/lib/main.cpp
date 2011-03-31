@@ -1087,14 +1087,15 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     return CKR_SESSION_HANDLE_INVALID;
   }
 
-  CK_BBOOL hasObject = session->db->hasObject(hKey);
+  // Get the key from the session key store.
+  Public_Key *cryptoKey = session->getKey(hKey);
 
   // TODO:
   //   Should also add: session->db->getBooleanAttribute(hKey, CKA_SIGN, CK_TRUE) == CK_FALSE
   //   in the if-statement below. "If this key is allowed to sign data"
   //   Not doing this for now, because you get higher performance.
 
-  if(hasObject == CK_FALSE || session->db->getObjectClass(hKey) != CKO_PRIVATE_KEY ||
+  if(cryptoKey == NULL_PTR || session->db->getObjectClass(hKey) != CKO_PRIVATE_KEY ||
      session->db->getKeyType(hKey) != CKK_RSA) {
     DEBUG_MSG("C_SignInit", "This key can not be used");
     return CKR_KEY_HANDLE_INVALID;
@@ -1196,13 +1197,6 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
       break;
   }
 #endif
-
-  // Get the key from the session key store.
-  Public_Key *cryptoKey = session->getKey(hKey);
-  if(cryptoKey == NULL_PTR) {
-    DEBUG_MSG("C_SignInit", "Could not load the crypto key");
-    return CKR_GENERAL_ERROR;
-  }
 
   // Creates the signer with given key and mechanism.
 #ifdef BOTAN_PRE_1_9_4_FIX
