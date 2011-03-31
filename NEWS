@@ -6,6 +6,8 @@ SoftHSM trunk
 
 * Backport mutex handling from v2 for increased multithreaded 
   performance.
+* Remove signature verification used for debugging purposes.
+  (was enabled with ./configure --enable-sigver)
 
 
 SoftHSM 1.2.0 - 2010-09-30

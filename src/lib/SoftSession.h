@@ -82,10 +82,6 @@ class SoftSession {
     bool signSinglePart;
     CK_ULONG signSize;
     bool signInitialized;
-#ifdef SOFTHSM_SIGVER
-    PK_Verifier *pkSigVer;
-    MemoryRegion<byte> *pkSigVerData;
-#endif
 
     // Verify
     PK_Verifier *pkVerifier;

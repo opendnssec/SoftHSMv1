@@ -62,12 +62,6 @@ AC_ARG_WITH(
         [SOFTLOGLEVEL="$withval"],
         [SOFTLOGLEVEL=3]
 )
-AC_ARG_ENABLE(
-        [sigver],
-        [AS_HELP_STRING([--enable-sigver],[enable signature verification for debugging purposes])],
-        [enable_sigver="yes"],
-        [enable_sigver="no"]
-)
 
 ACX_64BIT
 
@@ -137,10 +131,6 @@ AC_DEFINE_UNQUOTED(
   ["$full_libdir/libsofthsm.so"],
   [The default PKCS#11 library]
 )
-if test "x$enable_sigver" = "xyes"
-then
-        AC_DEFINE([SOFTHSM_SIGVER], [], [Verify the signatures before returning them])
-fi
 
 # Generate the libtool script and install script 
 AC_PROG_INSTALL

@@ -63,10 +63,6 @@ SoftSession::SoftSession(CK_FLAGS rwSession, SoftSlot *givenSlot, char *appID) {
   signSinglePart = false;
   signSize = 0;
   signInitialized = false;
-#ifdef SOFTHSM_SIGVER
-  pkSigVer = NULL_PTR;
-  pkSigVerData = NULL_PTR;
-#endif
 
   pkVerifier = NULL_PTR;
   verifySinglePart = false;
@@ -94,10 +90,6 @@ SoftSession::~SoftSession() {
   findCurrent = NULL_PTR;
   DELETE_PTR(digestPipe);
   DELETE_PTR(pkSigner);
-#ifdef SOFTHSM_SIGVER
-  DELETE_PTR(pkSigVer);
-  DELETE_PTR(pkSigVerData);
-#endif
   DELETE_PTR(pkVerifier);
   DELETE_PTR(keyStore);
   DELETE_PTR(rng);
