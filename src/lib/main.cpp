@@ -1191,8 +1191,6 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
       emsa = "EMSA3(SHA-512)";
       break;
     default:
-      softHSM->unlockMutex();
-
       DEBUG_MSG("C_SignInit", "The selected mechanism is not supported");
       return CKR_MECHANISM_INVALID;
       break;
