@@ -95,7 +95,6 @@ class SoftDatabase {
     sqlite3_stmt *insert_attribute_sql;
     sqlite3_stmt *insert_object_sql;
     sqlite3_stmt *select_object_id_sql;
-    sqlite3_stmt *select_attribute_sql;
     sqlite3_stmt *select_session_obj_sql;
     sqlite3_stmt *delete_object_sql;
     sqlite3_stmt *select_an_attribute_sql;

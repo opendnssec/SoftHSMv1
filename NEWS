@@ -9,6 +9,7 @@ SoftHSM trunk
 * Remove signature verification used for debugging purposes.
   (was enabled with ./configure --enable-sigver)
 * Added an index to the attribute table in the database.
+* Optimization of the database handling.
 
 
 SoftHSM 1.2.0 - 2010-09-30

@@ -73,7 +73,6 @@ SoftDatabase::SoftDatabase(char *appID) {
   insert_attribute_sql = NULL;
   insert_object_sql = NULL;
   select_object_id_sql = NULL;
-  select_attribute_sql = NULL;
   select_session_obj_sql = NULL;
   delete_object_sql = NULL;
   select_an_attribute_sql = NULL;
@@ -97,7 +96,6 @@ SoftDatabase::~SoftDatabase() {
   FINALIZE_STMT(insert_attribute_sql);
   FINALIZE_STMT(insert_object_sql);
   FINALIZE_STMT(select_object_id_sql);
-  FINALIZE_STMT(select_attribute_sql);
   FINALIZE_STMT(select_session_obj_sql);
   FINALIZE_STMT(delete_object_sql);
   FINALIZE_STMT(select_an_attribute_sql);
@@ -162,7 +160,6 @@ CK_RV SoftDatabase::init(char *dbPath) {
   const char insert_attribute_str[] =		"INSERT INTO Attributes (objectID, type, value, length) VALUES (?, ?, ?, ?);";
   const char insert_object_str[] =		"INSERT INTO Objects DEFAULT VALUES;";
   const char select_object_id_str[] =		"SELECT objectID FROM Objects WHERE objectID = ?;";
-  const char select_attribute_str[] =		"SELECT type,value,length from Attributes WHERE objectID = ?;";
   const char select_session_obj_str[] =		"SELECT objectID FROM Attributes WHERE type = ? AND value = ? AND objectID IN (SELECT objectID FROM Attributes WHERE type = ? AND value = ?);";
   const char delete_object_str[] =		"DELETE FROM Objects WHERE objectID = ?;";
   const char select_an_attribute_str[] =	"SELECT value,length FROM Attributes WHERE objectID = ? AND type = ?;";
@@ -174,7 +171,6 @@ CK_RV SoftDatabase::init(char *dbPath) {
   PREP_STMT(insert_attribute_str, &insert_attribute_sql);
   PREP_STMT(insert_object_str, &insert_object_sql);
   PREP_STMT(select_object_id_str, &select_object_id_sql);
-  PREP_STMT(select_attribute_str, &select_attribute_sql);
   PREP_STMT(select_session_obj_str, &select_session_obj_sql);
   PREP_STMT(delete_object_str, &delete_object_sql);
   PREP_STMT(select_an_attribute_str, &select_an_attribute_sql);
@@ -903,7 +899,7 @@ CK_OBJECT_HANDLE* SoftDatabase::getMatchingObjects(CK_ATTRIBUTE_PTR pTemplate, C
 
   // Construct the query
   if(ulCount == 0) {
-    sql = "SELECT DISTINCT objectID FROM Attributes";
+    sql = "SELECT objectID FROM Objects";
   } else {
     sql = "SELECT objectID FROM Attributes WHERE type = ? AND value = ?";
   }
