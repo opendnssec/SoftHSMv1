@@ -24,7 +24,7 @@ INTRODUCTION
 DEPENDENCIES
 
   SoftHSM depends on the Botan 1.8.0 or greater (a cryptographic library)
-  and SQLite 3.4.2 or greater (a database library). But it is recommended to
+  and SQLite 3.3.9 or greater (a database library). But it is recommended to
   use Botan 1.8.5 or greater since there is a known issues on some OS which
   freezes the application when it tries to pull entropy. If the packaged
   version for your distribution does not work try to compile the latest
