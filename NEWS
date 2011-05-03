@@ -2,7 +2,7 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
-SoftHSM trunk
+SoftHSM 1.2.1 - 2011-05-03 
 
 * Backport mutex handling from v2 for increased multithreaded 
   performance.

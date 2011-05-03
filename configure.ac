@@ -12,7 +12,7 @@ dnl
 
 define([SOFTHSM_VERSION_MAJOR], [1])
 define([SOFTHSM_VERSION_MINOR], [2])
-define([SOFTHSM_VERSION_FIX], [0])
+define([SOFTHSM_VERSION_FIX], [1])
 define([PACKAGE_SUFFIX], [])
 
 # Library version
@@ -24,7 +24,7 @@ define([PACKAGE_SUFFIX], [])
 
 define([SOFTHSM_VERSION_CURRENT], [1])
 define([SOFTHSM_VERSION_AGE], [0])
-define([SOFTHSM_VERSION_REVISION], [5])
+define([SOFTHSM_VERSION_REVISION], [6])
 
 ##################
 #                #
