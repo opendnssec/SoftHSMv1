@@ -34,7 +34,6 @@
 #include <botan/rsa.h>
 #include <botan/dsa.h>
 #include <botan/auto_rng.h>
-using namespace Botan;
 
 // Main functions
 
@@ -44,17 +43,17 @@ void to_bind(char *in_path, char *file_pin, char *name, int ttl, int key_flag, c
 
 // Support functions
 
-void save_rsa_pkcs8(char *out_path, char *file_pin, BigInt bigN, BigInt bigE,
-                    BigInt bigD, BigInt bigP, BigInt bigQ);
-void save_dsa_pkcs8(char *out_path, char *file_pin, BigInt bigDP, BigInt bigDQ,
-                    BigInt bigDG, BigInt bigDX);
-Private_Key* key_from_pkcs8(char *in_path, char *file_pin);
-int get_key_algorithm(Private_Key *priv_key, char *algorithm_str);
-void print_big_int(FILE *file_pointer, const char *file_tag, BigInt big_integer);
-void save_rsa_bind(char *name, int ttl, Private_Key *priv_key, int key_flag, int algorithm);
-void save_dsa_bind(char *name, int ttl, Private_Key *priv_key, int key_flag, int algorithm);
-int create_rsa_rdata(unsigned char *rdata, int length, Private_Key *priv_key, int key_flag, int algorithm);
-int create_dsa_rdata(unsigned char *rdata, int length, Private_Key *priv_key, int key_flag, int algorithm);
+void save_rsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigN, Botan::BigInt bigE,
+                    Botan::BigInt bigD, Botan::BigInt bigP, Botan::BigInt bigQ);
+void save_dsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigDP, Botan::BigInt bigDQ,
+                    Botan::BigInt bigDG, Botan::BigInt bigDX);
+Botan::Private_Key* key_from_pkcs8(char *in_path, char *file_pin);
+int get_key_algorithm(Botan::Private_Key *priv_key, char *algorithm_str);
+void print_big_int(FILE *file_pointer, const char *file_tag, Botan::BigInt big_integer);
+void save_rsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_flag, int algorithm);
+void save_dsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_flag, int algorithm);
+int create_rsa_rdata(unsigned char *rdata, int length, Botan::Private_Key *priv_key, int key_flag, int algorithm);
+int create_dsa_rdata(unsigned char *rdata, int length, Botan::Private_Key *priv_key, int key_flag, int algorithm);
 int print_dnskey(FILE *file_pointer, char *name, int ttl, unsigned char *rdata, int rdata_size);
 unsigned int keytag(unsigned char key[], unsigned int keysize);
 

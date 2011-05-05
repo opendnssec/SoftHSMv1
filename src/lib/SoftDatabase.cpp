@@ -274,7 +274,7 @@ CK_RV SoftDatabase::saveTokenInfo(int valueID, char *value, int length) {
 // Makes sure that object is saved with all its attributes.
 // If some error occur when saving the data, nothing is saved.
 
-CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate, 
+CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(Botan::RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate, 
     CK_ULONG ulPublicKeyAttributeCount) {
 
   // Begin the transaction
@@ -322,8 +322,8 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_END_DATE, &emptyDate, 0) != CKR_OK);
 
   // The RSA modulus bits
-  IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(rsaKey);
-  BigInt bigModulus = ifKey->get_n();
+  Botan::IF_Scheme_PublicKey *ifKey = dynamic_cast<Botan::IF_Scheme_PublicKey*>(rsaKey);
+  Botan::BigInt bigModulus = ifKey->get_n();
   CK_ULONG bits = bigModulus.bits();
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_MODULUS_BITS, &bits, sizeof(bits)) != CKR_OK);
 
@@ -331,7 +331,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE
   CHECK_DB_RESPONSE(this->saveAttributeBigInt(objectID, CKA_MODULUS, &bigModulus) != CKR_OK);
 
   // The RSA public exponent
-  BigInt bigExponent = ifKey->get_e();
+  Botan::BigInt bigExponent = ifKey->get_e();
   CHECK_DB_RESPONSE(this->saveAttributeBigInt(objectID, CKA_PUBLIC_EXPONENT, &bigExponent) != CKR_OK);
 
   // Extract the attributes from the template
@@ -384,7 +384,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE
 // Makes sure that object is saved with all its attributes.
 // If some error occur when saving the data, nothing is saved.
 
-CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, 
+CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(Botan::RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, 
     CK_ULONG ulPrivateKeyAttributeCount) {
 
   // Begin the transaction
@@ -438,24 +438,24 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(RSA_PrivateKey *rsaKey, CK_ATTRIBUT
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_END_DATE, &emptyDate, 0) != CKR_OK);
 
   // The RSA modulus
-  IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(rsaKey);
-  BigInt bigMod = ifKeyPriv->get_n();
+  Botan::IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<Botan::IF_Scheme_PrivateKey*>(rsaKey);
+  Botan::BigInt bigMod = ifKeyPriv->get_n();
   this->saveAttributeBigInt(objectID, CKA_MODULUS, &bigMod);
 
   // The RSA public exponent
-  BigInt bigExp = ifKeyPriv->get_e();
+  Botan::BigInt bigExp = ifKeyPriv->get_e();
   this->saveAttributeBigInt(objectID, CKA_PUBLIC_EXPONENT, &bigExp);
 
   // The RSA private exponent
-  BigInt bigPrivExp = ifKeyPriv->get_d();
+  Botan::BigInt bigPrivExp = ifKeyPriv->get_d();
   this->saveAttributeBigInt(objectID, CKA_PRIVATE_EXPONENT, &bigPrivExp);
 
   // The RSA prime p
-  BigInt bigPrime1 = ifKeyPriv->get_p();
+  Botan::BigInt bigPrime1 = ifKeyPriv->get_p();
   this->saveAttributeBigInt(objectID, CKA_PRIME_1, &bigPrime1);
 
   // The RSA prime q
-  BigInt bigPrime2 = ifKeyPriv->get_q();
+  Botan::BigInt bigPrime2 = ifKeyPriv->get_q();
   this->saveAttributeBigInt(objectID, CKA_PRIME_2, &bigPrime2);
 
   CK_BBOOL bolVal;
@@ -573,8 +573,8 @@ CK_OBJECT_HANDLE SoftDatabase::importPublicKey(CK_ATTRIBUTE_PTR pTemplate, CK_UL
   // Extract the attributes
   for(CK_ULONG i = 0; i < ulCount; i++) {
     if(pTemplate[i].type == CKA_MODULUS) {
-      BigInt bigModulus = BigInt(0);
-      bigModulus.binary_decode((byte*)pTemplate[i].pValue, pTemplate[i].ulValueLen);
+      Botan::BigInt bigModulus = Botan::BigInt(0);
+      bigModulus.binary_decode((Botan::byte*)pTemplate[i].pValue, pTemplate[i].ulValueLen);
       CK_ULONG bits = bigModulus.bits();
       CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_MODULUS_BITS, &bits, sizeof(bits)) != CKR_OK);
     }
@@ -722,7 +722,7 @@ CK_RV SoftDatabase::saveAttribute(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE t
 
 // Convert the big integer and save it in the database.
 
-CK_RV SoftDatabase::saveAttributeBigInt(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE type, BigInt *bigNumber) {
+CK_RV SoftDatabase::saveAttributeBigInt(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE type, Botan::BigInt *bigNumber) {
   CK_ULONG size = bigNumber->bytes();
   CK_VOID_PTR buf = (CK_VOID_PTR)malloc(size);
 
@@ -730,7 +730,7 @@ CK_RV SoftDatabase::saveAttributeBigInt(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_
     return CKR_GENERAL_ERROR;
   }
 
-  bigNumber->binary_encode((byte *)buf);
+  bigNumber->binary_encode((Botan::byte *)buf);
 
   CK_RV rv = this->saveAttribute(objectID, type, buf, size);
   free(buf);
@@ -862,9 +862,9 @@ CK_KEY_TYPE SoftDatabase::getKeyType(CK_OBJECT_HANDLE objectRef) {
 // Returns a big int of a given attribute.
 // We reveal anything, because this is used to create a key within the SoftHSM.
 
-BigInt SoftDatabase::getBigIntAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type) {
+Botan::BigInt SoftDatabase::getBigIntAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type) {
   int retSQL = 0;
-  BigInt retVal = BigInt(0);
+  Botan::BigInt retVal = Botan::BigInt(0);
 
   sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
   sqlite3_bind_int(select_an_attribute_sql, 2, type);
@@ -880,7 +880,7 @@ BigInt SoftDatabase::getBigIntAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE
     CK_ULONG length = sqlite3_column_int(select_an_attribute_sql, 1);
 
     if(pValue != NULL_PTR) {
-      retVal = BigInt((byte *)pValue, (u32bit)length);
+      retVal = Botan::BigInt((Botan::byte *)pValue, (Botan::u32bit)length);
     }
   }
 

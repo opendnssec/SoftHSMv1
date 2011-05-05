@@ -35,7 +35,6 @@
 // Includes for the crypto library
 #include <botan/pk_keys.h>
 #include <botan/bigint.h>
-using namespace Botan;
 
 typedef struct key_material_t {
   CK_ULONG sizeE;
@@ -94,10 +93,10 @@ key_material_t* importKeyMat(char *filePath, char *filePIN);
 void freeKeyMaterial(key_material_t *keyMaterial);
 
 /// DB info
-Private_Key* getPrivKey(char *dbPath, CK_OBJECT_HANDLE oHandle);
+Botan::Private_Key* getPrivKey(char *dbPath, CK_OBJECT_HANDLE oHandle);
 CK_KEY_TYPE getKeyType(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDLE objectRef);
 CK_OBJECT_CLASS getObjectClass(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDLE objectRef);
-BigInt getBigIntAttribute(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type);
+Botan::BigInt getBigIntAttribute(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type);
 int removeSessionObjs(char *dbPath);
 
 /// Config
@@ -110,6 +109,6 @@ static CK_FUNCTION_LIST_PTR p11;
 CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, char *objID, int objIDLen);
 
 /// Key to file
-CK_RV writeKeyToDisk(char *filePath, char *filePIN, Private_Key *privKey);
+CK_RV writeKeyToDisk(char *filePath, char *filePIN, Botan::Private_Key *privKey);
 
 #endif /* SOFTHSM_SOFTHSM_H */

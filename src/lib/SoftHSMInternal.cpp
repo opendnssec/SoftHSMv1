@@ -53,7 +53,6 @@
 #include <botan/filters.h>
 #include <botan/hex.h>
 #include <botan/sha2_32.h>
-using namespace Botan;
 
 SoftHSMInternal::SoftHSMInternal() {
   openSessions = 0;

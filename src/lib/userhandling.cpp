@@ -43,7 +43,6 @@
 #include <botan/filters.h>
 #include <botan/hex.h>
 #include <botan/sha2_32.h>
-using namespace Botan;
 
 // Checks if an action is allowed on a given object type.
 //
@@ -111,15 +110,15 @@ CK_BBOOL userAuthorization(CK_STATE sessionState, CK_BBOOL isTokenObject, CK_BBO
 
 char* digestPIN(CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen) {
   // We do not use any salt
-  Pipe *digestPIN = new Pipe(new Hash_Filter(new SHA_256), new Hex_Encoder);
+  Botan::Pipe *digestPIN = new Botan::Pipe(new Botan::Hash_Filter(new Botan::SHA_256), new Botan::Hex_Encoder);
   digestPIN->start_msg();
-  digestPIN->write((byte*)pPin, (u32bit)ulPinLen);
-  digestPIN->write((byte*)pPin, (u32bit)ulPinLen);
-  digestPIN->write((byte*)pPin, (u32bit)ulPinLen);
+  digestPIN->write((Botan::byte*)pPin, (Botan::u32bit)ulPinLen);
+  digestPIN->write((Botan::byte*)pPin, (Botan::u32bit)ulPinLen);
+  digestPIN->write((Botan::byte*)pPin, (Botan::u32bit)ulPinLen);
   digestPIN->end_msg();
 
   // Get the digested PIN
-  SecureVector<byte> pinVector = digestPIN->read_all();
+  Botan::SecureVector<Botan::byte> pinVector = digestPIN->read_all();
   int size = pinVector.size();
   char *tmpPIN = (char *)malloc(size + 1);
   if(tmpPIN != NULL_PTR) {

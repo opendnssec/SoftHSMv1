@@ -39,7 +39,6 @@
 // Includes for the crypto library
 #include <botan/if_algo.h>
 #include <botan/rsa.h>
-using namespace Botan;
 
 SoftSession::SoftSession(CK_FLAGS rwSession, SoftSlot *givenSlot, char *appID) {
   pApplication = NULL_PTR;
@@ -71,7 +70,7 @@ SoftSession::SoftSession(CK_FLAGS rwSession, SoftSlot *givenSlot, char *appID) {
 
   keyStore = new SoftKeyStore();
 
-  rng = new AutoSeeded_RNG();
+  rng = new Botan::AutoSeeded_RNG();
 
   currentSlot = givenSlot;
 
@@ -104,40 +103,40 @@ bool SoftSession::isReadWrite() {
 // If it is not chached then create a clone
 // of it and store it in the cache.
 
-Public_Key* SoftSession::getKey(CK_OBJECT_HANDLE hKey) {
-  Public_Key* tmpKey = keyStore->getKey(hKey);
+Botan::Public_Key* SoftSession::getKey(CK_OBJECT_HANDLE hKey) {
+  Botan::Public_Key* tmpKey = keyStore->getKey(hKey);
 
   // If the key is not in the session cache
   if(tmpKey == NULL_PTR) {
     if(this->db->getKeyType(hKey) == CKK_RSA) {
       // Clone the key
       if(this->db->getObjectClass(hKey) == CKO_PRIVATE_KEY) {
-        BigInt bigN = this->db->getBigIntAttribute(hKey, CKA_MODULUS);
-        BigInt bigE = this->db->getBigIntAttribute(hKey, CKA_PUBLIC_EXPONENT);
-        BigInt bigD = this->db->getBigIntAttribute(hKey, CKA_PRIVATE_EXPONENT);
-        BigInt bigP = this->db->getBigIntAttribute(hKey, CKA_PRIME_1);
-        BigInt bigQ = this->db->getBigIntAttribute(hKey, CKA_PRIME_2);
+        Botan::BigInt bigN = this->db->getBigIntAttribute(hKey, CKA_MODULUS);
+        Botan::BigInt bigE = this->db->getBigIntAttribute(hKey, CKA_PUBLIC_EXPONENT);
+        Botan::BigInt bigD = this->db->getBigIntAttribute(hKey, CKA_PRIVATE_EXPONENT);
+        Botan::BigInt bigP = this->db->getBigIntAttribute(hKey, CKA_PRIME_1);
+        Botan::BigInt bigQ = this->db->getBigIntAttribute(hKey, CKA_PRIME_2);
 
         if(bigN.is_zero () || bigE.is_zero() || bigD.is_zero() || bigP.is_zero() || bigQ.is_zero()) {
           return NULL_PTR;
         }
 
         try {
-          tmpKey = new RSA_PrivateKey(*rng, bigP, bigQ, bigE, bigD, bigN);
+          tmpKey = new Botan::RSA_PrivateKey(*rng, bigP, bigQ, bigE, bigD, bigN);
         }
         catch(...) {
           return NULL_PTR;
         }
       } else {
-        BigInt bigN = this->db->getBigIntAttribute(hKey, CKA_MODULUS);
-        BigInt bigE = this->db->getBigIntAttribute(hKey, CKA_PUBLIC_EXPONENT);
+        Botan::BigInt bigN = this->db->getBigIntAttribute(hKey, CKA_MODULUS);
+        Botan::BigInt bigE = this->db->getBigIntAttribute(hKey, CKA_PUBLIC_EXPONENT);
 
         if(bigN.is_zero() || bigE.is_zero()) {
           return NULL_PTR;
         }
 
         try {
-          tmpKey = new RSA_PublicKey(bigN, bigE);
+          tmpKey = new Botan::RSA_PublicKey(bigN, bigE);
         }
         catch(...) {
           return NULL_PTR;

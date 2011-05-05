@@ -41,7 +41,6 @@
 
 // Includes for the crypto library
 #include <botan/rng.h>
-using namespace Botan;
 
 class SoftSlot {
   public:

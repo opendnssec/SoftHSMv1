@@ -184,7 +184,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Init the Botan crypto library
-  LibraryInitializer::initialize();
+  Botan::LibraryInitializer::initialize();
 
   // We should convert to PKCS#8
   if(do_to_pkcs8) {
@@ -197,7 +197,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Deinitialize the Botan crypto lib
-  LibraryInitializer::deinitialize();
+  Botan::LibraryInitializer::deinitialize();
 
   return 0;
 }
@@ -210,15 +210,15 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
   int lineno = 0, m, n, error = 0, found, algorithm = DNS_KEYALG_ERROR, data_length;
   uint32_t bitfield = 0;
 
-  BigInt bigN = BigInt(0);
-  BigInt bigE = BigInt(0);
-  BigInt bigD = BigInt(0);
-  BigInt bigP = BigInt(0);
-  BigInt bigQ = BigInt(0);
-  BigInt bigDP = BigInt(0);
-  BigInt bigDQ = BigInt(0);
-  BigInt bigDX = BigInt(0);
-  BigInt bigDG = BigInt(0);
+  Botan::BigInt bigN = Botan::BigInt(0);
+  Botan::BigInt bigE = Botan::BigInt(0);
+  Botan::BigInt bigD = Botan::BigInt(0);
+  Botan::BigInt bigP = Botan::BigInt(0);
+  Botan::BigInt bigQ = Botan::BigInt(0);
+  Botan::BigInt bigDP = Botan::BigInt(0);
+  Botan::BigInt bigDQ = Botan::BigInt(0);
+  Botan::BigInt bigDX = Botan::BigInt(0);
+  Botan::BigInt bigDG = Botan::BigInt(0);
 
   if(in_path == NULL) {
     fprintf(stderr, "Error: A path to the input file must be supplied. Use --in <path>\n");
@@ -290,7 +290,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
         } else {
-          bigN = BigInt((byte*)data, (u32bit)data_length);
+          bigN = Botan::BigInt((Botan::byte*)data, (Botan::u32bit)data_length);
         }
         break;
       case TAG_PUBEXP:
@@ -299,7 +299,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
         } else {
-          bigE = BigInt((byte*)data, (u32bit)data_length);
+          bigE = Botan::BigInt((Botan::byte*)data, (Botan::u32bit)data_length);
         }
         break;
       case TAG_PRIVEXP:
@@ -308,7 +308,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
         } else {
-          bigD = BigInt((byte*)data, (u32bit)data_length);
+          bigD = Botan::BigInt((Botan::byte*)data, (Botan::u32bit)data_length);
         }
         break;
       case TAG_PRIME1:
@@ -317,7 +317,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
         } else {
-          bigP = BigInt((byte*)data, (u32bit)data_length);
+          bigP = Botan::BigInt((Botan::byte*)data, (Botan::u32bit)data_length);
         }
         break;
       case TAG_PRIME2:
@@ -326,7 +326,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
         } else {
-          bigQ = BigInt((byte*)data, (u32bit)data_length);
+          bigQ = Botan::BigInt((Botan::byte*)data, (Botan::u32bit)data_length);
         }
         break;
       case TAG_PRIME:
@@ -335,7 +335,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
         } else {
-          bigDP = BigInt((byte*)data, (u32bit)data_length);
+          bigDP = Botan::BigInt((Botan::byte*)data, (Botan::u32bit)data_length);
         }
         break;
       case TAG_SUBPRIME:
@@ -344,7 +344,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
         } else {
-          bigDQ = BigInt((byte*)data, (u32bit)data_length);
+          bigDQ = Botan::BigInt((Botan::byte*)data, (Botan::u32bit)data_length);
         }
         break;
       case TAG_BASE:
@@ -353,7 +353,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
         } else {
-          bigDG = BigInt((byte*)data, (u32bit)data_length);
+          bigDG = Botan::BigInt((Botan::byte*)data, (Botan::u32bit)data_length);
         }
         break;
       case TAG_PRIVVAL:
@@ -362,7 +362,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
           error = 1;
           fprintf(stderr, "Error: Could not parse the base64 string on line %i.\n", lineno);
         } else {
-          bigDX = BigInt((byte*)data, (u32bit)data_length);
+          bigDX = Botan::BigInt((Botan::byte*)data, (Botan::u32bit)data_length);
         }
         break;
       // We do not need them
@@ -413,7 +413,7 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
 
 void to_bind(char *in_path, char *file_pin, char *name, int ttl, int key_flag, char *algorithm_str) {
   int algorithm;
-  Private_Key *priv_key;
+  Botan::Private_Key *priv_key;
   char priv_out[MAX_LINE], pub_out[MAX_LINE];
 
   if(in_path == NULL) {
@@ -465,12 +465,12 @@ void to_bind(char *in_path, char *file_pin, char *name, int ttl, int key_flag, c
 
 // Save the RSA key as a PKCS#8 file
 
-void save_rsa_pkcs8(char *out_path, char *file_pin, BigInt bigN, BigInt bigE, 
-                    BigInt bigD, BigInt bigP, BigInt bigQ) {
+void save_rsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigN, Botan::BigInt bigE, 
+                    Botan::BigInt bigD, Botan::BigInt bigP, Botan::BigInt bigQ) {
 
   char buffer[MAX_LINE];
-  Private_Key *priv_key = NULL;
-  AutoSeeded_RNG *rng;
+  Botan::Private_Key *priv_key = NULL;
+  Botan::AutoSeeded_RNG *rng;
 
   // See if the key material was found. Not checking D and N,
   // because they can be reconstructed if they are zero.
@@ -479,10 +479,10 @@ void save_rsa_pkcs8(char *out_path, char *file_pin, BigInt bigN, BigInt bigE,
     return;
   }
 
-  rng = new AutoSeeded_RNG();
+  rng = new Botan::AutoSeeded_RNG();
 
   try {
-    priv_key = new RSA_PrivateKey(*rng, bigP, bigQ, bigE, bigD, bigN);
+    priv_key = new Botan::RSA_PrivateKey(*rng, bigP, bigQ, bigE, bigD, bigN);
   }
   catch(std::exception& e) {
     fprintf(stderr, "%s\n", e.what());
@@ -501,9 +501,9 @@ void save_rsa_pkcs8(char *out_path, char *file_pin, BigInt bigN, BigInt bigE,
 
   try {
     if(file_pin == NULL) {
-      priv_file << PKCS8::PEM_encode(*priv_key);
+      priv_file << Botan::PKCS8::PEM_encode(*priv_key);
     } else {
-      priv_file << PKCS8::PEM_encode(*priv_key, *rng, file_pin);
+      priv_file << Botan::PKCS8::PEM_encode(*priv_key, *rng, file_pin);
     }
 
     printf("The key has been written to %s\n", out_path);
@@ -522,12 +522,12 @@ void save_rsa_pkcs8(char *out_path, char *file_pin, BigInt bigN, BigInt bigE,
 
 // Save the DSA key as a PKCS#8 file
 
-void save_dsa_pkcs8(char *out_path, char *file_pin, BigInt bigDP, BigInt bigDQ, 
-                    BigInt bigDG, BigInt bigDX) {
+void save_dsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigDP, Botan::BigInt bigDQ, 
+                    Botan::BigInt bigDG, Botan::BigInt bigDX) {
 
   char buffer[MAX_LINE];
-  Private_Key *priv_key = NULL;
-  AutoSeeded_RNG *rng;
+  Botan::Private_Key *priv_key = NULL;
+  Botan::AutoSeeded_RNG *rng;
 
   // See if the key material was found. Not checking Q and X
   // because it can be reconstructed if it is zero.
@@ -536,10 +536,10 @@ void save_dsa_pkcs8(char *out_path, char *file_pin, BigInt bigDP, BigInt bigDQ,
     return;
   }
 
-  rng = new AutoSeeded_RNG();
+  rng = new Botan::AutoSeeded_RNG();
 
   try {
-    priv_key = new DSA_PrivateKey(*rng, DL_Group(bigDP, bigDQ, bigDG), bigDX);
+    priv_key = new Botan::DSA_PrivateKey(*rng, Botan::DL_Group(bigDP, bigDQ, bigDG), bigDX);
   }
   catch(std::exception& e) {
     fprintf(stderr, "%s\n", e.what());
@@ -558,9 +558,9 @@ void save_dsa_pkcs8(char *out_path, char *file_pin, BigInt bigDP, BigInt bigDQ,
 
   try {
     if(file_pin == NULL) {
-      priv_file << PKCS8::PEM_encode(*priv_key);
+      priv_file << Botan::PKCS8::PEM_encode(*priv_key);
     } else {
-      priv_file << PKCS8::PEM_encode(*priv_key, *rng, file_pin);
+      priv_file << Botan::PKCS8::PEM_encode(*priv_key, *rng, file_pin);
     }
 
     printf("The key has been written to %s\n", out_path);
@@ -579,21 +579,21 @@ void save_dsa_pkcs8(char *out_path, char *file_pin, BigInt bigDP, BigInt bigDQ,
 
 // Extract the private key from the PKCS#8 file
 
-Private_Key* key_from_pkcs8(char *in_path, char *file_pin) {
-  AutoSeeded_RNG *rng;
-  Private_Key *priv_key = NULL;
+Botan::Private_Key* key_from_pkcs8(char *in_path, char *file_pin) {
+  Botan::AutoSeeded_RNG *rng;
+  Botan::Private_Key *priv_key = NULL;
 
   if(in_path == NULL) {
     return NULL;
   }
 
-  rng = new AutoSeeded_RNG();
+  rng = new Botan::AutoSeeded_RNG();
 
   try {
     if(file_pin == NULL) {
-      priv_key = PKCS8::load_key(in_path, *rng);
+      priv_key = Botan::PKCS8::load_key(in_path, *rng);
     } else {
-      priv_key = PKCS8::load_key(in_path, *rng, file_pin);
+      priv_key = Botan::PKCS8::load_key(in_path, *rng, file_pin);
     }
   }
   catch(std::exception& e) {
@@ -611,7 +611,7 @@ Private_Key* key_from_pkcs8(char *in_path, char *file_pin) {
 // Check that the given algorithm matches one of the supported ones and 
 // matches the algorithm of the key from the PKCS#8 file.
 
-int get_key_algorithm(Private_Key *priv_key, char *algorithm_str) {
+int get_key_algorithm(Botan::Private_Key *priv_key, char *algorithm_str) {
   if(priv_key == NULL || algorithm_str == NULL) {
     return DNS_KEYALG_ERROR;
   }
@@ -688,9 +688,9 @@ int get_key_algorithm(Private_Key *priv_key, char *algorithm_str) {
 
 // Save the private RSA key in BIND format
 
-void save_rsa_bind(char *name, int ttl, Private_Key *priv_key, int key_flag, int algorithm) {
+void save_rsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_flag, int algorithm) {
   FILE *file_pointer;
-  IF_Scheme_PrivateKey *if_key_priv;
+  Botan::IF_Scheme_PrivateKey *if_key_priv;
   char priv_out[MAX_LINE], pub_out[MAX_LINE];
   unsigned char rdata[MAX_LINE];
   int key_tag, rdata_size;
@@ -754,7 +754,7 @@ void save_rsa_bind(char *name, int ttl, Private_Key *priv_key, int key_flag, int
       break;
   }
 
-  if_key_priv = dynamic_cast<IF_Scheme_PrivateKey*>(priv_key);
+  if_key_priv = dynamic_cast<Botan::IF_Scheme_PrivateKey*>(priv_key);
 
   // Key material
   print_big_int(file_pointer, file_tags[TAG_MODULUS], if_key_priv->get_n());
@@ -791,9 +791,9 @@ void save_rsa_bind(char *name, int ttl, Private_Key *priv_key, int key_flag, int
 
 // Save the private DSA key in BIND format
 
-void save_dsa_bind(char *name, int ttl, Private_Key *priv_key, int key_flag, int algorithm) {
+void save_dsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_flag, int algorithm) {
   FILE *file_pointer;
-  DL_Scheme_PrivateKey *dl_key_priv;
+  Botan::DL_Scheme_PrivateKey *dl_key_priv;
   char priv_out[MAX_LINE], pub_out[MAX_LINE];
   unsigned char rdata[MAX_LINE];
   int key_tag, rdata_size;
@@ -842,7 +842,7 @@ void save_dsa_bind(char *name, int ttl, Private_Key *priv_key, int key_flag, int
       break;
   }
 
-  dl_key_priv = dynamic_cast<DL_Scheme_PrivateKey*>(priv_key);
+  dl_key_priv = dynamic_cast<Botan::DL_Scheme_PrivateKey*>(priv_key);
 
   // Key material
   print_big_int(file_pointer, file_tags[TAG_PRIME], dl_key_priv->group_p());
@@ -876,7 +876,7 @@ void save_dsa_bind(char *name, int ttl, Private_Key *priv_key, int key_flag, int
 
 // Print the BigInt to file
 
-void print_big_int(FILE *file_pointer, const char *file_tag, BigInt big_integer) {
+void print_big_int(FILE *file_pointer, const char *file_tag, Botan::BigInt big_integer) {
   char bin_integer[MAX_LINE], base64_integer[MAX_LINE];
   int base64_len;
 
@@ -891,7 +891,7 @@ void print_big_int(FILE *file_pointer, const char *file_tag, BigInt big_integer)
   }
 
   // Convert to binary
-  big_integer.binary_encode((byte *)bin_integer);
+  big_integer.binary_encode((Botan::byte *)bin_integer);
 
   // Convert to base64
   base64_len = b64_ntop((unsigned char*)bin_integer, big_integer.bytes(), base64_integer, MAX_LINE);
@@ -909,11 +909,11 @@ void print_big_int(FILE *file_pointer, const char *file_tag, BigInt big_integer)
 
 // Create RSA RDATA
 
-int create_rsa_rdata(unsigned char *rdata, int length, Private_Key *priv_key, int key_flag, int algorithm) {
+int create_rsa_rdata(unsigned char *rdata, int length, Botan::Private_Key *priv_key, int key_flag, int algorithm) {
   unsigned int counter = 0, big_e_size, big_n_size;
-  IF_Scheme_PrivateKey *if_key_priv;
-  BigInt big_e;
-  BigInt big_n;
+  Botan::IF_Scheme_PrivateKey *if_key_priv;
+  Botan::BigInt big_e;
+  Botan::BigInt big_n;
 
   if(rdata == NULL || priv_key == NULL) {
     fprintf(stderr, "Error: create_rsa_rdata: Got NULL as an argument.\n");
@@ -921,7 +921,7 @@ int create_rsa_rdata(unsigned char *rdata, int length, Private_Key *priv_key, in
   }
 
   // Key material
-  if_key_priv = dynamic_cast<IF_Scheme_PrivateKey*>(priv_key);
+  if_key_priv = dynamic_cast<Botan::IF_Scheme_PrivateKey*>(priv_key);
   big_e = if_key_priv->get_e();
   big_n = if_key_priv->get_n();
   big_e_size = big_e.bytes();
@@ -959,11 +959,11 @@ int create_rsa_rdata(unsigned char *rdata, int length, Private_Key *priv_key, in
   }
 
   // Exponent
-  big_e.binary_encode((byte*)(rdata + counter));
+  big_e.binary_encode((Botan::byte*)(rdata + counter));
   counter += big_e_size;
 
   // Modulus
-  big_n.binary_encode((byte*)(rdata + counter));
+  big_n.binary_encode((Botan::byte*)(rdata + counter));
   counter += big_n_size;
 
   return counter;
@@ -971,13 +971,13 @@ int create_rsa_rdata(unsigned char *rdata, int length, Private_Key *priv_key, in
 
 // Create DSA RDATA
 
-int create_dsa_rdata(unsigned char *rdata, int length, Private_Key *priv_key, int key_flag, int algorithm) {
+int create_dsa_rdata(unsigned char *rdata, int length, Botan::Private_Key *priv_key, int key_flag, int algorithm) {
   unsigned int counter = 0, size, size_t;
-  DL_Scheme_PrivateKey *dl_key_priv;
-  BigInt big_q;
-  BigInt big_p;
-  BigInt big_g;
-  BigInt big_y;
+  Botan::DL_Scheme_PrivateKey *dl_key_priv;
+  Botan::BigInt big_q;
+  Botan::BigInt big_p;
+  Botan::BigInt big_g;
+  Botan::BigInt big_y;
 
   if(rdata == NULL || priv_key == NULL) {
     fprintf(stderr, "Error: create_dsa_rdata: Got NULL as an argument.\n");
@@ -985,7 +985,7 @@ int create_dsa_rdata(unsigned char *rdata, int length, Private_Key *priv_key, in
   }
 
   // Key material
-  dl_key_priv = dynamic_cast<DL_Scheme_PrivateKey*>(priv_key);
+  dl_key_priv = dynamic_cast<Botan::DL_Scheme_PrivateKey*>(priv_key);
   big_q = dl_key_priv->group_q();
   big_p = dl_key_priv->group_p();
   big_g = dl_key_priv->group_g();
@@ -1025,19 +1025,19 @@ int create_dsa_rdata(unsigned char *rdata, int length, Private_Key *priv_key, in
   rdata[counter++] = (unsigned char)size_t;
 
   // Q
-  big_q.binary_encode((byte*)(rdata + counter));
+  big_q.binary_encode((Botan::byte*)(rdata + counter));
   counter += 20;
 
   // P
-  big_p.binary_encode((byte*)(rdata + counter));
+  big_p.binary_encode((Botan::byte*)(rdata + counter));
   counter += size;
 
   // G
-  big_g.binary_encode((byte*)(rdata + counter));
+  big_g.binary_encode((Botan::byte*)(rdata + counter));
   counter += size;
 
   // Y
-  big_y.binary_encode((byte*)(rdata + counter));
+  big_y.binary_encode((Botan::byte*)(rdata + counter));
   counter += size;
   
   return counter;

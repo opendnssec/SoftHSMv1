@@ -68,7 +68,6 @@
 #include <botan/pk_keys.h>
 #include <botan/bigint.h>
 #include <botan/rsa.h>
-using namespace Botan;
 
 // Keeps the internal state
 std::auto_ptr<SoftHSMInternal> state(NULL);
@@ -212,7 +211,7 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
   }
 
   // Init the Botan crypto library 
-  LibraryInitializer::initialize("thread_safe=true");
+  Botan::LibraryInitializer::initialize("thread_safe=true");
 
   DEBUG_MSG("C_Initialize", "OK");
   return CKR_OK;
@@ -233,7 +232,7 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved) {
   state.reset(NULL);
 
   // Deinitialize the Botan crypto lib
-  LibraryInitializer::deinitialize();
+  Botan::LibraryInitializer::deinitialize();
 
   DEBUG_MSG("C_Finalize", "OK");
   return CKR_OK;
@@ -860,33 +859,33 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
   }
 
   CK_ULONG mechSize = 0;
-  HashFunction *hashFunc = NULL_PTR;
+  Botan::HashFunction *hashFunc = NULL_PTR;
 
   // Selects the correct hash algorithm.
   switch(pMechanism->mechanism) {
     case CKM_MD5:
       mechSize = 16;
-      hashFunc = new MD5;
+      hashFunc = new Botan::MD5;
       break;
     case CKM_RIPEMD160:
       mechSize = 20;
-      hashFunc = new RIPEMD_160;
+      hashFunc = new Botan::RIPEMD_160;
       break;
     case CKM_SHA_1:
       mechSize = 20;
-      hashFunc = new SHA_160;
+      hashFunc = new Botan::SHA_160;
       break;
     case CKM_SHA256:
       mechSize = 32;
-      hashFunc = new SHA_256;
+      hashFunc = new Botan::SHA_256;
       break;
     case CKM_SHA384:
       mechSize = 48;
-      hashFunc = new SHA_384;
+      hashFunc = new Botan::SHA_384;
       break;
     case CKM_SHA512:
       mechSize = 64;
-      hashFunc = new SHA_512;
+      hashFunc = new Botan::SHA_512;
       break;
     default:
       DEBUG_MSG("C_DigestInit", "The selected mechanism is not supported");
@@ -901,7 +900,7 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
 
   // Creates the digester with given hash algorithm.
   session->digestSize = mechSize;
-  session->digestPipe = new Pipe(new Hash_Filter(hashFunc));
+  session->digestPipe = new Botan::Pipe(new Botan::Hash_Filter(hashFunc));
 
   if(!session->digestPipe) {
     DEBUG_MSG("C_DigestInit", "Could not create the digesting function");
@@ -1088,7 +1087,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   }
 
   // Get the key from the session key store.
-  Public_Key *cryptoKey = session->getKey(hKey);
+  Botan::Public_Key *cryptoKey = session->getKey(hKey);
 
   // TODO:
   //   Should also add: session->db->getBooleanAttribute(hKey, CKA_SIGN, CK_TRUE) == CK_FALSE
@@ -1120,35 +1119,35 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
 
   session->signSinglePart = false;
 #ifdef BOTAN_PRE_1_9_4_FIX
-  EMSA *hashFunc = NULL_PTR;
+  Botan::EMSA *hashFunc = NULL_PTR;
 
   // Selects the correct padding and hash algorithm.
   switch(pMechanism->mechanism) {
     case CKM_RSA_PKCS:
-      hashFunc = new EMSA3_Raw();
+      hashFunc = new Botan::EMSA3_Raw();
       session->signSinglePart = true;
       break;
     case CKM_RSA_X_509:
-      hashFunc = new EMSA_Raw();
+      hashFunc = new Botan::EMSA_Raw();
       session->signSinglePart = true;
       break;
     case CKM_MD5_RSA_PKCS:
-      hashFunc = new EMSA3(new MD5);
+      hashFunc = new Botan::EMSA3(new Botan::MD5);
       break;
     case CKM_RIPEMD160_RSA_PKCS:
-      hashFunc = new EMSA3(new RIPEMD_160);
+      hashFunc = new Botan::EMSA3(new Botan::RIPEMD_160);
       break;
     case CKM_SHA1_RSA_PKCS:
-      hashFunc = new EMSA3(new SHA_160);
+      hashFunc = new Botan::EMSA3(new Botan::SHA_160);
       break;
     case CKM_SHA256_RSA_PKCS:
-      hashFunc = new EMSA3(new SHA_256);
+      hashFunc = new Botan::EMSA3(new Botan::SHA_256);
       break;
     case CKM_SHA384_RSA_PKCS:
-      hashFunc = new EMSA3(new SHA_384);
+      hashFunc = new Botan::EMSA3(new Botan::SHA_384);
       break;
     case CKM_SHA512_RSA_PKCS:
-      hashFunc = new EMSA3(new SHA_512);
+      hashFunc = new Botan::EMSA3(new Botan::SHA_512);
       break;
     default:
       DEBUG_MSG("C_SignInit", "The selected mechanism is not supported");
@@ -1200,12 +1199,12 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
 
   // Creates the signer with given key and mechanism.
 #ifdef BOTAN_PRE_1_9_4_FIX
-  PK_Signing_Key *signKey = dynamic_cast<PK_Signing_Key*>(cryptoKey);
+  Botan::PK_Signing_Key *signKey = dynamic_cast<Botan::PK_Signing_Key*>(cryptoKey);
   session->signSize = (cryptoKey->max_input_bits() + 8) / 8;
-  session->pkSigner = new PK_Signer(*signKey, &*hashFunc);
+  session->pkSigner = new Botan::PK_Signer(*signKey, &*hashFunc);
 #else
   session->signSize = (cryptoKey->max_input_bits() + 8) / 8;
-  session->pkSigner = new PK_Signer(*dynamic_cast<Private_Key*>(cryptoKey), emsa);
+  session->pkSigner = new Botan::PK_Signer(*dynamic_cast<Botan::Private_Key*>(cryptoKey), emsa);
 #endif
 
   if(!session->pkSigner) {
@@ -1266,7 +1265,7 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
   }
 
   // Sign 
-  SecureVector<byte> signResult = session->pkSigner->sign_message(pData, ulDataLen, *session->rng);
+  Botan::SecureVector<Botan::byte> signResult = session->pkSigner->sign_message(pData, ulDataLen, *session->rng);
 
   // Returns the result
   memcpy(pSignature, signResult.begin(), session->signSize);
@@ -1366,7 +1365,7 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
   }
 
   // Sign
-  SecureVector<byte> signResult = session->pkSigner->signature(*session->rng);
+  Botan::SecureVector<Botan::byte> signResult = session->pkSigner->signature(*session->rng);
 
   // Returns the result
   memcpy(pSignature, signResult.begin(), session->signSize);
@@ -1444,35 +1443,35 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
 
   session->verifySinglePart = false;
 #ifdef BOTAN_PRE_1_9_4_FIX
-  EMSA *hashFunc = NULL_PTR;
+  Botan::EMSA *hashFunc = NULL_PTR;
 
   // Selects the correct padding and hash algorithm.
   switch(pMechanism->mechanism) {
     case CKM_RSA_PKCS:
-      hashFunc = new EMSA3_Raw();
+      hashFunc = new Botan::EMSA3_Raw();
       session->verifySinglePart = true;
       break;
     case CKM_RSA_X_509:
-      hashFunc = new EMSA_Raw();
+      hashFunc = new Botan::EMSA_Raw();
       session->verifySinglePart = true;
       break;
     case CKM_MD5_RSA_PKCS:
-      hashFunc = new EMSA3(new MD5);
+      hashFunc = new Botan::EMSA3(new Botan::MD5);
       break;
     case CKM_RIPEMD160_RSA_PKCS:
-      hashFunc = new EMSA3(new RIPEMD_160);
+      hashFunc = new Botan::EMSA3(new Botan::RIPEMD_160);
       break;
     case CKM_SHA1_RSA_PKCS:
-      hashFunc = new EMSA3(new SHA_160);
+      hashFunc = new Botan::EMSA3(new Botan::SHA_160);
       break;
     case CKM_SHA256_RSA_PKCS:
-      hashFunc = new EMSA3(new SHA_256);
+      hashFunc = new Botan::EMSA3(new Botan::SHA_256);
       break;
     case CKM_SHA384_RSA_PKCS:
-      hashFunc = new EMSA3(new SHA_384);
+      hashFunc = new Botan::EMSA3(new Botan::SHA_384);
       break;
     case CKM_SHA512_RSA_PKCS:
-      hashFunc = new EMSA3(new SHA_512);
+      hashFunc = new Botan::EMSA3(new Botan::SHA_512);
       break;
     default:
       DEBUG_MSG("C_VerifyInit", "The selected mechanism is not supported");
@@ -1523,7 +1522,7 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
 #endif
 
   // Get the key from the session key store.
-  Public_Key *cryptoKey = session->getKey(hKey);
+  Botan::Public_Key *cryptoKey = session->getKey(hKey);
   if(cryptoKey == NULL_PTR) {
     DEBUG_MSG("C_VerifyInit", "Could not load the crypto key");
     return CKR_GENERAL_ERROR;
@@ -1531,12 +1530,12 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
 
   // Creates the verifier with given key and mechanism
 #ifdef BOTAN_PRE_1_9_4_FIX
-  PK_Verifying_with_MR_Key *verifyKey = dynamic_cast<PK_Verifying_with_MR_Key*>(cryptoKey);
+  Botan::PK_Verifying_with_MR_Key *verifyKey = dynamic_cast<Botan::PK_Verifying_with_MR_Key*>(cryptoKey);
   session->verifySize = (cryptoKey->max_input_bits() + 8) / 8;
-  session->pkVerifier = new PK_Verifier_with_MR(*verifyKey, &*hashFunc);
+  session->pkVerifier = new Botan::PK_Verifier_with_MR(*verifyKey, &*hashFunc);
 #else
   session->verifySize = (cryptoKey->max_input_bits() + 8) / 8;
-  session->pkVerifier = new PK_Verifier(*cryptoKey, emsa);
+  session->pkVerifier = new Botan::PK_Verifier(*cryptoKey, emsa);
 #endif
 
   if(!session->pkVerifier) {
@@ -1937,7 +1936,7 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
 
   CK_ULONG *modulusBits = NULL_PTR;
   // Defaults to an exponent with e = 65537
-  BigInt *exponent = new Botan::BigInt("65537");;
+  Botan::BigInt *exponent = new Botan::BigInt("65537");;
   CHECK_DEBUG_RETURN(exponent == NULL_PTR, "C_GenerateKeyPair", "Could not allocate memory", CKR_HOST_MEMORY);
 
   // Extract desired key information
@@ -1954,7 +1953,7 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
         break;
       case CKA_PUBLIC_EXPONENT:
         delete exponent;
-        exponent = new Botan::BigInt((byte*)pPublicKeyTemplate[i].pValue,(u32bit)pPublicKeyTemplate[i].ulValueLen);
+        exponent = new Botan::BigInt((Botan::byte*)pPublicKeyTemplate[i].pValue,(Botan::u32bit)pPublicKeyTemplate[i].ulValueLen);
         break;
       default:
         break;
@@ -1970,9 +1969,9 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   }
 
   // Generate the key
-  RSA_PrivateKey *rsaKey = NULL_PTR;
+  Botan::RSA_PrivateKey *rsaKey = NULL_PTR;
   try {
-    rsaKey = new RSA_PrivateKey(*session->rng, (u32bit)*modulusBits, exponent->to_u32bit());
+    rsaKey = new Botan::RSA_PrivateKey(*session->rng, (Botan::u32bit)*modulusBits, exponent->to_u32bit());
     delete exponent;
   }
   catch(...) {

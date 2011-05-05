@@ -6,6 +6,9 @@ SoftHSM trunk
 
 * Add partial support for CKA_ALWAYS_AUTHENTICATE. Not in use.
 
+Bugfixes:
+* API changes in Botan created a namespace collision.
+
 
 SoftHSM 1.2.1 - 2011-05-03 
 

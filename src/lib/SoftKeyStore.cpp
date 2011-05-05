@@ -82,7 +82,7 @@ void SoftKeyStore::removeKey(CK_OBJECT_HANDLE removeIndex) {
 
 // Find the key with a given index
 
-Public_Key *SoftKeyStore::getKey(CK_OBJECT_HANDLE getIndex) {
+Botan::Public_Key *SoftKeyStore::getKey(CK_OBJECT_HANDLE getIndex) {
   if(next != NULL_PTR) {
     if(getIndex == index) {
       return botanKey;

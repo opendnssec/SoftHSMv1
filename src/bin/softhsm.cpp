@@ -60,7 +60,6 @@
 #include <botan/init.h>
 #include <botan/libstate.h>
 #include <botan/numthry.h>
-using namespace Botan;
 
 void usage() {
   printf("Support tool for libsofthsm\n");
@@ -262,7 +261,7 @@ int main(int argc, char *argv[]) {
 
   // The PKCS#11 library might be using Botan
   // Check if it has already initialized Botan
-  Library_State* state = swap_global_state(0);
+  Botan::Library_State* state = Botan::swap_global_state(0);
   // now put it back
   swap_global_state(state);
 
@@ -271,7 +270,7 @@ int main(int argc, char *argv[]) {
   }
 
   if(was_initialized == false) {
-    LibraryInitializer::initialize("thread_safe=true");
+    Botan::LibraryInitializer::initialize("thread_safe=true");
   }
 
   // We should create the token.
@@ -308,7 +307,7 @@ int main(int argc, char *argv[]) {
   }
 
   if(was_initialized == false) {
-    LibraryInitializer::deinitialize();
+    Botan::LibraryInitializer::deinitialize();
   }
 
   if(action) {
@@ -747,7 +746,7 @@ void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
   }
 
   // Extract the key directly from the database
-  Private_Key *privKey = getPrivKey(dbPath, oHandle);
+  Botan::Private_Key *privKey = getPrivKey(dbPath, oHandle);
   free(dbPath);
   if(privKey == NULL) {
     return;
@@ -941,14 +940,14 @@ key_material_t* importKeyMat(char *filePath, char *filePIN) {
     return NULL;
   }
 
-  AutoSeeded_RNG *rng = new AutoSeeded_RNG();
-  Private_Key *privKey = NULL;
+  Botan::AutoSeeded_RNG *rng = new Botan::AutoSeeded_RNG();
+  Botan::Private_Key *privKey = NULL;
 
   try {
     if(filePIN == NULL) {
-      privKey = PKCS8::load_key(filePath, *rng);
+      privKey = Botan::PKCS8::load_key(filePath, *rng);
     } else {
-      privKey = PKCS8::load_key(filePath, *rng, filePIN);
+      privKey = Botan::PKCS8::load_key(filePath, *rng, filePIN);
     }
   }
   catch(std::exception& e) {
@@ -965,10 +964,10 @@ key_material_t* importKeyMat(char *filePath, char *filePIN) {
     return NULL;
   }
 
-  IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(privKey);
-  BigInt d1 = ifKeyPriv->get_d() % (ifKeyPriv->get_p() - 1);
-  BigInt d2 = ifKeyPriv->get_d() % (ifKeyPriv->get_q() - 1);
-  BigInt c = inverse_mod(ifKeyPriv->get_q(), ifKeyPriv->get_p());
+  Botan::IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<Botan::IF_Scheme_PrivateKey*>(privKey);
+  Botan::BigInt d1 = ifKeyPriv->get_d() % (ifKeyPriv->get_p() - 1);
+  Botan::BigInt d2 = ifKeyPriv->get_d() % (ifKeyPriv->get_q() - 1);
+  Botan::BigInt c = inverse_mod(ifKeyPriv->get_q(), ifKeyPriv->get_p());
   key_material_t *keyMat = (key_material_t *)malloc(sizeof(key_material_t));
   keyMat->sizeE = ifKeyPriv->get_e().bytes();
   keyMat->sizeN = ifKeyPriv->get_n().bytes();
@@ -986,14 +985,14 @@ key_material_t* importKeyMat(char *filePath, char *filePIN) {
   keyMat->bigDMP1 = (CK_VOID_PTR)malloc(keyMat->sizeDMP1);
   keyMat->bigDMQ1 = (CK_VOID_PTR)malloc(keyMat->sizeDMQ1);
   keyMat->bigIQMP = (CK_VOID_PTR)malloc(keyMat->sizeIQMP);
-  ifKeyPriv->get_e().binary_encode((byte *)keyMat->bigE);
-  ifKeyPriv->get_n().binary_encode((byte *)keyMat->bigN);
-  ifKeyPriv->get_d().binary_encode((byte *)keyMat->bigD);
-  ifKeyPriv->get_p().binary_encode((byte *)keyMat->bigP);
-  ifKeyPriv->get_q().binary_encode((byte *)keyMat->bigQ);
-  d1.binary_encode((byte *)keyMat->bigDMP1);
-  d2.binary_encode((byte *)keyMat->bigDMQ1);
-  c.binary_encode((byte *)keyMat->bigIQMP);
+  ifKeyPriv->get_e().binary_encode((Botan::byte *)keyMat->bigE);
+  ifKeyPriv->get_n().binary_encode((Botan::byte *)keyMat->bigN);
+  ifKeyPriv->get_d().binary_encode((Botan::byte *)keyMat->bigD);
+  ifKeyPriv->get_p().binary_encode((Botan::byte *)keyMat->bigP);
+  ifKeyPriv->get_q().binary_encode((Botan::byte *)keyMat->bigQ);
+  d1.binary_encode((Botan::byte *)keyMat->bigDMP1);
+  d2.binary_encode((Botan::byte *)keyMat->bigDMQ1);
+  c.binary_encode((Botan::byte *)keyMat->bigIQMP);
   delete privKey;
 
   return keyMat;
@@ -1074,7 +1073,7 @@ CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, char *objID, int objID
 
 // Write the key pair to disk
 
-CK_RV writeKeyToDisk(char *filePath, char *filePIN, Private_Key *privKey) {
+CK_RV writeKeyToDisk(char *filePath, char *filePIN, Botan::Private_Key *privKey) {
   if(filePath == NULL || privKey == NULL) {
     return CKR_GENERAL_ERROR;
   }
@@ -1086,13 +1085,13 @@ CK_RV writeKeyToDisk(char *filePath, char *filePIN, Private_Key *privKey) {
     return CKR_GENERAL_ERROR;
   }
 
-  AutoSeeded_RNG *rng = new AutoSeeded_RNG();
+  Botan::AutoSeeded_RNG *rng = new Botan::AutoSeeded_RNG();
 
   try {
     if(filePIN == NULL) {
-      privFile << PKCS8::PEM_encode(*privKey);
+      privFile << Botan::PKCS8::PEM_encode(*privKey);
     } else {
-      privFile << PKCS8::PEM_encode(*privKey, *rng, filePIN);
+      privFile << Botan::PKCS8::PEM_encode(*privKey, *rng, filePIN);
     }
   }
   catch(std::exception& e) {
@@ -1193,8 +1192,8 @@ char* getDBPath(CK_SLOT_ID slotID) {
 
 // Returns a big int of a given attribute.
 
-BigInt getBigIntAttribute(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type) {
-  BigInt retVal = BigInt(0);
+Botan::BigInt getBigIntAttribute(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type) {
+  Botan::BigInt retVal = Botan::BigInt(0);
 
   sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
   sqlite3_bind_int(select_an_attribute_sql, 2, type);
@@ -1205,7 +1204,7 @@ BigInt getBigIntAttribute(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDL
     CK_ULONG length = sqlite3_column_int(select_an_attribute_sql, 1);
 
     if(pValue != NULL_PTR) {
-      retVal = BigInt((byte *)pValue, (u32bit)length);
+      retVal = Botan::BigInt((Botan::byte *)pValue, (Botan::u32bit)length);
     }
   }
 
@@ -1262,24 +1261,24 @@ CK_KEY_TYPE getKeyType(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDLE o
 
 // Get the private key from database
 
-Private_Key* getPrivKey(char *dbPath, CK_OBJECT_HANDLE oHandle) {
+Botan::Private_Key* getPrivKey(char *dbPath, CK_OBJECT_HANDLE oHandle) {
   sqlite3 *db = NULL;
   const char select_str[] = "SELECT value,length FROM Attributes WHERE objectID = ? AND type = ?;";
   sqlite3_stmt *select_sql = NULL;
-  Private_Key *privKey = NULL;
+  Botan::Private_Key *privKey = NULL;
 
   if(sqlite3_open(dbPath, &db) == 0 && sqlite3_prepare_v2(db, select_str, -1, &select_sql, NULL) == 0) {
     if(getObjectClass(select_sql, oHandle) == CKO_PRIVATE_KEY && getKeyType(select_sql, oHandle) == CKK_RSA) {
-      BigInt bigN = getBigIntAttribute(select_sql, oHandle, CKA_MODULUS);
-      BigInt bigE = getBigIntAttribute(select_sql, oHandle, CKA_PUBLIC_EXPONENT);
-      BigInt bigD = getBigIntAttribute(select_sql, oHandle, CKA_PRIVATE_EXPONENT);
-      BigInt bigP = getBigIntAttribute(select_sql, oHandle, CKA_PRIME_1);
-      BigInt bigQ = getBigIntAttribute(select_sql, oHandle, CKA_PRIME_2);
+      Botan::BigInt bigN = getBigIntAttribute(select_sql, oHandle, CKA_MODULUS);
+      Botan::BigInt bigE = getBigIntAttribute(select_sql, oHandle, CKA_PUBLIC_EXPONENT);
+      Botan::BigInt bigD = getBigIntAttribute(select_sql, oHandle, CKA_PRIVATE_EXPONENT);
+      Botan::BigInt bigP = getBigIntAttribute(select_sql, oHandle, CKA_PRIME_1);
+      Botan::BigInt bigQ = getBigIntAttribute(select_sql, oHandle, CKA_PRIME_2);
 
-      AutoSeeded_RNG *rng = new AutoSeeded_RNG();
+      Botan::AutoSeeded_RNG *rng = new Botan::AutoSeeded_RNG();
       
       try {
-        privKey = new RSA_PrivateKey(*rng, bigP, bigQ, bigE, bigD, bigN);
+        privKey = new Botan::RSA_PrivateKey(*rng, bigP, bigQ, bigE, bigD, bigN);
       }
       catch(...) {
         fprintf(stderr, "Error: Could not extract the private key material from database.\n");

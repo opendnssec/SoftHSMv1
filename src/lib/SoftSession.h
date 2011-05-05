@@ -49,7 +49,6 @@
 #include <botan/pk_keys.h>
 #include <botan/auto_rng.h>
 #include <botan/secmem.h>
-using namespace Botan;
 
 class SoftFind;
 class SoftDatabase;
@@ -73,27 +72,27 @@ class SoftSession {
     bool findInitialized;
 
     // Digest
-    Pipe *digestPipe;
+    Botan::Pipe *digestPipe;
     CK_ULONG digestSize;
     bool digestInitialized;
 
     // Sign
-    PK_Signer *pkSigner;
+    Botan::PK_Signer *pkSigner;
     bool signSinglePart;
     CK_ULONG signSize;
     bool signInitialized;
 
     // Verify
-    PK_Verifier *pkVerifier;
+    Botan::PK_Verifier *pkVerifier;
     bool verifySinglePart;
     CK_ULONG verifySize;
     bool verifyInitialized;
 
     // Key store
-    Public_Key* getKey(CK_OBJECT_HANDLE hKey);
+    Botan::Public_Key* getKey(CK_OBJECT_HANDLE hKey);
     SoftKeyStore *keyStore;
 
-    AutoSeeded_RNG *rng;
+    Botan::AutoSeeded_RNG *rng;
 
     SoftDatabase *db;
 

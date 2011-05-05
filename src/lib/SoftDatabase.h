@@ -43,7 +43,6 @@
 // Includes for the crypto library
 #include <botan/bigint.h>
 #include <botan/rsa.h>
-using namespace Botan;
 
 #define DB_TOKEN_LABEL 0
 #define DB_TOKEN_SOPIN 1
@@ -64,16 +63,16 @@ class SoftDatabase {
     CK_BBOOL getBooleanAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type, CK_BBOOL defaultValue);
     CK_OBJECT_CLASS getObjectClass(CK_OBJECT_HANDLE objectRef);
     CK_KEY_TYPE getKeyType(CK_OBJECT_HANDLE objectRef);
-    BigInt getBigIntAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type);
+    Botan::BigInt getBigIntAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type);
     CK_RV getAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate);
     CK_RV setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate);
     CK_OBJECT_HANDLE* getMatchingObjects(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount, CK_ULONG *objectCount);
     CK_BBOOL hasObject(CK_OBJECT_HANDLE objectRef);
     CK_BBOOL checkAccessObj(CK_OBJECT_HANDLE objectRef);
 
-    CK_OBJECT_HANDLE addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
+    CK_OBJECT_HANDLE addRSAKeyPub(Botan::RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
       CK_ULONG ulPublicKeyAttributeCount);
-    CK_OBJECT_HANDLE addRSAKeyPriv(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate,
+    CK_OBJECT_HANDLE addRSAKeyPriv(Botan::RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate,
       CK_ULONG ulPrivateKeyAttributeCount);
     CK_OBJECT_HANDLE importPublicKey(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
     CK_OBJECT_HANDLE importPrivateKey(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
@@ -81,7 +80,7 @@ class SoftDatabase {
     void deleteObject(CK_OBJECT_HANDLE objRef);
 
     CK_RV saveAttribute(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen);
-    CK_RV saveAttributeBigInt(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE type, BigInt *bigNumber);
+    CK_RV saveAttributeBigInt(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE type, Botan::BigInt *bigNumber);
 
   private:
     sqlite3 *db;

@@ -41,11 +41,10 @@
 // Includes for the crypto library
 #include <botan/if_algo.h>
 #include <botan/rsa.h>
-using namespace Botan;
 
 CK_RV valAttributePubRSA(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
-  BigInt bigN = BigInt(0);
-  BigInt bigE = BigInt(0);
+  Botan::BigInt bigN = Botan::BigInt(0);
+  Botan::BigInt bigE = Botan::BigInt(0);
 
   // Evaluate the template
   for(CK_ULONG i = 0; i < ulCount; i++) {
@@ -106,10 +105,10 @@ CK_RV valAttributePubRSA(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
       case CKA_TRUSTED:
         return CKR_ATTRIBUTE_READ_ONLY;
       case CKA_PUBLIC_EXPONENT:
-        bigE = BigInt((byte *)pTemplate[i].pValue, (u32bit)pTemplate[i].ulValueLen);
+        bigE = Botan::BigInt((Botan::byte *)pTemplate[i].pValue, (Botan::u32bit)pTemplate[i].ulValueLen);
         break;
       case CKA_MODULUS:
-        bigN = BigInt((byte *)pTemplate[i].pValue, (u32bit)pTemplate[i].ulValueLen);
+        bigN = Botan::BigInt((Botan::byte *)pTemplate[i].pValue, (Botan::u32bit)pTemplate[i].ulValueLen);
         break;
       default:
         // Invalid attribute
@@ -121,9 +120,9 @@ CK_RV valAttributePubRSA(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
     return CKR_TEMPLATE_INCOMPLETE;
   }
 
-  Public_Key *tmpKey = NULL_PTR;
+  Botan::Public_Key *tmpKey = NULL_PTR;
   try {
-    tmpKey = new RSA_PublicKey(bigN, bigE);
+    tmpKey = new Botan::RSA_PublicKey(bigN, bigE);
   }
   catch(...) {
     return CKR_ATTRIBUTE_VALUE_INVALID;
@@ -136,12 +135,12 @@ CK_RV valAttributePubRSA(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
   return CKR_OK;
 }
 
-CK_RV valAttributePrivRSA(RandomNumberGenerator *rng, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
-  BigInt bigN = BigInt(0);
-  BigInt bigE = BigInt(0);
-  BigInt bigD = BigInt(0);
-  BigInt bigP = BigInt(0);
-  BigInt bigQ = BigInt(0);
+CK_RV valAttributePrivRSA(Botan::RandomNumberGenerator *rng, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
+  Botan::BigInt bigN = Botan::BigInt(0);
+  Botan::BigInt bigE = Botan::BigInt(0);
+  Botan::BigInt bigD = Botan::BigInt(0);
+  Botan::BigInt bigP = Botan::BigInt(0);
+  Botan::BigInt bigQ = Botan::BigInt(0);
 
   // Evaluate the template
   for(CK_ULONG i = 0; i < ulCount; i++) {
@@ -205,19 +204,19 @@ CK_RV valAttributePrivRSA(RandomNumberGenerator *rng, CK_ATTRIBUTE_PTR pTemplate
         // Must not be specified when object is created with C_CreateObject
         return CKR_ATTRIBUTE_VALUE_INVALID;
       case CKA_PUBLIC_EXPONENT:
-        bigE = BigInt((byte *)pTemplate[i].pValue, (u32bit)pTemplate[i].ulValueLen);
+        bigE = Botan::BigInt((Botan::byte *)pTemplate[i].pValue, (Botan::u32bit)pTemplate[i].ulValueLen);
         break;
       case CKA_MODULUS:
-        bigN = BigInt((byte *)pTemplate[i].pValue, (u32bit)pTemplate[i].ulValueLen);
+        bigN = Botan::BigInt((Botan::byte *)pTemplate[i].pValue, (Botan::u32bit)pTemplate[i].ulValueLen);
         break;
       case CKA_PRIVATE_EXPONENT:
-        bigD = BigInt((byte *)pTemplate[i].pValue, (u32bit)pTemplate[i].ulValueLen);
+        bigD = Botan::BigInt((Botan::byte *)pTemplate[i].pValue, (Botan::u32bit)pTemplate[i].ulValueLen);
         break;
       case CKA_PRIME_1:
-        bigP = BigInt((byte *)pTemplate[i].pValue, (u32bit)pTemplate[i].ulValueLen);
+        bigP = Botan::BigInt((Botan::byte *)pTemplate[i].pValue, (Botan::u32bit)pTemplate[i].ulValueLen);
         break;
       case CKA_PRIME_2:
-        bigQ = BigInt((byte *)pTemplate[i].pValue, (u32bit)pTemplate[i].ulValueLen);
+        bigQ = Botan::BigInt((Botan::byte *)pTemplate[i].pValue, (Botan::u32bit)pTemplate[i].ulValueLen);
         break;
       case CKA_EXPONENT_1:
       case CKA_EXPONENT_2:
@@ -234,9 +233,9 @@ CK_RV valAttributePrivRSA(RandomNumberGenerator *rng, CK_ATTRIBUTE_PTR pTemplate
     return CKR_TEMPLATE_INCOMPLETE;
   }
 
-  Public_Key *tmpKey = NULL_PTR;
+  Botan::Public_Key *tmpKey = NULL_PTR;
   try {
-    tmpKey = new RSA_PrivateKey(*rng, bigP, bigQ, bigE, bigD, bigN);
+    tmpKey = new Botan::RSA_PrivateKey(*rng, bigP, bigQ, bigE, bigD, bigN);
   }
   catch(...) {
     return CKR_ATTRIBUTE_VALUE_INVALID;

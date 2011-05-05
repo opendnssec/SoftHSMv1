@@ -45,7 +45,6 @@
 
 // Includes for the crypto library
 #include <botan/pk_keys.h>
-using namespace Botan;
 
 class SoftKeyStore {
   public:
@@ -53,11 +52,11 @@ class SoftKeyStore {
     ~SoftKeyStore();
 
     void removeKey(CK_OBJECT_HANDLE removeIndex);
-    Public_Key *getKey(CK_OBJECT_HANDLE getIndex);
+    Botan::Public_Key *getKey(CK_OBJECT_HANDLE getIndex);
 
     SoftKeyStore *next;
     CK_OBJECT_HANDLE index;
-    Public_Key *botanKey;
+    Botan::Public_Key *botanKey;
 };
 
 #endif /* SOFTHSM_SOFTKEYSTORE_H */
