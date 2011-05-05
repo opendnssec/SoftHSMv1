@@ -2,6 +2,11 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
+SoftHSM trunk
+
+* Add partial support for CKA_ALWAYS_AUTHENTICATE. Not in use.
+
+
 SoftHSM 1.2.1 - 2011-05-03 
 
 * Backport mutex handling from v2 for increased multithreaded 

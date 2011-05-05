@@ -180,6 +180,7 @@ CK_RV valAttributePrivRSA(RandomNumberGenerator *rng, CK_ATTRIBUTE_PTR pTemplate
       case CKA_SENSITIVE:
       case CKA_EXTRACTABLE:
       case CKA_WRAP_WITH_TRUSTED:
+      case CKA_ALWAYS_AUTHENTICATE:
         // Check for the correct size
         if(pTemplate[i].ulValueLen != sizeof(CK_BBOOL)) {
           return CKR_ATTRIBUTE_VALUE_INVALID;
