@@ -261,9 +261,13 @@ int main(int argc, char *argv[]) {
 
   // The PKCS#11 library might be using Botan
   // Check if it has already initialized Botan
+#ifdef BOTAN_PRE_1_9_10_FIX
   Botan::Library_State* state = Botan::swap_global_state(0);
-  // now put it back
-  swap_global_state(state);
+  Botan::swap_global_state(state);
+#else
+  Botan::Library_State* state = Botan::Global_State_Management::swap_global_state(0);
+  Botan::Global_State_Management::swap_global_state(state);
+#endif
 
   if(state) {
     was_initialized = true;

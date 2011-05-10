@@ -8,6 +8,7 @@ SoftHSM trunk
 
 Bugfixes:
 * API changes in Botan created a namespace collision.
+* API changes in Botan's state handling.
 
 
 SoftHSM 1.2.1 - 2011-05-03 
