@@ -38,6 +38,7 @@
 #include <config.h>
 #include "main.h"
 #include "log.h"
+#include "botan_compat.h"
 #include "file.h"
 #include "SoftHSMInternal.h"
 #include "userhandling.h"
@@ -1971,7 +1972,7 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   // Generate the key
   Botan::RSA_PrivateKey *rsaKey = NULL_PTR;
   try {
-    rsaKey = new Botan::RSA_PrivateKey(*session->rng, (Botan::u32bit)*modulusBits, exponent->to_u32bit());
+    rsaKey = new Botan::RSA_PrivateKey(*session->rng, (Botan::u32bit)*modulusBits, BotanCompat::to_u32bit(*exponent));
     delete exponent;
   }
   catch(...) {

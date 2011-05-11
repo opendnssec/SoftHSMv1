@@ -10,6 +10,7 @@ lib_LTLIBRARIES =		libsofthsm.la
 libsofthsm_la_SOURCES =		main.cpp main.h \
 				osmutex.cpp osmutex.h \
 				MutexFactory.cpp MutexFactory.h \
+				botan_compat.cpp botan_compat.h \
 				file.cpp file.h \
 				log.cpp log.h \
 				attribute.cpp attribute.h \
