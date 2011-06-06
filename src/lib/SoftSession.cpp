@@ -58,6 +58,16 @@ SoftSession::SoftSession(CK_FLAGS rwSession, SoftSlot *givenSlot, char *appID) {
   digestSize = 0;
   digestInitialized = false;
 
+  pkEncryptor = NULL_PTR;
+  encryptSinglePart = false;
+  encryptSize = 0;
+  encryptInitialized = false;
+
+  pkDecryptor = NULL_PTR;
+  decryptSinglePart = false;
+  decryptSize = 0;
+  decryptInitialized = false;
+
   pkSigner = NULL_PTR;
   signSinglePart = false;
   signSize = 0;
@@ -88,6 +98,8 @@ SoftSession::~SoftSession() {
   DELETE_PTR(findAnchor);
   findCurrent = NULL_PTR;
   DELETE_PTR(digestPipe);
+  DELETE_PTR(pkEncryptor);
+  DELETE_PTR(pkDecryptor);
   DELETE_PTR(pkSigner);
   DELETE_PTR(pkVerifier);
   DELETE_PTR(keyStore);

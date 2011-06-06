@@ -58,6 +58,8 @@ void usage() {
   printf("-i\t\tTest digest functions\n");
   printf("-j\t\tTest sign functions\n");
   printf("-k\t\tTest verify functions\n");
+  printf("-l\t\tTest encrypt functions\n");
+  printf("-m\t\tTest decrypt functions\n");
   printf("\n-z\t\tRun all tests\n");
 }
 
@@ -73,7 +75,7 @@ int main(int argc, char **argv) {
   /* Init token */
   inittoken();
 
-  while ((c = getopt(argc, argv, "abcdefghijkz")) != -1) {
+  while ((c = getopt(argc, argv, "abcdefghijklmz")) != -1) {
     switch(c) {
       case 'a':
         runInitCheck(5);
@@ -108,6 +110,12 @@ int main(int argc, char **argv) {
       case 'k':
         runVerifyCheck(5);
         break;
+      case 'l':
+        runEncryptCheck(5);
+        break;
+      case 'm':
+        runDecryptCheck(5);
+        break;
       case 'z':
         runInitCheck(5);
         runInfoCheck(5);
@@ -119,6 +127,8 @@ int main(int argc, char **argv) {
         runDigestCheck(5);
         runSignCheck(5);
         runVerifyCheck(5);
+        runEncryptCheck(5);
+        runDecryptCheck(5);
         break;
       default:
         usage();
@@ -1344,3 +1354,324 @@ void runVerifyCheck(unsigned int counter) {
 
   printf("OK\n");
 }
+
+void runEncryptCheck(unsigned int counter) {
+  CK_OBJECT_HANDLE hPublicKey1 = CK_INVALID_HANDLE, hPrivateKey1 = CK_INVALID_HANDLE;
+  CK_OBJECT_HANDLE hPublicKey2 = CK_INVALID_HANDLE, hPrivateKey2 = CK_INVALID_HANDLE;
+  CK_MECHANISM keyGenMechanism = {CKM_RSA_PKCS_KEY_PAIR_GEN, NULL_PTR, 0};
+  static CK_ULONG modulusBits = 768;
+  static CK_BYTE publicExponent[] = { 3 };
+  static CK_BYTE id[] = {123};
+  static CK_BBOOL true = CK_TRUE;
+  static CK_BBOOL false = CK_FALSE;
+  CK_ATTRIBUTE publicKeyTemplate1[] = {
+    {CKA_ENCRYPT, &true, sizeof(true)},
+    {CKA_VERIFY, &true, sizeof(true)},
+    {CKA_WRAP, &true, sizeof(true)},
+    {CKA_PUBLIC_EXPONENT, publicExponent, sizeof(publicExponent)},
+    {CKA_TOKEN, &true, sizeof(true)},
+    {CKA_MODULUS_BITS, &modulusBits, sizeof(modulusBits)}
+  };
+  CK_ATTRIBUTE publicKeyTemplate2[] = {
+    {CKA_ENCRYPT, &false, sizeof(false)},
+    {CKA_VERIFY, &true, sizeof(true)},
+    {CKA_WRAP, &true, sizeof(true)},
+    {CKA_PUBLIC_EXPONENT, publicExponent, sizeof(publicExponent)},
+    {CKA_TOKEN, &true, sizeof(true)},
+    {CKA_MODULUS_BITS, &modulusBits, sizeof(modulusBits)}
+  };
+  CK_ATTRIBUTE privateKeyTemplate[] = {
+    {CKA_PRIVATE, &true, sizeof(true)},
+    {CKA_ID, id, sizeof(id)},
+    {CKA_SENSITIVE, &true, sizeof(true)},
+    {CKA_DECRYPT, &true, sizeof(true)},
+    {CKA_SIGN, &true, sizeof(true)},
+    {CKA_UNWRAP, &true, sizeof(true)},
+    {CKA_TOKEN, &true, sizeof(true)}
+  };
+
+  unsigned int i;
+
+  printf("Checking C_EncryptInit and C_Encrypt: ");
+
+  for(i = 0; i < counter; i++) {
+    CK_RV rv;
+    CK_SESSION_HANDLE hSession[10];
+    CK_MECHANISM mechanism = {
+      CKM_RSA_PKCS, NULL_PTR, 0
+    };
+    CK_ULONG length;
+    CK_BYTE_PTR pEncryptedData;
+    CK_BYTE data[] = {"Text"};
+
+    /* No init */
+
+    rv = C_EncryptInit(CK_INVALID_HANDLE, NULL_PTR, CK_INVALID_HANDLE);
+    assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
+    rv = C_Encrypt(CK_INVALID_HANDLE, NULL_PTR, 0, NULL_PTR, NULL_PTR);
+    assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
+
+    /* Initializing */
+
+    rv = C_Initialize(NULL_PTR);
+    assert(rv == CKR_OK);
+    rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &hSession[0]);
+    assert(rv == CKR_OK);
+    rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession[1]);
+    assert(rv == CKR_OK);
+    rv = C_Login(hSession[1], CKU_USER, userPIN, sizeof(userPIN) - 1);
+    assert(rv == CKR_OK);
+    rv = C_GenerateKeyPair(hSession[1], &keyGenMechanism, publicKeyTemplate1, 6, privateKeyTemplate, 7, &hPublicKey1, &hPrivateKey1);
+    assert(rv == CKR_OK);
+    rv = C_GenerateKeyPair(hSession[1], &keyGenMechanism, publicKeyTemplate2, 6, privateKeyTemplate, 7, &hPublicKey2, &hPrivateKey2);
+    assert(rv == CKR_OK);
+    rv = C_Logout(hSession[1]);
+    assert(rv == CKR_OK);
+
+    /* C_EncryptInit */
+
+    rv = C_EncryptInit(CK_INVALID_HANDLE, &mechanism, hPublicKey1);
+    assert(rv == CKR_SESSION_HANDLE_INVALID);
+    rv = C_EncryptInit(hSession[0], &mechanism, CK_INVALID_HANDLE);
+    assert(rv == CKR_KEY_HANDLE_INVALID);
+    rv = C_EncryptInit(hSession[0], &mechanism, hPublicKey1);
+    assert(rv == CKR_KEY_HANDLE_INVALID);
+    rv = C_Login(hSession[1], CKU_USER, userPIN, sizeof(userPIN) - 1);
+    assert(rv == CKR_OK);
+    rv = C_EncryptInit(hSession[0], NULL_PTR, hPublicKey1);
+    assert(rv == CKR_ARGUMENTS_BAD);
+    rv = C_EncryptInit(hSession[0], &mechanism, hPrivateKey1);
+    assert(rv == CKR_KEY_TYPE_INCONSISTENT);
+    rv = C_EncryptInit(hSession[0], &mechanism, hPublicKey2);
+    assert(rv == CKR_KEY_FUNCTION_NOT_PERMITTED);
+    mechanism.mechanism = CKM_VENDOR_DEFINED;
+    rv = C_EncryptInit(hSession[0], &mechanism, hPublicKey1);
+    assert(rv == CKR_MECHANISM_INVALID);
+    mechanism.mechanism = CKM_RSA_PKCS;
+    rv = C_EncryptInit(hSession[0], &mechanism, hPublicKey1);
+    assert(rv == CKR_OK);
+    rv = C_EncryptInit(hSession[0], &mechanism, hPublicKey1);
+    assert(rv == CKR_OPERATION_ACTIVE);
+
+    /* C_Encrypt */
+
+    rv = C_Encrypt(CK_INVALID_HANDLE, NULL_PTR, 0, NULL_PTR, &length);
+    assert(rv == CKR_SESSION_HANDLE_INVALID);
+    rv = C_Encrypt(hSession[1], NULL_PTR, 0, NULL_PTR, &length);
+    assert(rv == CKR_OPERATION_NOT_INITIALIZED);
+    rv = C_Encrypt(hSession[0], NULL_PTR, 0, NULL_PTR, NULL_PTR);
+    assert(rv == CKR_ARGUMENTS_BAD);
+    rv = C_EncryptInit(hSession[0], &mechanism, hPublicKey1);
+    assert(rv == CKR_OK);
+    rv = C_Encrypt(hSession[0], NULL_PTR, 0, NULL_PTR, &length);
+    assert(rv == CKR_OK);
+    pEncryptedData = (CK_BYTE_PTR)malloc(length);
+    length = 0;
+    rv = C_Encrypt(hSession[0], data, 0, pEncryptedData, &length);
+    assert(rv == CKR_BUFFER_TOO_SMALL);
+    rv = C_Encrypt(hSession[0], NULL_PTR, 0, pEncryptedData, &length);
+    assert(rv == CKR_ARGUMENTS_BAD);
+    rv = C_EncryptInit(hSession[0], &mechanism, hPublicKey1);
+    assert(rv == CKR_OK);
+    rv = C_Encrypt(hSession[0], data, sizeof(data)-1, pEncryptedData, &length);
+    assert(rv == CKR_OK);
+    rv = C_Encrypt(hSession[0], data, sizeof(data)-1, pEncryptedData, &length);
+    assert(rv == CKR_OPERATION_NOT_INITIALIZED);
+    free(pEncryptedData);
+
+    /* Finalizing */
+
+    rv = C_DestroyObject(hSession[1], hPrivateKey1);
+    assert(rv == CKR_OK);
+    rv = C_DestroyObject(hSession[1], hPrivateKey2);
+    assert(rv == CKR_OK);
+    rv = C_DestroyObject(hSession[1], hPublicKey1);
+    assert(rv == CKR_OK);
+    rv = C_DestroyObject(hSession[1], hPublicKey2);
+    assert(rv == CKR_OK);
+    rv = C_Finalize(NULL_PTR);
+    assert(rv == CKR_OK);
+  }
+
+  printf("OK\n");
+}
+
+void runDecryptCheck(unsigned int counter) {
+  CK_OBJECT_HANDLE hPublicKey1 = CK_INVALID_HANDLE, hPrivateKey1 = CK_INVALID_HANDLE;
+  CK_OBJECT_HANDLE hPublicKey2 = CK_INVALID_HANDLE, hPrivateKey2 = CK_INVALID_HANDLE;
+  CK_MECHANISM keyGenMechanism = {CKM_RSA_PKCS_KEY_PAIR_GEN, NULL_PTR, 0};
+  static CK_ULONG modulusBits = 768;
+  static CK_BYTE publicExponent[] = { 3 };
+  static CK_BYTE id[] = {123};
+  static CK_BBOOL true = CK_TRUE;
+  static CK_BBOOL false = CK_FALSE;
+  CK_ATTRIBUTE publicKeyTemplate[] = {
+    {CKA_ENCRYPT, &true, sizeof(true)},
+    {CKA_VERIFY, &true, sizeof(true)},
+    {CKA_WRAP, &true, sizeof(true)},
+    {CKA_PUBLIC_EXPONENT, publicExponent, sizeof(publicExponent)},
+    {CKA_TOKEN, &true, sizeof(true)},
+    {CKA_MODULUS_BITS, &modulusBits, sizeof(modulusBits)}
+  };
+  CK_ATTRIBUTE privateKeyTemplate1[] = {
+    {CKA_PRIVATE, &true, sizeof(true)},
+    {CKA_ID, id, sizeof(id)},
+    {CKA_SENSITIVE, &true, sizeof(true)},
+    {CKA_DECRYPT, &true, sizeof(true)},
+    {CKA_SIGN, &true, sizeof(true)},
+    {CKA_UNWRAP, &true, sizeof(true)},
+    {CKA_TOKEN, &true, sizeof(true)}
+  };
+  CK_ATTRIBUTE privateKeyTemplate2[] = {
+    {CKA_PRIVATE, &true, sizeof(true)},
+    {CKA_ID, id, sizeof(id)},
+    {CKA_SENSITIVE, &true, sizeof(true)},
+    {CKA_DECRYPT, &false, sizeof(false)},
+    {CKA_SIGN, &true, sizeof(true)},
+    {CKA_UNWRAP, &true, sizeof(true)},
+    {CKA_TOKEN, &true, sizeof(true)}
+  };
+
+  unsigned int i;
+
+  printf("Checking C_DecryptInit and C_Decrypt: ");
+
+  for(i = 0; i < counter; i++) {
+    CK_RV rv;
+    CK_SESSION_HANDLE hSession[10];
+    CK_MECHANISM mechanism = {
+      CKM_RSA_PKCS, NULL_PTR, 0
+    };
+    CK_BYTE data[] = {"Text"};
+    CK_BYTE_PTR pEncryptedData;
+    CK_ULONG encryptedLength;
+    CK_BYTE_PTR pDecryptedData;
+    CK_ULONG decryptedLength;
+
+    /* No init */
+
+    rv = C_DecryptInit(CK_INVALID_HANDLE, NULL_PTR, CK_INVALID_HANDLE);
+    assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
+    rv = C_Decrypt(CK_INVALID_HANDLE, NULL_PTR, 0, NULL_PTR, NULL_PTR);
+    assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
+
+    /* Initializing */
+
+    rv = C_Initialize(NULL_PTR);
+    assert(rv == CKR_OK);
+    rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &hSession[0]);
+    assert(rv == CKR_OK);
+    rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession[1]);
+    assert(rv == CKR_OK);
+    rv = C_Login(hSession[1], CKU_USER, userPIN, sizeof(userPIN) - 1);
+    assert(rv == CKR_OK);
+    rv = C_GenerateKeyPair(hSession[1], &keyGenMechanism, publicKeyTemplate, 6, privateKeyTemplate1, 7, &hPublicKey1, &hPrivateKey1);
+    assert(rv == CKR_OK);
+    rv = C_GenerateKeyPair(hSession[1], &keyGenMechanism, publicKeyTemplate, 6, privateKeyTemplate2, 7, &hPublicKey2, &hPrivateKey2);
+    assert(rv == CKR_OK);
+    rv = C_Logout(hSession[1]);
+    assert(rv == CKR_OK);
+
+    /* C_DecryptInit */
+
+    rv = C_DecryptInit(CK_INVALID_HANDLE, &mechanism, hPrivateKey1);
+    assert(rv == CKR_SESSION_HANDLE_INVALID);
+    rv = C_DecryptInit(hSession[0], &mechanism, CK_INVALID_HANDLE);
+    assert(rv == CKR_KEY_HANDLE_INVALID);
+    rv = C_DecryptInit(hSession[0], &mechanism, hPrivateKey1);
+    assert(rv == CKR_KEY_HANDLE_INVALID);
+    rv = C_Login(hSession[1], CKU_USER, userPIN, sizeof(userPIN) - 1);
+    assert(rv == CKR_OK);
+    rv = C_DecryptInit(hSession[0], NULL_PTR, hPrivateKey1);
+    assert(rv == CKR_ARGUMENTS_BAD);
+    rv = C_DecryptInit(hSession[0], &mechanism, hPublicKey1);
+    assert(rv == CKR_KEY_TYPE_INCONSISTENT);
+    rv = C_DecryptInit(hSession[0], &mechanism, hPrivateKey2);
+    assert(rv == CKR_KEY_FUNCTION_NOT_PERMITTED);
+    mechanism.mechanism = CKM_VENDOR_DEFINED;
+    rv = C_DecryptInit(hSession[0], &mechanism, hPrivateKey1);
+    assert(rv == CKR_MECHANISM_INVALID);
+    mechanism.mechanism = CKM_RSA_PKCS;
+    rv = C_DecryptInit(hSession[0], &mechanism, hPrivateKey1);
+    assert(rv == CKR_OK);
+    rv = C_DecryptInit(hSession[0], &mechanism, hPrivateKey1);
+    assert(rv == CKR_OPERATION_ACTIVE);
+
+    /* Encrypt some data */
+
+    rv = C_EncryptInit(hSession[1], &mechanism, hPublicKey1);
+    assert(rv == CKR_OK);
+    rv = C_Encrypt(hSession[1], NULL_PTR, 0, NULL_PTR, &encryptedLength);
+    assert(rv == CKR_OK);
+    pEncryptedData = (CK_BYTE_PTR)malloc(encryptedLength);
+    rv = C_Encrypt(hSession[1], data, sizeof(data)-1, pEncryptedData, &encryptedLength);
+    assert(rv == CKR_OK);
+
+    /* C_Decrypt */
+
+    rv = C_Decrypt(CK_INVALID_HANDLE, NULL_PTR, 0, NULL_PTR, &decryptedLength);
+    assert(rv == CKR_SESSION_HANDLE_INVALID);
+    rv = C_Decrypt(hSession[1], NULL_PTR, 0, NULL_PTR, &decryptedLength);
+    assert(rv == CKR_OPERATION_NOT_INITIALIZED);
+    rv = C_Decrypt(hSession[0], NULL_PTR, 0, NULL_PTR, NULL_PTR);
+    assert(rv == CKR_ARGUMENTS_BAD);
+    rv = C_DecryptInit(hSession[0], &mechanism, hPrivateKey1);
+    assert(rv == CKR_OK);
+    rv = C_Decrypt(hSession[0], NULL_PTR, 0, NULL_PTR, &decryptedLength);
+    assert(rv == CKR_OK);
+    pDecryptedData = (CK_BYTE_PTR)malloc(decryptedLength);
+    decryptedLength = 0;
+    rv = C_Decrypt(hSession[0], pEncryptedData, encryptedLength, pDecryptedData, &decryptedLength);
+    assert(rv == CKR_BUFFER_TOO_SMALL);
+    rv = C_Decrypt(hSession[0], NULL_PTR, 0, pDecryptedData, &decryptedLength);
+    assert(rv == CKR_ARGUMENTS_BAD);
+    rv = C_DecryptInit(hSession[0], &mechanism, hPrivateKey1);
+    assert(rv == CKR_OK);
+    rv = C_Decrypt(hSession[0], pEncryptedData, encryptedLength, pDecryptedData, &decryptedLength);
+    assert(rv == CKR_OK);
+    assert(decryptedLength == (sizeof(data)-1));
+    assert(memcmp(data, pDecryptedData, decryptedLength) == 0);
+    rv = C_Decrypt(hSession[0], pEncryptedData, encryptedLength, pDecryptedData, &decryptedLength);
+    assert(rv == CKR_OPERATION_NOT_INITIALIZED);
+    free(pEncryptedData);
+    free(pDecryptedData);
+
+    /* Encrypt some more data */
+
+    rv = C_EncryptInit(hSession[1], &mechanism, hPublicKey2);
+    assert(rv == CKR_OK);
+    rv = C_Encrypt(hSession[1], NULL_PTR, 0, NULL_PTR, &encryptedLength);
+    assert(rv == CKR_OK);
+    pEncryptedData = (CK_BYTE_PTR)malloc(encryptedLength);
+    rv = C_Encrypt(hSession[1], data, sizeof(data)-1, pEncryptedData, &encryptedLength);
+    assert(rv == CKR_OK);
+
+    /* Decrypt with wrong key */
+
+    rv = C_DecryptInit(hSession[0], &mechanism, hPrivateKey1);
+    assert(rv == CKR_OK);
+    rv = C_Decrypt(hSession[0], NULL_PTR, 0, NULL_PTR, &decryptedLength);
+    assert(rv == CKR_OK);
+    pDecryptedData = (CK_BYTE_PTR)malloc(decryptedLength);
+    rv = C_Decrypt(hSession[0], pEncryptedData, encryptedLength, pDecryptedData, &decryptedLength);
+    assert(rv == CKR_ENCRYPTED_DATA_INVALID);
+    free(pEncryptedData);
+    free(pDecryptedData);
+
+    /* Finalizing */
+
+    rv = C_DestroyObject(hSession[1], hPrivateKey1);
+    assert(rv == CKR_OK);
+    rv = C_DestroyObject(hSession[1], hPrivateKey2);
+    assert(rv == CKR_OK);
+    rv = C_DestroyObject(hSession[1], hPublicKey1);
+    assert(rv == CKR_OK);
+    rv = C_DestroyObject(hSession[1], hPublicKey2);
+    assert(rv == CKR_OK);
+    rv = C_Finalize(NULL_PTR);
+    assert(rv == CKR_OK);
+  }
+
+  printf("OK\n");
+}
+

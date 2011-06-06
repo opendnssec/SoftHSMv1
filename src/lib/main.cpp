@@ -777,18 +777,217 @@ CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE hSession) {
   return CKR_OK;
 }
 
-CK_RV C_EncryptInit(CK_SESSION_HANDLE, CK_MECHANISM_PTR, CK_OBJECT_HANDLE) {
+CK_RV C_EncryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
   DEBUG_MSG("C_EncryptInit", "Calling");
-  DEBUG_MSG("C_EncryptInit", "The function is not implemented.");
 
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_EncryptInit", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
+  CHECK_DEBUG_RETURN(pMechanism == NULL_PTR, "C_EncryptInit", "pMechanism must not be NULL_PTR",
+                     CKR_ARGUMENTS_BAD);
+
+  SoftSession *session = softHSM->getSession(hSession);
+  if(session == NULL_PTR) {
+    DEBUG_MSG("C_EncryptInit", "Cannot find the session");
+    return CKR_SESSION_HANDLE_INVALID;
+  }
+
+  // Do we have an active operation?
+  if(session->encryptInitialized) {
+    DEBUG_MSG("C_EncryptInit", "Encrypt is already initialized");
+    return CKR_OPERATION_ACTIVE;
+  }
+
+  // Get the key from the session key store.
+  Botan::Public_Key *cryptoKey = session->getKey(hKey);
+  if(cryptoKey == NULL_PTR) {
+    DEBUG_MSG("C_EncryptInit", "The key could not be found");
+    return CKR_KEY_HANDLE_INVALID;
+  }
+
+  // Check if we can access it
+  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), session->db->getBooleanAttribute(hKey, CKA_TOKEN, CK_TRUE),
+                                        session->db->getBooleanAttribute(hKey, CKA_PRIVATE, CK_TRUE), 0);
+  if(userAuth == CK_FALSE) {
+    DEBUG_MSG("C_EncryptInit", "User is not authorized");
+    return CKR_KEY_HANDLE_INVALID;
+  }
+
+  // Is it an RSA public key?
+  if(session->db->getObjectClass(hKey) != CKO_PUBLIC_KEY || session->db->getKeyType(hKey) != CKK_RSA) {
+    DEBUG_MSG("C_EncryptInit", "Only an RSA public key can be used");
+    return CKR_KEY_TYPE_INCONSISTENT;
+  }
+
+  // Does it support encryption?
+  if(session->db->getBooleanAttribute(hKey, CKA_ENCRYPT, CK_TRUE) == CK_FALSE) {
+    DEBUG_MSG("C_EncryptInit", "This key does not support encryption");
+    return CKR_KEY_FUNCTION_NOT_PERMITTED;
+  }
+
+  session->encryptSinglePart = false;
+
+#ifdef BOTAN_PRE_1_9_4_FIX
+  Botan::EME *eme = NULL_PTR;
+
+  // Selects the correct padding.
+  switch(pMechanism->mechanism) {
+    case CKM_RSA_PKCS:
+      eme = new Botan::EME_PKCS1v15();
+      session->encryptSinglePart = true;
+      break;
+    default:
+      DEBUG_MSG("C_EncryptInit", "The selected mechanism is not supported");
+      return CKR_MECHANISM_INVALID;
+      break;
+  }
+
+  if(eme == NULL_PTR) {
+    DEBUG_MSG("C_EncryptInit", "Could not create the padding");
+    return CKR_DEVICE_MEMORY;
+  }
+#else
+  std::string eme;
+
+  // Selects the correct padding.
+  switch(pMechanism->mechanism) {
+    case CKM_RSA_PKCS:
+      eme = "EME-PKCS1-v1_5";
+      session->encryptSinglePart = true;
+      break;
+    default:
+      DEBUG_MSG("C_EncryptInit", "The selected mechanism is not supported");
+      return CKR_MECHANISM_INVALID;
+      break;
+  }
+#endif
+
+  // Creates the encryptor with given key and mechanism.
+  try {
+#ifdef BOTAN_PRE_1_9_4_FIX
+    Botan::PK_Encrypting_Key *encryptKey = dynamic_cast<Botan::PK_Encrypting_Key*>(cryptoKey);
+    session->encryptSize = (cryptoKey->max_input_bits() + 8) / 8;
+    session->pkEncryptor = new Botan::PK_Encryptor_MR_with_EME(*encryptKey, &*eme);
+#else
+    session->encryptSize = (cryptoKey->max_input_bits() + 8) / 8;
+    session->pkEncryptor = new Botan::PK_Encryptor_EME(*cryptoKey, eme);
+#endif
+  }
+  catch(...) {
+    ERROR_MSG("C_EncryptInit", "Exception: Could not create the encryption function");
+    return CKR_GENERAL_ERROR;
+  }
+
+  if(!session->pkEncryptor) {
+    ERROR_MSG("C_EncryptInit", "Could not create the encryption function");
+    return CKR_DEVICE_MEMORY;
+  }
+
+  session->encryptInitialized = true;
+
+  DEBUG_MSG("C_EncryptInit", "OK");
+  return CKR_OK;
 }
 
-CK_RV C_Encrypt(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG, CK_BYTE_PTR, CK_ULONG_PTR) {
+CK_RV C_Encrypt(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
+                CK_BYTE_PTR pEncryptedData, CK_ULONG_PTR pulEncryptedDataLen) {
   DEBUG_MSG("C_Encrypt", "Calling");
-  DEBUG_MSG("C_Encrypt", "The function is not implemented.");
 
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_Encrypt", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
+
+  SoftSession *session = softHSM->getSession(hSession);
+  if(session == NULL_PTR) {
+    DEBUG_MSG("C_Encrypt", "Cannot find the session");
+    return CKR_SESSION_HANDLE_INVALID;
+  }
+
+  if(!session->encryptInitialized) {
+    DEBUG_MSG("C_Encrypt", "Encrypt is not initialized");
+    return CKR_OPERATION_NOT_INITIALIZED;
+  }
+
+  if(pulEncryptedDataLen == NULL_PTR) {
+    DEBUG_MSG("C_Encrypt", "pulEncryptedDataLen must not be a NULL_PTR")
+
+    // Finalizing
+    session->encryptSize = 0;
+    delete session->pkEncryptor;
+    session->pkEncryptor = NULL_PTR;
+    session->encryptInitialized = false;
+
+    return CKR_ARGUMENTS_BAD;
+  }
+
+  if(pEncryptedData == NULL_PTR) {
+    *pulEncryptedDataLen = session->encryptSize;
+
+    DEBUG_MSG("C_Encrypt", "OK, returning the size of the encrypted data");
+    return CKR_OK;
+  }
+
+  if(*pulEncryptedDataLen < session->encryptSize) {
+    *pulEncryptedDataLen = session->encryptSize;
+
+    DEBUG_MSG("C_Encrypt", "The given buffer is too small");
+    return CKR_BUFFER_TOO_SMALL;
+  }
+
+  if(pData == NULL_PTR) {
+    DEBUG_MSG("C_Encrypt", "pData must not be a NULL_PTR");
+
+    // Finalizing
+    session->encryptSize = 0;
+    delete session->pkEncryptor;
+    session->pkEncryptor = NULL_PTR;
+    session->encryptInitialized = false;
+
+    return CKR_ARGUMENTS_BAD;
+  }
+
+  // Check input size
+  if(session->pkEncryptor->maximum_input_size() < ulDataLen) {
+    ERROR_MSG("C_Encrypt", "Input data is too large");
+
+    // Finalizing
+    session->encryptSize = 0;
+    delete session->pkEncryptor;
+    session->pkEncryptor = NULL_PTR;
+    session->encryptInitialized = false;
+
+    return CKR_DATA_LEN_RANGE;
+  }
+
+  // Encrypt
+  Botan::SecureVector<Botan::byte> encryptResult;
+  try {
+    encryptResult = session->pkEncryptor->encrypt(pData, ulDataLen, *session->rng);
+  }
+  catch(...) {
+    ERROR_MSG("C_Encrypt", "Could not encrypt the data");
+
+    // Finalizing
+    session->encryptSize = 0;
+    delete session->pkEncryptor;
+    session->pkEncryptor = NULL_PTR;
+    session->encryptInitialized = false;
+
+    return CKR_GENERAL_ERROR;
+  }
+
+  // Returns the result
+  memcpy(pEncryptedData, encryptResult.begin(), encryptResult.size());
+  *pulEncryptedDataLen = encryptResult.size();
+
+  // Finalizing
+  session->encryptSize = 0;
+  delete session->pkEncryptor;
+  session->pkEncryptor = NULL_PTR;
+  session->encryptInitialized = false;
+
+  DEBUG_MSG("C_Encrypt", "OK");
+  return CKR_OK;
 }
 
 CK_RV C_EncryptUpdate(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG, CK_BYTE_PTR, CK_ULONG_PTR) {
@@ -805,18 +1004,208 @@ CK_RV C_EncryptFinal(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG_PTR) {
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_DecryptInit(CK_SESSION_HANDLE, CK_MECHANISM_PTR, CK_OBJECT_HANDLE) {
+CK_RV C_DecryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
   DEBUG_MSG("C_DecryptInit", "Calling");
-  DEBUG_MSG("C_DecryptInit", "The function is not implemented.");
 
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_DecryptInit", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
+  CHECK_DEBUG_RETURN(pMechanism == NULL_PTR, "C_DecryptInit", "pMechanism must not be NULL_PTR",
+                     CKR_ARGUMENTS_BAD);
+
+  SoftSession *session = softHSM->getSession(hSession);
+  if(session == NULL_PTR) {
+    DEBUG_MSG("C_DecryptInit", "Cannot find the session");
+    return CKR_SESSION_HANDLE_INVALID;
+  }
+
+  // Do we have an active operation?
+  if(session->decryptInitialized) {
+    DEBUG_MSG("C_DecryptInit", "Decrypt is already initialized");
+    return CKR_OPERATION_ACTIVE;
+  }
+
+  // Get the key from the session key store.
+  Botan::Public_Key *cryptoKey = session->getKey(hKey);
+  if(cryptoKey == NULL_PTR) {
+    DEBUG_MSG("C_DecryptInit", "The key could not be found");
+    return CKR_KEY_HANDLE_INVALID;
+  }
+
+  // Check if we can access it
+  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), session->db->getBooleanAttribute(hKey, CKA_TOKEN, CK_TRUE),
+                                        session->db->getBooleanAttribute(hKey, CKA_PRIVATE, CK_TRUE), 0);
+  if(userAuth == CK_FALSE) {
+    DEBUG_MSG("C_DecryptInit", "User is not authorized");
+    return CKR_KEY_HANDLE_INVALID;
+  }
+
+  // Is it an RSA private key?
+  if(session->db->getObjectClass(hKey) != CKO_PRIVATE_KEY || session->db->getKeyType(hKey) != CKK_RSA) {
+    DEBUG_MSG("C_DecryptInit", "Only an RSA private key can be used");
+    return CKR_KEY_TYPE_INCONSISTENT;
+  }
+
+  // Does it support decryption?
+  if(session->db->getBooleanAttribute(hKey, CKA_DECRYPT, CK_TRUE) == CK_FALSE) {
+    DEBUG_MSG("C_DecryptInit", "This key does not support decryption");
+    return CKR_KEY_FUNCTION_NOT_PERMITTED;
+  }
+
+  session->decryptSinglePart = false;
+
+#ifdef BOTAN_PRE_1_9_4_FIX
+  Botan::EME *eme = NULL_PTR;
+
+  // Selects the correct padding.
+  switch(pMechanism->mechanism) {
+    case CKM_RSA_PKCS:
+      eme = new Botan::EME_PKCS1v15();
+      session->decryptSinglePart = true;
+      break;
+    default:
+      DEBUG_MSG("C_DecryptInit", "The selected mechanism is not supported");
+      return CKR_MECHANISM_INVALID;
+      break;
+  }
+
+  if(eme == NULL_PTR) {
+    DEBUG_MSG("C_DecryptInit", "Could not create the padding");
+    return CKR_DEVICE_MEMORY;
+  } 
+#else
+  std::string eme;
+
+  // Selects the correct padding.
+  switch(pMechanism->mechanism) {
+    case CKM_RSA_PKCS:
+      eme = "EME-PKCS1-v1_5";
+      session->decryptSinglePart = true;
+      break;
+    default:
+      DEBUG_MSG("C_DecryptInit", "The selected mechanism is not supported");
+      return CKR_MECHANISM_INVALID;
+      break;
+  }
+#endif
+
+  // Creates the decryptor with given key and mechanism
+  try {
+#ifdef BOTAN_PRE_1_9_4_FIX
+    Botan::PK_Decrypting_Key *decryptKey = dynamic_cast<Botan::PK_Decrypting_Key*>(cryptoKey);
+    session->decryptSize = (cryptoKey->max_input_bits() + 8) / 8;
+    session->pkDecryptor = new Botan::PK_Decryptor_MR_with_EME(*decryptKey, &*eme);
+#else
+    session->decryptSize = (cryptoKey->max_input_bits() + 8) / 8;
+    session->pkDecryptor = new Botan::PK_Decryptor_EME(*dynamic_cast<Botan::Private_Key*>(cryptoKey), eme);
+#endif
+  }
+  catch(...) {
+    ERROR_MSG("C_DecryptInit", "Exception: Could not create the decryption function");
+    return CKR_GENERAL_ERROR;
+  }
+
+  if(!session->pkDecryptor) {
+    ERROR_MSG("C_DecryptInit", "Could not create the decryption function");
+    return CKR_DEVICE_MEMORY;
+  }
+
+  session->decryptInitialized = true;
+
+  DEBUG_MSG("C_DecryptInit", "OK");
+  return CKR_OK;
 }
 
-CK_RV C_Decrypt(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG, CK_BYTE_PTR, CK_ULONG_PTR) {
+CK_RV C_Decrypt(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pEncryptedData, CK_ULONG ulEncryptedDataLen, 
+                CK_BYTE_PTR pData, CK_ULONG_PTR pulDataLen) {
   DEBUG_MSG("C_Decrypt", "Calling");
-  DEBUG_MSG("C_Decrypt", "The function is not implemented.");
 
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  SoftHSMInternal *softHSM = state.get();
+  CHECK_DEBUG_RETURN(softHSM == NULL, "C_Decrypt", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
+
+  SoftSession *session = softHSM->getSession(hSession);
+  if(session == NULL_PTR) {
+    DEBUG_MSG("C_Decrypt", "Cannot find the session");
+    return CKR_SESSION_HANDLE_INVALID;
+  }
+
+  if(!session->decryptInitialized) {
+    DEBUG_MSG("C_Decrypt", "Decrypt is not initialized");
+    return CKR_OPERATION_NOT_INITIALIZED;
+  }
+
+  if(pulDataLen == NULL_PTR) {
+    DEBUG_MSG("C_Decrypt", "pulDataLen must not be a NULL_PTR");
+
+    // Finalizing
+    session->decryptSize = 0;
+    delete session->pkDecryptor;
+    session->pkDecryptor = NULL_PTR;
+    session->decryptInitialized = false;
+
+    return CKR_ARGUMENTS_BAD;
+  }
+
+  // PKCS#11: "This number may somewhat exceed the precise number of 
+  // bytes needed, but should not exceed it by a large amount."
+  //
+  // We return the maximum output that the RSA key can decrypt.
+  // When the data is decrypted, then we know the size.
+
+  if(pData == NULL_PTR) {
+    *pulDataLen = session->decryptSize;
+    DEBUG_MSG("C_Decrypt", "OK, returning the size of the decrypted data");
+    return CKR_OK;
+  }
+
+  if(*pulDataLen < session->decryptSize) {
+    *pulDataLen = session->decryptSize;
+    DEBUG_MSG("C_Decrypt", "The given buffer is too small");
+    return CKR_BUFFER_TOO_SMALL;
+  }
+
+  if(pEncryptedData == NULL_PTR) {
+    DEBUG_MSG("C_Decrypt", "pEncryptedData must not be a NULL_PTR");
+
+    // Finalizing
+    session->decryptSize = 0;
+    delete session->pkDecryptor;
+    session->pkDecryptor = NULL_PTR;
+    session->decryptInitialized = false;
+
+    return CKR_ARGUMENTS_BAD;
+  }
+
+  // Decrypt
+  Botan::SecureVector<Botan::byte> decryptResult;
+  try {
+    decryptResult = session->pkDecryptor->decrypt(pEncryptedData, ulEncryptedDataLen);
+  }
+  catch(...) {
+    ERROR_MSG("C_Decrypt", "Could not decrypt the data");
+
+    // Finalizing
+    session->decryptSize = 0;
+    delete session->pkDecryptor;
+    session->pkDecryptor = NULL_PTR;
+    session->decryptInitialized = false;
+
+    return CKR_ENCRYPTED_DATA_INVALID;
+  }
+
+  // Returns the result
+  memcpy(pData, decryptResult.begin(), decryptResult.size());
+  *pulDataLen = decryptResult.size();
+
+  // Finalizing
+  session->decryptSize = 0;
+  delete session->pkDecryptor;
+  session->pkDecryptor = NULL_PTR;
+  session->decryptInitialized = false;
+
+  DEBUG_MSG("C_Decrypt", "OK");
+  return CKR_OK;
 }
 
 CK_RV C_DecryptUpdate(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG, CK_BYTE_PTR, CK_ULONG_PTR) {

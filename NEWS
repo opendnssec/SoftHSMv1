@@ -5,6 +5,7 @@ NEWS for SoftHSM -- History of user visible changes
 SoftHSM trunk
 
 * Add partial support for CKA_ALWAYS_AUTHENTICATE. Not in use.
+* Encryption and decryption using CKM_RSA_PKCS.
 
 Bugfixes:
 * API changes in Botan created a namespace collision.

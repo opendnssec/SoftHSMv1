@@ -76,6 +76,18 @@ class SoftSession {
     CK_ULONG digestSize;
     bool digestInitialized;
 
+    // Encrypt
+    Botan::PK_Encryptor *pkEncryptor;
+    bool encryptSinglePart;
+    CK_ULONG encryptSize;
+    bool encryptInitialized;
+
+    // Decrypt
+    Botan::PK_Decryptor *pkDecryptor;
+    bool decryptSinglePart;
+    CK_ULONG decryptSize;
+    bool decryptInitialized;
+
     // Sign
     Botan::PK_Signer *pkSigner;
     bool signSinglePart;

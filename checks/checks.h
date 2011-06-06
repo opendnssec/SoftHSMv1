@@ -38,3 +38,5 @@ void runObjectCheck(unsigned int counter);
 void runDigestCheck(unsigned int counter);
 void runSignCheck(unsigned int counter);
 void runVerifyCheck(unsigned int counter);
+void runEncryptCheck(unsigned int counter);
+void runDecryptCheck(unsigned int counter);
