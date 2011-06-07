@@ -13,6 +13,7 @@ Bugfixes:
 * API changes in Botan's state handling.
 * BigInt::to_u32bit was accidently dropped in Botan. Adding it
   as a compatibility function to SoftHSM.
+* Better exception handling.
 
 
 SoftHSM 1.2.1 - 2011-05-03 

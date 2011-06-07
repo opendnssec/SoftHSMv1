@@ -66,6 +66,7 @@
 #include <botan/pipe.h>
 #include <botan/emsa3.h>
 #include <botan/emsa_raw.h>
+#include <botan/eme_pkcs.h>
 #include <botan/pk_keys.h>
 #include <botan/bigint.h>
 #include <botan/rsa.h>
@@ -873,8 +874,10 @@ CK_RV C_EncryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_
     session->pkEncryptor = new Botan::PK_Encryptor_EME(*cryptoKey, eme);
 #endif
   }
-  catch(...) {
-    ERROR_MSG("C_EncryptInit", "Exception: Could not create the encryption function");
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not create the encryption function: %s", e.what());
+    ERROR_MSG("C_EncryptInit", errorMsg);
     return CKR_GENERAL_ERROR;
   }
 
@@ -964,8 +967,10 @@ CK_RV C_Encrypt(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLe
   try {
     encryptResult = session->pkEncryptor->encrypt(pData, ulDataLen, *session->rng);
   }
-  catch(...) {
-    ERROR_MSG("C_Encrypt", "Could not encrypt the data");
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not encrypt the data: %s", e.what());
+    ERROR_MSG("C_Encrypt", errorMsg);
 
     // Finalizing
     session->encryptSize = 0;
@@ -1100,8 +1105,10 @@ CK_RV C_DecryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_
     session->pkDecryptor = new Botan::PK_Decryptor_EME(*dynamic_cast<Botan::Private_Key*>(cryptoKey), eme);
 #endif
   }
-  catch(...) {
-    ERROR_MSG("C_DecryptInit", "Exception: Could not create the decryption function");
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not create the decryption function: %s", e.what());
+    ERROR_MSG("C_DecryptInit", errorMsg);
     return CKR_GENERAL_ERROR;
   }
 
@@ -1182,8 +1189,10 @@ CK_RV C_Decrypt(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pEncryptedData, CK_ULONG
   try {
     decryptResult = session->pkDecryptor->decrypt(pEncryptedData, ulEncryptedDataLen);
   }
-  catch(...) {
-    ERROR_MSG("C_Decrypt", "Could not decrypt the data");
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not decrypt the data: %s", e.what());
+    ERROR_MSG("C_Decrypt", errorMsg);
 
     // Finalizing
     session->decryptSize = 0;
@@ -1290,10 +1299,18 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
 
   // Creates the digester with given hash algorithm.
   session->digestSize = mechSize;
-  session->digestPipe = new Botan::Pipe(new Botan::Hash_Filter(hashFunc));
+  try {
+    session->digestPipe = new Botan::Pipe(new Botan::Hash_Filter(hashFunc));
+  }
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not create the digesting function: %s", e.what());
+    ERROR_MSG("C_DigestInit", errorMsg);
+    return CKR_GENERAL_ERROR;
+  }
 
   if(!session->digestPipe) {
-    DEBUG_MSG("C_DigestInit", "Could not create the digesting function");
+    ERROR_MSG("C_DigestInit", "Could not create the digesting function");
     return CKR_DEVICE_MEMORY;
   }
 
@@ -1348,13 +1365,28 @@ CK_RV C_Digest(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
     return CKR_ARGUMENTS_BAD;
   }
 
-  // Digest
-  session->digestPipe->write(pData, ulDataLen);
-  session->digestPipe->end_msg();
+  try {
+    // Digest
+    session->digestPipe->write(pData, ulDataLen);
+    session->digestPipe->end_msg();
 
-  // Returns the result
-  session->digestPipe->read(pDigest, session->digestSize);
-  *pulDigestLen = session->digestSize;
+    // Returns the result
+    session->digestPipe->read(pDigest, session->digestSize);
+    *pulDigestLen = session->digestSize;
+  }
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not digest the data: %s", e.what());
+    ERROR_MSG("C_Digest", errorMsg);
+
+    // Finalizing
+    session->digestSize = 0;
+    delete session->digestPipe;
+    session->digestPipe = NULL_PTR;
+    session->digestInitialized = false;
+
+    return CKR_GENERAL_ERROR;
+  }
 
   // Finalizing
   session->digestSize = 0;
@@ -1393,7 +1425,22 @@ CK_RV C_DigestUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulP
   }
 
   // Digest
-  session->digestPipe->write(pPart, ulPartLen);
+  try {
+    session->digestPipe->write(pPart, ulPartLen);
+  }
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not digest the data: %s", e.what());
+    ERROR_MSG("C_DigestUpdate", errorMsg);
+
+    // Finalizing
+    session->digestSize = 0;
+    delete session->digestPipe;
+    session->digestPipe = NULL_PTR;
+    session->digestInitialized = false;
+
+    return CKR_GENERAL_ERROR;
+  }
 
   DEBUG_MSG("C_DigestUpdate", "OK");
   return CKR_OK;
@@ -1444,11 +1491,26 @@ CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest, CK_ULONG_PT
     return CKR_BUFFER_TOO_SMALL;
   }
 
-  session->digestPipe->end_msg();
+  try {
+    session->digestPipe->end_msg();
 
-  // Returns the result
-  session->digestPipe->read(pDigest, session->digestSize);
-  *pulDigestLen = session->digestSize;
+    // Returns the result
+    session->digestPipe->read(pDigest, session->digestSize);
+    *pulDigestLen = session->digestSize;
+  }
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not digest the data: %s", e.what());
+    ERROR_MSG("C_DigestFinal", errorMsg);
+
+    // Finalizing
+    session->digestSize = 0;
+    delete session->digestPipe;
+    session->digestPipe = NULL_PTR;
+    session->digestInitialized = false;
+
+    return CKR_GENERAL_ERROR;
+  }
 
   // Finalizing
   session->digestSize = 0;
@@ -1546,7 +1608,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   }
 
   if(hashFunc == NULL_PTR) {
-    DEBUG_MSG("C_SignInit", "Could not create the hash function");
+    ERROR_MSG("C_SignInit", "Could not create the hash function");
     return CKR_DEVICE_MEMORY;
   }
 #else
@@ -1588,17 +1650,25 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
 #endif
 
   // Creates the signer with given key and mechanism.
+  try {
 #ifdef BOTAN_PRE_1_9_4_FIX
-  Botan::PK_Signing_Key *signKey = dynamic_cast<Botan::PK_Signing_Key*>(cryptoKey);
-  session->signSize = (cryptoKey->max_input_bits() + 8) / 8;
-  session->pkSigner = new Botan::PK_Signer(*signKey, &*hashFunc);
+    Botan::PK_Signing_Key *signKey = dynamic_cast<Botan::PK_Signing_Key*>(cryptoKey);
+    session->signSize = (cryptoKey->max_input_bits() + 8) / 8;
+    session->pkSigner = new Botan::PK_Signer(*signKey, &*hashFunc);
 #else
-  session->signSize = (cryptoKey->max_input_bits() + 8) / 8;
-  session->pkSigner = new Botan::PK_Signer(*dynamic_cast<Botan::Private_Key*>(cryptoKey), emsa);
+    session->signSize = (cryptoKey->max_input_bits() + 8) / 8;
+    session->pkSigner = new Botan::PK_Signer(*dynamic_cast<Botan::Private_Key*>(cryptoKey), emsa);
 #endif
+  }
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not create the signing function: %s", e.what());
+    ERROR_MSG("C_SignInit", errorMsg);
+    return CKR_GENERAL_ERROR;
+  }
 
   if(!session->pkSigner) {
-    DEBUG_MSG("C_SignInit", "Could not create the signing function");
+    ERROR_MSG("C_SignInit", "Could not create the signing function");
     return CKR_DEVICE_MEMORY;
   }
 
@@ -1654,8 +1724,24 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
     return CKR_ARGUMENTS_BAD;
   }
 
-  // Sign 
-  Botan::SecureVector<Botan::byte> signResult = session->pkSigner->sign_message(pData, ulDataLen, *session->rng);
+  // Sign
+  Botan::SecureVector<Botan::byte> signResult;
+  try {
+    signResult = session->pkSigner->sign_message(pData, ulDataLen, *session->rng);
+  }
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not sign the data: %s", e.what());
+    ERROR_MSG("C_Sign", errorMsg);
+
+    // Finalizing
+    session->signSize = 0;
+    delete session->pkSigner;
+    session->pkSigner = NULL_PTR;
+    session->signInitialized = false;
+
+    return CKR_GENERAL_ERROR;
+  }
 
   // Returns the result
   memcpy(pSignature, signResult.begin(), session->signSize);
@@ -1703,7 +1789,22 @@ CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPar
   }
 
   // Buffer
-  session->pkSigner->update(pPart, ulPartLen);
+  try {
+    session->pkSigner->update(pPart, ulPartLen);
+  }
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not buffer the data: %s", e.what());
+    ERROR_MSG("C_SignUpdate", errorMsg);
+
+    // Finalizing
+    session->signSize = 0;
+    delete session->pkSigner;
+    session->pkSigner = NULL_PTR;
+    session->signInitialized = false;
+
+    return CKR_GENERAL_ERROR;
+  }
 
   DEBUG_MSG("C_SignUpdate", "OK");
   return CKR_OK;
@@ -1755,7 +1856,23 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
   }
 
   // Sign
-  Botan::SecureVector<Botan::byte> signResult = session->pkSigner->signature(*session->rng);
+  Botan::SecureVector<Botan::byte> signResult;
+  try {
+    signResult = session->pkSigner->signature(*session->rng);
+  }
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not sign the data: %s", e.what());
+    ERROR_MSG("C_SignFinal", errorMsg);
+
+    // Finalizing
+    session->signSize = 0;
+    delete session->pkSigner;
+    session->pkSigner = NULL_PTR;
+    session->signInitialized = false;
+
+    return CKR_GENERAL_ERROR;
+  }
 
   // Returns the result
   memcpy(pSignature, signResult.begin(), session->signSize);
@@ -1919,17 +2036,25 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
   }
 
   // Creates the verifier with given key and mechanism
+  try {
 #ifdef BOTAN_PRE_1_9_4_FIX
-  Botan::PK_Verifying_with_MR_Key *verifyKey = dynamic_cast<Botan::PK_Verifying_with_MR_Key*>(cryptoKey);
-  session->verifySize = (cryptoKey->max_input_bits() + 8) / 8;
-  session->pkVerifier = new Botan::PK_Verifier_with_MR(*verifyKey, &*hashFunc);
+    Botan::PK_Verifying_with_MR_Key *verifyKey = dynamic_cast<Botan::PK_Verifying_with_MR_Key*>(cryptoKey);
+    session->verifySize = (cryptoKey->max_input_bits() + 8) / 8;
+    session->pkVerifier = new Botan::PK_Verifier_with_MR(*verifyKey, &*hashFunc);
 #else
-  session->verifySize = (cryptoKey->max_input_bits() + 8) / 8;
-  session->pkVerifier = new Botan::PK_Verifier(*cryptoKey, emsa);
+    session->verifySize = (cryptoKey->max_input_bits() + 8) / 8;
+    session->pkVerifier = new Botan::PK_Verifier(*cryptoKey, emsa);
 #endif
+  }
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not create the verifying function: %s", e.what());
+    ERROR_MSG("C_VerifyInit", errorMsg);
+    return CKR_GENERAL_ERROR;
+  }
 
   if(!session->pkVerifier) {
-    DEBUG_MSG("C_VerifyInit", "Could not create the verifying function");
+    ERROR_MSG("C_VerifyInit", "Could not create the verifying function");
     return CKR_DEVICE_MEMORY;
   }
 
@@ -1981,7 +2106,22 @@ CK_RV C_Verify(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
   }
 
   // Verify
-  bool verResult = session->pkVerifier->check_signature(pSignature, ulSignatureLen);
+  bool verResult;
+  try {
+    verResult = session->pkVerifier->check_signature(pSignature, ulSignatureLen);
+  }
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not check the signature: %s", e.what());
+    ERROR_MSG("C_Verify", errorMsg);
+
+    // Finalizing
+    delete session->pkVerifier;
+    session->pkVerifier = NULL_PTR;
+    session->verifyInitialized = false;
+
+    return CKR_GENERAL_ERROR;
+  }
 
   // Finalizing
   delete session->pkVerifier;
@@ -2030,7 +2170,21 @@ CK_RV C_VerifyUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulP
   }
 
   // Add data
-  session->pkVerifier->update(pPart, ulPartLen);
+  try {
+    session->pkVerifier->update(pPart, ulPartLen);
+  }
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not buffer the data: %s", e.what());
+    ERROR_MSG("C_VerifyUpdate", errorMsg);
+
+    // Finalizing
+    delete session->pkVerifier;
+    session->pkVerifier = NULL_PTR;
+    session->verifyInitialized = false;
+
+    return CKR_GENERAL_ERROR;
+  }
 
   DEBUG_MSG("C_VerifyUpdate", "OK");
   return CKR_OK;
@@ -2079,7 +2233,22 @@ CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG
   }
 
   // Verify
-  bool verResult = session->pkVerifier->check_signature(pSignature, ulSignatureLen);
+  bool verResult;
+  try {
+    verResult = session->pkVerifier->check_signature(pSignature, ulSignatureLen);
+  }
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not check the signature: %s", e.what());
+    ERROR_MSG("C_VerifyFinal", errorMsg);
+
+    // Finalizing
+    delete session->pkVerifier;
+    session->pkVerifier = NULL_PTR;
+    session->verifyInitialized = false;
+
+    return CKR_GENERAL_ERROR;
+  }
 
   // Finalizing
   delete session->pkVerifier;
