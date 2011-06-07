@@ -6,6 +6,7 @@ SoftHSM trunk
 
 * Add partial support for CKA_ALWAYS_AUTHENTICATE. Not in use.
 * Encryption and decryption using CKM_RSA_PKCS.
+* Support X.509 certificates (patch from Thomas Calderon)
 
 Bugfixes:
 * API changes in Botan created a namespace collision.

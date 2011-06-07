@@ -697,6 +697,11 @@ CK_RV SoftHSMInternal::createObject(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR
   CK_OBJECT_HANDLE oHandle;
 
   switch(oClass) {
+    case CKO_CERTIFICATE:
+        rv = valAttributeCertificate(pTemplate, ulCount);
+        CHECK_DEBUG_RETURN(rv != CKR_OK, "C_CreateObject", "Problem with object template", rv);
+        oHandle = session->db->importPublicCert(pTemplate, ulCount);
+    	break;
     case CKO_PUBLIC_KEY:
       if(keyType == CKK_RSA) {
         rv = valAttributePubRSA(pTemplate, ulCount);

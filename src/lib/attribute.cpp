@@ -42,6 +42,100 @@
 #include <botan/if_algo.h>
 #include <botan/rsa.h>
 
+CK_RV valAttributeCertificate(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
+  int foundType = 0;
+  int foundSubject = 0;
+  int foundValue = 0;
+
+  // Evaluate the template
+  for(CK_ULONG i = 0; i < ulCount; i++) {
+    if(pTemplate[i].pValue == NULL_PTR && pTemplate[i].ulValueLen > 0) {
+      return CKR_ATTRIBUTE_VALUE_INVALID;
+    }
+    switch(pTemplate[i].type) {
+      case CKA_CLASS:
+        // Check for the correct size
+        if(pTemplate[i].ulValueLen == sizeof(CK_OBJECT_CLASS)) {
+          CK_OBJECT_CLASS oClass = *(CK_OBJECT_CLASS*)pTemplate[i].pValue;
+          if(oClass != CKO_CERTIFICATE) {
+            return CKR_ATTRIBUTE_VALUE_INVALID;
+          }
+        } else {
+          return CKR_ATTRIBUTE_VALUE_INVALID;
+        }
+        break;
+      case CKA_CERTIFICATE_TYPE:
+        // Check for the correct size
+        if(pTemplate[i].ulValueLen == sizeof(CK_CERTIFICATE_TYPE)) {
+          CK_OBJECT_CLASS oType = *(CK_OBJECT_CLASS*)pTemplate[i].pValue;
+          if(oType != CKC_X_509) {
+            return CKR_ATTRIBUTE_VALUE_INVALID;
+          }
+        } else {
+          return CKR_ATTRIBUTE_VALUE_INVALID;
+        }
+        foundType = 1;
+        break;
+      case CKA_TOKEN:
+      case CKA_PRIVATE:
+      case CKA_MODIFIABLE:
+      case CKA_TRUSTED:
+        // TODO: CKA_TRUSTED can only be set to true by SO
+        // Check for the correct size
+        if(pTemplate[i].ulValueLen != sizeof(CK_BBOOL)) {
+          return CKR_ATTRIBUTE_VALUE_INVALID;
+        }
+        break;
+      case CKA_LABEL:
+      case CKA_CHECK_VALUE:
+      case CKA_ID:
+      case CKA_ISSUER:
+      case CKA_SERIAL_NUMBER:
+      case CKA_URL:
+      case CKA_HASH_OF_SUBJECT_PUBLIC_KEY:
+      case CKA_HASH_OF_ISSUER_PUBLIC_KEY:
+        // Variable length, no need to check
+        break;
+      case CKA_SUBJECT:
+        // Variable length, no need to check
+        foundSubject = 1;
+        break;
+      case CKA_VALUE:
+        // Variable length, no need to check
+        foundValue = 1;
+        break;
+      case CKA_CERTIFICATE_CATEGORY:
+      case CKA_JAVA_MIDP_SECURITY_DOMAIN:
+        // Check for the correct size
+        if(pTemplate[i].ulValueLen == sizeof(CK_ULONG)) {
+          CK_ULONG value = *(CK_ULONG*)pTemplate[i].pValue;
+          if(value < 0 || value > 3) {
+            return CKR_ATTRIBUTE_VALUE_INVALID;
+          }
+        } else {
+          return CKR_ATTRIBUTE_VALUE_INVALID;
+        }
+        break;
+      case CKA_START_DATE:
+      case CKA_END_DATE:
+        if(pTemplate[i].ulValueLen != sizeof(CK_DATE) &&
+           pTemplate[i].ulValueLen != 0) {
+          return CKR_ATTRIBUTE_VALUE_INVALID;
+        }
+        break;
+      default:
+        // Invalid attribute
+        return CKR_ATTRIBUTE_TYPE_INVALID;
+    }
+  }
+
+  if(!foundType || !foundSubject || !foundValue) {
+    return CKR_TEMPLATE_INCOMPLETE;
+  } 
+
+  return CKR_OK;
+}
+
 CK_RV valAttributePubRSA(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
   Botan::BigInt bigN = Botan::BigInt(0);
   Botan::BigInt bigE = Botan::BigInt(0);
@@ -103,6 +197,7 @@ CK_RV valAttributePubRSA(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
         // Must not be specified when object is created with C_CreateObject
         return CKR_ATTRIBUTE_VALUE_INVALID;
       case CKA_TRUSTED:
+        // TODO: CKA_TRUSTED can only be set to true by SO
         return CKR_ATTRIBUTE_READ_ONLY;
       case CKA_PUBLIC_EXPONENT:
         bigE = Botan::BigInt((Botan::byte *)pTemplate[i].pValue, (Botan::u32bit)pTemplate[i].ulValueLen);

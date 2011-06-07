@@ -353,7 +353,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(Botan::RSA_PrivateKey *rsaKey, CK_AT
       case CKA_VERIFY:
       case CKA_VERIFY_RECOVER:
       case CKA_WRAP:
-      case CKA_TRUSTED:
+      case CKA_TRUSTED: /* TODO */
         if(pPublicKeyTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
           CHECK_DB_RESPONSE(this->saveAttribute(objectID, pPublicKeyTemplate[i].type, pPublicKeyTemplate[i].pValue, 
                             pPublicKeyTemplate[i].ulValueLen) != CKR_OK);
@@ -527,6 +527,63 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(Botan::RSA_PrivateKey *rsaKey, CK_A
   return objectID;
 }
 
+// Import a certificate. The template has been validated.
+
+CK_OBJECT_HANDLE SoftDatabase::importPublicCert(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
+  // Begin the transaction
+  int retVal = 0;
+  while((retVal = sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL)) == SQLITE_BUSY) {
+    sched_yield();
+  }
+  if(retVal != SQLITE_OK) {
+    return CK_INVALID_HANDLE;
+  }
+
+  CHECK_DB_RESPONSE(sqlite3_step(insert_object_sql) != SQLITE_DONE);
+  CK_OBJECT_HANDLE objectID = sqlite3_last_insert_rowid(db);
+  sqlite3_reset(insert_object_sql);
+
+  CK_BBOOL ckTrue = CK_TRUE, ckFalse = CK_FALSE;
+  CK_DATE emptyDate;
+  CK_ULONG zero = 0;
+
+  // Created by db handle. So we can remove the correct session objects in the future.
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VENDOR_DEFINED, &db, sizeof(db)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VENDOR_DEFINED+1, appID, strlen(appID)) != CKR_OK);
+
+  // Default values, may be changed by the template.
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_TOKEN, &ckFalse, sizeof(ckFalse)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_PRIVATE, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_MODIFIABLE, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_LABEL, NULL_PTR, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_TRUSTED, &ckFalse, sizeof(ckFalse)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_CERTIFICATE_CATEGORY, &zero, sizeof(zero)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_CHECK_VALUE, NULL_PTR, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_START_DATE, &emptyDate, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_END_DATE, &emptyDate, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_SUBJECT, NULL_PTR, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_ID, NULL_PTR, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_ISSUER, NULL_PTR, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_SERIAL_NUMBER, NULL_PTR, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VALUE, NULL_PTR, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_URL, NULL_PTR, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_HASH_OF_SUBJECT_PUBLIC_KEY, NULL_PTR, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_HASH_OF_ISSUER_PUBLIC_KEY, NULL_PTR, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_JAVA_MIDP_SECURITY_DOMAIN, &zero, sizeof(zero)) != CKR_OK);
+
+  // Extract the attributes
+  for(CK_ULONG i = 0; i < ulCount; i++) {
+    CHECK_DB_RESPONSE(this->saveAttribute(objectID, pTemplate[i].type, pTemplate[i].pValue,
+                      pTemplate[i].ulValueLen) != CKR_OK);
+  }
+
+  while(sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL) == SQLITE_BUSY) {
+    sched_yield();
+  }
+
+  return objectID;
+}
+
 // Import an external public key. The template has been validated.
 
 CK_OBJECT_HANDLE SoftDatabase::importPublicKey(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
@@ -567,6 +624,7 @@ CK_OBJECT_HANDLE SoftDatabase::importPublicKey(CK_ATTRIBUTE_PTR pTemplate, CK_UL
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VERIFY, &ckTrue, sizeof(ckTrue)) != CKR_OK);
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VERIFY_RECOVER, &ckTrue, sizeof(ckTrue)) != CKR_OK);
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_WRAP, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_TRUSTED, &ckFalse, sizeof(ckFalse)) != CKR_OK);
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_START_DATE, &emptyDate, 0) != CKR_OK);
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_END_DATE, &emptyDate, 0) != CKR_OK);
 
@@ -1094,23 +1152,64 @@ CK_RV SoftDatabase::setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTe
     return CKR_ATTRIBUTE_READ_ONLY;
   }
 
-  // Evaluate the template
+  CK_OBJECT_CLASS oClass = this->getObjectClass(objectRef);
+  CK_RV rv;
+
+  // Evaluate the template for generic objects
   switch(attTemplate->type) {
     case CKA_CLASS:
     case CKA_TOKEN:
     case CKA_PRIVATE:
     case CKA_MODIFIABLE:
-    case CKA_KEY_TYPE:
-    case CKA_LOCAL:
-    case CKA_KEY_GEN_MECHANISM:
       // We can not change this attribute
       return CKR_ATTRIBUTE_READ_ONLY;
     case CKA_LABEL:
+      // We can change
+      break;
+    default:
+      if(oClass == CKO_PUBLIC_KEY) {
+        rv = this->setAttributePublicKey(objectRef, attTemplate);
+      } else if(oClass == CKO_PRIVATE_KEY) {
+        rv = this->setAttributePrivateKey(objectRef, attTemplate);
+      } else if(oClass == CKO_CERTIFICATE) {
+        rv = this->setAttributeCertificate(objectRef, attTemplate);
+      } else {
+        // Invalid attribute
+        return CKR_ATTRIBUTE_TYPE_INVALID;
+      }
+      if(rv != CKR_OK) {
+        return rv;
+      }
+      break;
+  }
+
+  // Save/update in the database
+  this->saveAttribute(objectRef, attTemplate->type, attTemplate->pValue, attTemplate->ulValueLen);
+
+  return CKR_OK;
+}
+
+// Set the value of an attribute for this object.
+// This function also performes a sanity check of the template
+
+CK_RV SoftDatabase::setAttributePublicKey(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate) {
+  // Evaluate the template for public key objects
+  switch(attTemplate->type) {
+    case CKA_KEY_TYPE:
+    case CKA_LOCAL:
+    case CKA_KEY_GEN_MECHANISM:
+    case CKA_TRUSTED: /* TODO */
+      // We can not change this attribute
+      return CKR_ATTRIBUTE_READ_ONLY;
     case CKA_ID:
     case CKA_SUBJECT:
       // We can change
       break;
     case CKA_DERIVE:
+    case CKA_ENCRYPT:
+    case CKA_VERIFY:
+    case CKA_VERIFY_RECOVER:
+    case CKA_WRAP:
       // We can change, but check size
       if(attTemplate->ulValueLen != sizeof(CK_BBOOL)) {
         return CKR_ATTRIBUTE_VALUE_INVALID;
@@ -1124,56 +1223,60 @@ CK_RV SoftDatabase::setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTe
         break;
       }
       return CKR_ATTRIBUTE_VALUE_INVALID;
-    case CKA_ENCRYPT:
-    case CKA_VERIFY:
-    case CKA_VERIFY_RECOVER:
-    case CKA_WRAP:
-      // We can change this for the public key
-      // but invalid for other object classes
-      if(this->getObjectClass(objectRef) != CKO_PUBLIC_KEY) {
-        return CKR_ATTRIBUTE_TYPE_INVALID;
-      }
-      // Check size
-      if(attTemplate->ulValueLen != sizeof(CK_BBOOL)) {
-        return CKR_ATTRIBUTE_VALUE_INVALID;
-      }
-      break;
-    case CKA_TRUSTED:
-      // We can not set this for the public key
-      if(this->getObjectClass(objectRef) == CKO_PUBLIC_KEY) {
+    case CKA_PUBLIC_EXPONENT:
+    case CKA_MODULUS:
+    case CKA_MODULUS_BITS:
+      // We can not set this for the RSA key
+      if(this->getKeyType(objectRef) == CKK_RSA) {
         return CKR_ATTRIBUTE_READ_ONLY;
       }
-      // Invalid for other object classes
+      // Invalid for other objects
       return CKR_ATTRIBUTE_TYPE_INVALID;
+    default:
+      // Invalid attribute
+      return CKR_ATTRIBUTE_TYPE_INVALID;
+  }
+
+  return CKR_OK;
+}
+
+// Set the value of an attribute for this object.
+// This function also performes a sanity check of the template
+
+CK_RV SoftDatabase::setAttributePrivateKey(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate) {
+  // Evaluate the template for private key objects
+  switch(attTemplate->type) {
+    case CKA_KEY_TYPE:
+    case CKA_LOCAL:
+    case CKA_KEY_GEN_MECHANISM:
+    case CKA_ALWAYS_SENSITIVE:
+    case CKA_NEVER_EXTRACTABLE:
+      // We can not change this attribute
+      return CKR_ATTRIBUTE_READ_ONLY;
+    case CKA_ID:
+    case CKA_SUBJECT:
+      // We can change
+      break;
+    case CKA_DERIVE:
     case CKA_DECRYPT:
     case CKA_SIGN:
     case CKA_SIGN_RECOVER:
     case CKA_UNWRAP:
     case CKA_ALWAYS_AUTHENTICATE:
-      // We can change this for the private key
-      // but invalid for other object classes
-      if(this->getObjectClass(objectRef) != CKO_PRIVATE_KEY) {
-        return CKR_ATTRIBUTE_TYPE_INVALID;
-      }
-      // Check size
+      // We can change, but check size
       if(attTemplate->ulValueLen != sizeof(CK_BBOOL)) {
         return CKR_ATTRIBUTE_VALUE_INVALID;
       }
       break;
-    case CKA_ALWAYS_SENSITIVE:
-    case CKA_NEVER_EXTRACTABLE:
-      // We can not set this for the private key
-      if(this->getObjectClass(objectRef) == CKO_PRIVATE_KEY) {
-        return CKR_ATTRIBUTE_READ_ONLY;
+    case CKA_START_DATE:
+    case CKA_END_DATE:
+      // We can change, but check size
+      if(attTemplate->ulValueLen == sizeof(CK_DATE) ||
+         attTemplate->ulValueLen == 0) {
+        break;
       }
-      // Invalid for other object classes
-      return CKR_ATTRIBUTE_TYPE_INVALID;
+      return CKR_ATTRIBUTE_VALUE_INVALID;
     case CKA_WRAP_WITH_TRUSTED:
-      // We can change this for the private key
-      // but invalid for other object classes
-      if(this->getObjectClass(objectRef) != CKO_PRIVATE_KEY) {
-        return CKR_ATTRIBUTE_TYPE_INVALID;
-      }
       // Attribute cannot be changed once set to CK_TRUE.
       if(this->getBooleanAttribute(objectRef, CKA_WRAP_WITH_TRUSTED, CK_FALSE) == CK_TRUE) {
         return CKR_ATTRIBUTE_READ_ONLY;
@@ -1184,11 +1287,6 @@ CK_RV SoftDatabase::setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTe
       }
       break;
     case CKA_SENSITIVE:
-      // We can change this for the private key
-      // but invalid for other object classes
-      if(this->getObjectClass(objectRef) != CKO_PRIVATE_KEY) {
-        return CKR_ATTRIBUTE_TYPE_INVALID;
-      }
       // Attribute cannot be changed once set to CK_TRUE.
       if(this->getBooleanAttribute(objectRef, CKA_SENSITIVE, CK_TRUE) == CK_TRUE) {
         return CKR_ATTRIBUTE_READ_ONLY;
@@ -1199,11 +1297,6 @@ CK_RV SoftDatabase::setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTe
       }
       break;
     case CKA_EXTRACTABLE:
-      // We can change this for the private key
-      // but invalid for other object classes
-      if(this->getObjectClass(objectRef) != CKO_PRIVATE_KEY) {
-        return CKR_ATTRIBUTE_TYPE_INVALID;
-      }
       // Attribute cannot be changed once set to CK_FALSE.
       if(this->getBooleanAttribute(objectRef, CKA_EXTRACTABLE, CK_FALSE) == CK_FALSE) {
         return CKR_ATTRIBUTE_READ_ONLY;
@@ -1213,21 +1306,8 @@ CK_RV SoftDatabase::setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTe
         return CKR_ATTRIBUTE_VALUE_INVALID;
       }
       break;
-    case CKA_MODULUS_BITS:
-      // We can not set this for the public rsa key
-      if(this->getObjectClass(objectRef) == CKO_PUBLIC_KEY && this->getKeyType(objectRef) == CKK_RSA) {
-        return CKR_ATTRIBUTE_READ_ONLY;
-      }
-      // Invalid for other object classes
-      return CKR_ATTRIBUTE_TYPE_INVALID;
     case CKA_PUBLIC_EXPONENT:
     case CKA_MODULUS:
-      // We can not set this for the RSA key
-      if(this->getKeyType(objectRef) == CKK_RSA) {
-        return CKR_ATTRIBUTE_READ_ONLY;
-      }
-      // Invalid for other objects
-      return CKR_ATTRIBUTE_TYPE_INVALID;
     case CKA_PRIVATE_EXPONENT:
     case CKA_PRIME_1:
     case CKA_PRIME_2:
@@ -1235,7 +1315,7 @@ CK_RV SoftDatabase::setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTe
     case CKA_EXPONENT_2:
     case CKA_COEFFICIENT:
       // We can not set this for the private RSA key
-      if(this->getObjectClass(objectRef) == CKO_PRIVATE_KEY && this->getKeyType(objectRef) == CKK_RSA) {
+      if(this->getKeyType(objectRef) == CKK_RSA) {
         return CKR_ATTRIBUTE_READ_ONLY;
       }
       // Invalid for other objects
@@ -1245,8 +1325,46 @@ CK_RV SoftDatabase::setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTe
       return CKR_ATTRIBUTE_TYPE_INVALID;
   }
 
-  // Save/update in the database
-  this->saveAttribute(objectRef, attTemplate->type, attTemplate->pValue, attTemplate->ulValueLen);
+  return CKR_OK;
+}
+
+// Set the value of an attribute for this object.
+// This function also performes a sanity check of the template
+
+CK_RV SoftDatabase::setAttributeCertificate(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate) {
+  // TODO: Trusted certificates cannot be modified
+
+  // Evaluate the template for certificate objects
+  switch(attTemplate->type) {
+    case CKA_CERTIFICATE_TYPE:
+    case CKA_CERTIFICATE_CATEGORY:
+    case CKA_CHECK_VALUE:
+    case CKA_TRUSTED: /* TODO */
+    case CKA_SUBJECT:
+    case CKA_VALUE:
+    case CKA_URL:
+    case CKA_HASH_OF_SUBJECT_PUBLIC_KEY:
+    case CKA_HASH_OF_ISSUER_PUBLIC_KEY:
+    case CKA_JAVA_MIDP_SECURITY_DOMAIN:
+      // We can not change this attribute
+      return CKR_ATTRIBUTE_READ_ONLY;
+    case CKA_ID:
+    case CKA_ISSUER:
+    case CKA_SERIAL_NUMBER:
+      // We can change
+      break;
+    case CKA_START_DATE:
+    case CKA_END_DATE:
+      // We can change, but check size
+      if(attTemplate->ulValueLen == sizeof(CK_DATE) ||
+         attTemplate->ulValueLen == 0) {
+        break;
+      }
+      return CKR_ATTRIBUTE_VALUE_INVALID;
+    default:
+      // Invalid attribute
+      return CKR_ATTRIBUTE_TYPE_INVALID;
+  }
 
   return CKR_OK;
 }
