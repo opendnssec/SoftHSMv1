@@ -1,4 +1,4 @@
-.TH SOFTHSM 1 "21 December 2009" "SoftHSM"
+.TH SOFTHSM 1 "13 June 2011" "SoftHSM"
 .\" $Id$
 .SH NAME
 softhsm \- support tool for libsofthsm
@@ -256,7 +256,7 @@ A token can be backed up by issuing the command:
 .LP
 .RS
 .nf
-sqlite3 <PATH TO TOKEN> .dump | sqlite3 copy.db
+sqlite3 <PATH TO YOUR TOKEN> ".backup copy.db"
 .fi
 .RE
 .LP
