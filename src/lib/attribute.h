@@ -34,8 +34,8 @@
 // Includes for the crypto library
 #include <botan/rng.h>
 
-CK_RV valAttributeCertificate(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
-CK_RV valAttributePubRSA(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
-CK_RV valAttributePrivRSA(Botan::RandomNumberGenerator *rng, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
+CK_RV valAttributeCertificate(CK_STATE state, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
+CK_RV valAttributePubRSA(CK_STATE state, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
+CK_RV valAttributePrivRSA(CK_STATE state, Botan::RandomNumberGenerator *rng, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
 
 #endif /* SOFTHSM_ATTRIBUTE_H */

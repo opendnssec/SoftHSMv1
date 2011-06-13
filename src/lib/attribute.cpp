@@ -42,10 +42,11 @@
 #include <botan/if_algo.h>
 #include <botan/rsa.h>
 
-CK_RV valAttributeCertificate(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
+CK_RV valAttributeCertificate(CK_STATE state, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
   int foundType = 0;
   int foundSubject = 0;
   int foundValue = 0;
+  CK_BBOOL trusted;
 
   // Evaluate the template
   for(CK_ULONG i = 0; i < ulCount; i++) {
@@ -79,11 +80,20 @@ CK_RV valAttributeCertificate(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
       case CKA_TOKEN:
       case CKA_PRIVATE:
       case CKA_MODIFIABLE:
-      case CKA_TRUSTED:
-        // TODO: CKA_TRUSTED can only be set to true by SO
         // Check for the correct size
         if(pTemplate[i].ulValueLen != sizeof(CK_BBOOL)) {
           return CKR_ATTRIBUTE_VALUE_INVALID;
+        }
+        break;
+      case CKA_TRUSTED:
+        // Check for the correct size
+        if(pTemplate[i].ulValueLen != sizeof(CK_BBOOL)) {
+          return CKR_ATTRIBUTE_VALUE_INVALID;
+        }
+        // CKA_TRUSTED can only be set to true by SO
+        trusted = *(CK_BBOOL*)pTemplate[i].pValue;
+        if(state != CKS_RW_SO_FUNCTIONS && trusted != CK_FALSE) {
+          return CKR_ATTRIBUTE_READ_ONLY;
         }
         break;
       case CKA_LABEL:
@@ -136,9 +146,10 @@ CK_RV valAttributeCertificate(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
   return CKR_OK;
 }
 
-CK_RV valAttributePubRSA(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
+CK_RV valAttributePubRSA(CK_STATE state, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
   Botan::BigInt bigN = Botan::BigInt(0);
   Botan::BigInt bigE = Botan::BigInt(0);
+  CK_BBOOL trusted;
 
   // Evaluate the template
   for(CK_ULONG i = 0; i < ulCount; i++) {
@@ -197,8 +208,16 @@ CK_RV valAttributePubRSA(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
         // Must not be specified when object is created with C_CreateObject
         return CKR_ATTRIBUTE_VALUE_INVALID;
       case CKA_TRUSTED:
-        // TODO: CKA_TRUSTED can only be set to true by SO
-        return CKR_ATTRIBUTE_READ_ONLY;
+        // Check for the correct size
+        if(pTemplate[i].ulValueLen != sizeof(CK_BBOOL)) {
+          return CKR_ATTRIBUTE_VALUE_INVALID;
+        }
+        // CKA_TRUSTED can only be set to true by SO
+        trusted = *(CK_BBOOL*)pTemplate[i].pValue;
+        if(state != CKS_RW_SO_FUNCTIONS && trusted != CK_FALSE) {
+          return CKR_ATTRIBUTE_READ_ONLY;
+        }
+        break;
       case CKA_PUBLIC_EXPONENT:
         bigE = Botan::BigInt((Botan::byte *)pTemplate[i].pValue, (Botan::u32bit)pTemplate[i].ulValueLen);
         break;
@@ -230,7 +249,7 @@ CK_RV valAttributePubRSA(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
   return CKR_OK;
 }
 
-CK_RV valAttributePrivRSA(Botan::RandomNumberGenerator *rng, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
+CK_RV valAttributePrivRSA(CK_STATE state, Botan::RandomNumberGenerator *rng, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
   Botan::BigInt bigN = Botan::BigInt(0);
   Botan::BigInt bigE = Botan::BigInt(0);
   Botan::BigInt bigD = Botan::BigInt(0);

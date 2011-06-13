@@ -65,17 +65,17 @@ class SoftDatabase {
     CK_KEY_TYPE getKeyType(CK_OBJECT_HANDLE objectRef);
     Botan::BigInt getBigIntAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type);
     CK_RV getAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate);
-    CK_RV setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate);
-    CK_RV setAttributePublicKey(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate);
-    CK_RV setAttributePrivateKey(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate);
-    CK_RV setAttributeCertificate(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate);
+    CK_RV setAttribute(CK_STATE state, CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate);
+    CK_RV setAttributePublicKey(CK_STATE state, CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate);
+    CK_RV setAttributePrivateKey(CK_STATE state, CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate);
+    CK_RV setAttributeCertificate(CK_STATE state, CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate);
     CK_OBJECT_HANDLE* getMatchingObjects(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount, CK_ULONG *objectCount);
     CK_BBOOL hasObject(CK_OBJECT_HANDLE objectRef);
     CK_BBOOL checkAccessObj(CK_OBJECT_HANDLE objectRef);
 
-    CK_OBJECT_HANDLE addRSAKeyPub(Botan::RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
+    CK_OBJECT_HANDLE addRSAKeyPub(CK_STATE state, Botan::RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
       CK_ULONG ulPublicKeyAttributeCount);
-    CK_OBJECT_HANDLE addRSAKeyPriv(Botan::RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate,
+    CK_OBJECT_HANDLE addRSAKeyPriv(CK_STATE state, Botan::RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate,
       CK_ULONG ulPrivateKeyAttributeCount);
     CK_OBJECT_HANDLE importPublicCert(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
     CK_OBJECT_HANDLE importPublicKey(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);

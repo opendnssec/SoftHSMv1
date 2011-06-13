@@ -274,7 +274,7 @@ CK_RV SoftDatabase::saveTokenInfo(int valueID, char *value, int length) {
 // Makes sure that object is saved with all its attributes.
 // If some error occur when saving the data, nothing is saved.
 
-CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(Botan::RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate, 
+CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(CK_STATE state, Botan::RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate, 
     CK_ULONG ulPublicKeyAttributeCount) {
 
   // Begin the transaction
@@ -318,6 +318,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(Botan::RSA_PrivateKey *rsaKey, CK_AT
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VERIFY, &ckTrue, sizeof(ckTrue)) != CKR_OK);
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VERIFY_RECOVER, &ckTrue, sizeof(ckTrue)) != CKR_OK);
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_WRAP, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_TRUSTED, &ckFalse, sizeof(ckFalse)) != CKR_OK);
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_START_DATE, &emptyDate, 0) != CKR_OK);
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_END_DATE, &emptyDate, 0) != CKR_OK);
 
@@ -333,6 +334,8 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(Botan::RSA_PrivateKey *rsaKey, CK_AT
   // The RSA public exponent
   Botan::BigInt bigExponent = ifKey->get_e();
   CHECK_DB_RESPONSE(this->saveAttributeBigInt(objectID, CKA_PUBLIC_EXPONENT, &bigExponent) != CKR_OK);
+
+  CK_BBOOL trusted;
 
   // Extract the attributes from the template
   for(CK_ULONG i = 0; i < ulPublicKeyAttributeCount; i++) {
@@ -353,11 +356,19 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(Botan::RSA_PrivateKey *rsaKey, CK_AT
       case CKA_VERIFY:
       case CKA_VERIFY_RECOVER:
       case CKA_WRAP:
-      case CKA_TRUSTED: /* TODO */
         if(pPublicKeyTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
           CHECK_DB_RESPONSE(this->saveAttribute(objectID, pPublicKeyTemplate[i].type, pPublicKeyTemplate[i].pValue, 
                             pPublicKeyTemplate[i].ulValueLen) != CKR_OK);
         }
+        break;
+      case CKA_TRUSTED:
+        // Check for the correct size
+        CHECK_DB_RESPONSE(pPublicKeyTemplate[i].ulValueLen != sizeof(CK_BBOOL))
+        // CKA_TRUSTED can only be set to true by SO
+        trusted = *(CK_BBOOL*)pPublicKeyTemplate[i].pValue;
+        CHECK_DB_RESPONSE(state != CKS_RW_SO_FUNCTIONS && trusted != CK_FALSE)
+        CHECK_DB_RESPONSE(this->saveAttribute(objectID, pPublicKeyTemplate[i].type, pPublicKeyTemplate[i].pValue, 
+                          pPublicKeyTemplate[i].ulValueLen) != CKR_OK);
         break;
       // Date
       case CKA_START_DATE:
@@ -384,7 +395,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(Botan::RSA_PrivateKey *rsaKey, CK_AT
 // Makes sure that object is saved with all its attributes.
 // If some error occur when saving the data, nothing is saved.
 
-CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(Botan::RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, 
+CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(CK_STATE state, Botan::RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, 
     CK_ULONG ulPrivateKeyAttributeCount) {
 
   // Begin the transaction
@@ -1146,7 +1157,7 @@ CK_RV SoftDatabase::getAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTe
 // Set the value of an attribute for this object.
 // This function also performes a sanity check of the template
 
-CK_RV SoftDatabase::setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate) {
+CK_RV SoftDatabase::setAttribute(CK_STATE state, CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate) {
   // Can we modify the object?
   if(this->getBooleanAttribute(objectRef, CKA_MODIFIABLE, CK_FALSE) == CK_FALSE) {
     return CKR_ATTRIBUTE_READ_ONLY;
@@ -1168,11 +1179,11 @@ CK_RV SoftDatabase::setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTe
       break;
     default:
       if(oClass == CKO_PUBLIC_KEY) {
-        rv = this->setAttributePublicKey(objectRef, attTemplate);
+        rv = this->setAttributePublicKey(state, objectRef, attTemplate);
       } else if(oClass == CKO_PRIVATE_KEY) {
-        rv = this->setAttributePrivateKey(objectRef, attTemplate);
+        rv = this->setAttributePrivateKey(state, objectRef, attTemplate);
       } else if(oClass == CKO_CERTIFICATE) {
-        rv = this->setAttributeCertificate(objectRef, attTemplate);
+        rv = this->setAttributeCertificate(state, objectRef, attTemplate);
       } else {
         // Invalid attribute
         return CKR_ATTRIBUTE_TYPE_INVALID;
@@ -1192,15 +1203,27 @@ CK_RV SoftDatabase::setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTe
 // Set the value of an attribute for this object.
 // This function also performes a sanity check of the template
 
-CK_RV SoftDatabase::setAttributePublicKey(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate) {
+CK_RV SoftDatabase::setAttributePublicKey(CK_STATE state, CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate) {
+  CK_BBOOL trusted;
+
   // Evaluate the template for public key objects
   switch(attTemplate->type) {
     case CKA_KEY_TYPE:
     case CKA_LOCAL:
     case CKA_KEY_GEN_MECHANISM:
-    case CKA_TRUSTED: /* TODO */
       // We can not change this attribute
       return CKR_ATTRIBUTE_READ_ONLY;
+    case CKA_TRUSTED:
+      // Check for the correct size
+      if(attTemplate->ulValueLen != sizeof(CK_BBOOL)) {
+        return CKR_ATTRIBUTE_VALUE_INVALID;
+      }
+      // CKA_TRUSTED can only be set to true by SO
+      trusted = *(CK_BBOOL*)attTemplate->pValue;
+      if(state != CKS_RW_SO_FUNCTIONS && trusted != CK_FALSE) {
+        return CKR_ATTRIBUTE_READ_ONLY;
+      }
+      break;
     case CKA_ID:
     case CKA_SUBJECT:
       // We can change
@@ -1243,7 +1266,7 @@ CK_RV SoftDatabase::setAttributePublicKey(CK_OBJECT_HANDLE objectRef, CK_ATTRIBU
 // Set the value of an attribute for this object.
 // This function also performes a sanity check of the template
 
-CK_RV SoftDatabase::setAttributePrivateKey(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate) {
+CK_RV SoftDatabase::setAttributePrivateKey(CK_STATE state, CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate) {
   // Evaluate the template for private key objects
   switch(attTemplate->type) {
     case CKA_KEY_TYPE:
@@ -1331,15 +1354,19 @@ CK_RV SoftDatabase::setAttributePrivateKey(CK_OBJECT_HANDLE objectRef, CK_ATTRIB
 // Set the value of an attribute for this object.
 // This function also performes a sanity check of the template
 
-CK_RV SoftDatabase::setAttributeCertificate(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate) {
-  // TODO: Trusted certificates cannot be modified
+CK_RV SoftDatabase::setAttributeCertificate(CK_STATE state, CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate) {
+  CK_BBOOL trusted;
+
+  // Trusted certificates cannot be modified
+  if(this->getBooleanAttribute(objectRef, CKA_TRUSTED, CK_FALSE) == CK_TRUE) {
+    return CKR_ATTRIBUTE_READ_ONLY;
+  }
 
   // Evaluate the template for certificate objects
   switch(attTemplate->type) {
     case CKA_CERTIFICATE_TYPE:
     case CKA_CERTIFICATE_CATEGORY:
     case CKA_CHECK_VALUE:
-    case CKA_TRUSTED: /* TODO */
     case CKA_SUBJECT:
     case CKA_VALUE:
     case CKA_URL:
@@ -1348,6 +1375,17 @@ CK_RV SoftDatabase::setAttributeCertificate(CK_OBJECT_HANDLE objectRef, CK_ATTRI
     case CKA_JAVA_MIDP_SECURITY_DOMAIN:
       // We can not change this attribute
       return CKR_ATTRIBUTE_READ_ONLY;
+    case CKA_TRUSTED:
+      // Check for the correct size
+      if(attTemplate->ulValueLen != sizeof(CK_BBOOL)) {
+        return CKR_ATTRIBUTE_VALUE_INVALID;
+      }
+      // CKA_TRUSTED can only be set to true by SO
+      trusted = *(CK_BBOOL*)attTemplate->pValue;
+      if(state != CKS_RW_SO_FUNCTIONS && trusted != CK_FALSE) {
+        return CKR_ATTRIBUTE_READ_ONLY;
+      }
+      break;
     case CKA_ID:
     case CKA_ISSUER:
     case CKA_SERIAL_NUMBER:
@@ -1368,3 +1406,4 @@ CK_RV SoftDatabase::setAttributeCertificate(CK_OBJECT_HANDLE objectRef, CK_ATTRI
 
   return CKR_OK;
 }
+

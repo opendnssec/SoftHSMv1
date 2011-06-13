@@ -50,6 +50,21 @@ softhsm \- support tool for libsofthsm
 .I number
 .B \-\-pin
 .I PIN
+.br
+.B softhsm \-\-trusted
+.I bool
+.B \-\-slot
+.I number
+.RB [ \-\-so-pin
+.IR PIN ]
+\\
+.ti +0.7i
+.B \-\-type
+.I text
+.RB [ \-\-label
+.I text
+.B || \-\-id
+.IR hex ]
 .SH DESCRIPTION
 .B softhsm
 is a support tool for libsofthsm.
@@ -170,6 +185,18 @@ Use with
 and
 .BR \-\-pin .
 .TP
+.B \-\-trusted \fIbool\fR
+Mark the object as trusted. true or false.
+.br
+Use with
+.BR \-\-slot ,
+.BR \-\-so-pin ,
+.BR \-\-type ,
+and (
+.BR \-\-id ,
+or
+.BR \-\-label ).
+.TP
 .B \-\-file-pin \fIPIN\fR
 The
 .I PIN
@@ -210,6 +237,9 @@ The slot where the token is located.
 The
 .I PIN
 for the Security Officer (SO).
+.TP
+.B \-\-type \fItext\fR
+The type of object. CKO_PUBLIC_KEY or CKO_CERTIFICATE.
 .TP
 .B \-\-version\fR, \fB\-v\fR
 Show the version info.

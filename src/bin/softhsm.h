@@ -81,6 +81,7 @@ void showSlots();
 void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectLabel, char *objectID, int forceExec);
 void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectID);
 void optimize(char *slot, char *userPIN);
+void trustObject(char *boolTrusted, char *slot, char *soPIN, char *type, char *label, char *objectID);
 
 // Support functions
 
@@ -106,7 +107,7 @@ static void *moduleHandle;
 static CK_FUNCTION_LIST_PTR p11;
 
 /// PKCS#11 support
-CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, char *objID, int objIDLen);
+CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, CK_OBJECT_CLASS oClass, char *label, char *objID, int objIDLen);
 
 /// Key to file
 CK_RV writeKeyToDisk(char *filePath, char *filePIN, Botan::Private_Key *privKey);

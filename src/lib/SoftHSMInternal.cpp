@@ -591,7 +591,7 @@ CK_RV SoftHSMInternal::setAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
 
   // Loop through all the attributes in the template
   for(CK_ULONG i = 0; i < ulCount; i++) {
-    objectResult = session->db->setAttribute(hObject, &pTemplate[i]);
+    objectResult = session->db->setAttribute(session->getSessionState(), hObject, &pTemplate[i]);
     if(objectResult != CKR_OK) {
       result = objectResult;
     }
@@ -698,13 +698,13 @@ CK_RV SoftHSMInternal::createObject(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR
 
   switch(oClass) {
     case CKO_CERTIFICATE:
-        rv = valAttributeCertificate(pTemplate, ulCount);
+        rv = valAttributeCertificate(session->getSessionState(), pTemplate, ulCount);
         CHECK_DEBUG_RETURN(rv != CKR_OK, "C_CreateObject", "Problem with object template", rv);
         oHandle = session->db->importPublicCert(pTemplate, ulCount);
     	break;
     case CKO_PUBLIC_KEY:
       if(keyType == CKK_RSA) {
-        rv = valAttributePubRSA(pTemplate, ulCount);
+        rv = valAttributePubRSA(session->getSessionState(), pTemplate, ulCount);
         CHECK_DEBUG_RETURN(rv != CKR_OK, "C_CreateObject", "Problem with object template", rv);
         oHandle = session->db->importPublicKey(pTemplate, ulCount);
       } else {
@@ -714,7 +714,7 @@ CK_RV SoftHSMInternal::createObject(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR
       break;
     case CKO_PRIVATE_KEY:
       if(keyType == CKK_RSA) {
-        rv = valAttributePrivRSA(session->rng, pTemplate, ulCount);
+        rv = valAttributePrivRSA(session->getSessionState(), session->rng, pTemplate, ulCount);
         CHECK_DEBUG_RETURN(rv != CKR_OK, "C_CreateObject", "Problem with object template", rv);
         oHandle = session->db->importPrivateKey(pTemplate, ulCount);
       } else {

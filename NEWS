@@ -8,6 +8,8 @@ SoftHSM trunk
 * Encryption and decryption using CKM_RSA_PKCS.
 * Support X.509 certificates (patch from Thomas Calderon)
 * Updated backup instructions.
+* Only a Security Officer can set CKA_TRUSTED to true.
+* The softhsm tool can set the value of CKA_TRUSTED.
 
 Bugfixes:
 * API changes in Botan created a namespace collision.

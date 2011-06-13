@@ -85,6 +85,8 @@ void usage() {
   printf("                    Use with --slot and --pin.\n");
   printf("                    WARNING: Make sure that no application is currently\n");
   printf("                    using SoftHSM and session objects.\n");
+  printf("  --trusted <bool>  Mark the object as trusted. true or false.\n");
+  printf("                    Use with --slot, --so-pin, --type, and (--id or --label).\n");
   printf("  --file-pin <PIN>  Supply a PIN if the file is encrypted.\n");
   printf("  --force           Override some warnings.\n");
   printf("  -h                Shows this help screen.\n");
@@ -97,6 +99,7 @@ void usage() {
   printf("  --pin <PIN>       The PIN for the normal user.\n");
   printf("  --slot <number>   The slot where the token is located.\n");
   printf("  --so-pin <PIN>    The PIN for the Security Officer (SO).\n");
+  printf("  --type <text>     The type of object. CKO_PUBLIC_KEY or CKO_CERTIFICATE.\n");
   printf("  -v                Show version info.\n");
   printf("  --version         Show version info.\n");
   printf("\n");
@@ -121,11 +124,13 @@ enum {
   OPT_IMPORT,
   OPT_EXPORT,
   OPT_OPTIMIZE,
+  OPT_TRUSTED,
   OPT_SLOT,
   OPT_LABEL,
   OPT_MODULE,
   OPT_ID,
   OPT_SO_PIN,
+  OPT_TYPE,
   OPT_PIN,
   OPT_FILE_PIN,
   OPT_FORCE,
@@ -139,11 +144,13 @@ static const struct option long_options[] = {
   { "import",          1, NULL, OPT_IMPORT },
   { "export",          1, NULL, OPT_EXPORT },
   { "optimize",        0, NULL, OPT_OPTIMIZE },
+  { "trusted",         1, NULL, OPT_TRUSTED },
   { "slot",            1, NULL, OPT_SLOT },
   { "label",           1, NULL, OPT_LABEL },
   { "module",          1, NULL, OPT_MODULE },
   { "id",              1, NULL, OPT_ID },
   { "so-pin",          1, NULL, OPT_SO_PIN },
+  { "type",            1, NULL, OPT_TYPE },
   { "pin",             1, NULL, OPT_PIN },
   { "file-pin",        1, NULL, OPT_FILE_PIN },
   { "force",           0, NULL, OPT_FORCE },
@@ -159,6 +166,8 @@ int main(int argc, char *argv[]) {
   char *inPath = NULL;
   char *outPath = NULL;
   char *soPIN = NULL;
+  char *boolTrusted = NULL;
+  char *type = NULL;
   char *userPIN = NULL;
   char *filePIN = NULL;
   char *label = NULL;
@@ -172,6 +181,7 @@ int main(int argc, char *argv[]) {
   int doImport = 0;
   int doExport = 0;
   int doOptimize = 0;
+  int doTrusted = 0;
   int action = 0;
 
   moduleHandle = NULL;
@@ -202,6 +212,11 @@ int main(int argc, char *argv[]) {
         doOptimize = 1;
         action++;
         break;
+      case OPT_TRUSTED:
+        doTrusted = 1;
+        action++;
+        boolTrusted = optarg;
+        break;
       case OPT_SLOT:
         slot = optarg;
         break;
@@ -216,6 +231,9 @@ int main(int argc, char *argv[]) {
         break;
       case OPT_SO_PIN:
         soPIN = optarg;
+        break;
+      case OPT_TYPE:
+        type = optarg;
         break;
       case OPT_PIN:
         userPIN = optarg;
@@ -308,6 +326,11 @@ int main(int argc, char *argv[]) {
     } else {
       optimize(slot, userPIN);
     }
+  }
+
+  // Set CKA_TRUSTED
+  if(doTrusted) {
+    trustObject(boolTrusted, slot, soPIN, type, label, objectID);
   }
 
   if(was_initialized == false) {
@@ -608,7 +631,7 @@ void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
     return;
   }
 
-  CK_OBJECT_HANDLE oHandle = searchObject(hSession, objID, objIDLen);
+  CK_OBJECT_HANDLE oHandle = searchObject(hSession, CKO_PRIVATE_KEY, NULL, objID, objIDLen);
   if(oHandle != CK_INVALID_HANDLE && forceExec == 0) {
     free(objID);
     fprintf(stderr, "Error: The ID is already assigned to another object. Use --force to override this message.\n");
@@ -736,7 +759,7 @@ void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
   }
 
   // Find the object handle
-  CK_OBJECT_HANDLE oHandle = searchObject(hSession, objID, objIDLen);
+  CK_OBJECT_HANDLE oHandle = searchObject(hSession, CKO_PRIVATE_KEY, NULL, objID, objIDLen);
   free(objID);
   if(oHandle == CK_INVALID_HANDLE) {
     fprintf(stderr, "Error: Could not find the private key with ID = %s\n", objectID);
@@ -809,6 +832,125 @@ void optimize(char *slot, char *userPIN) {
   }
 
   free(dbPath);
+}
+
+
+void trustObject(char *boolTrusted, char *slot, char *soPIN, char *type, char *label, char *objectID) {
+  char so_pin_copy[MAX_PIN_LEN+1];
+  CK_BBOOL trusted;
+  CK_OBJECT_CLASS oClass;
+
+  if(boolTrusted == NULL) {
+    fprintf(stderr, "Error: A boolean value must be supplied. Use --trusted <bool>\n");
+    return;
+  }
+  if(strncasecmp(boolTrusted, "true", 4) == 0) {
+    trusted = CK_TRUE;
+  } else if(strncasecmp(boolTrusted, "false", 5) == 0) {
+    trusted = CK_FALSE;
+  } else {
+    fprintf(stderr, "Error: Please use true or false as an input for --trusted <bool>\n");
+    return;
+  }
+
+  if(slot == NULL) {
+    fprintf(stderr, "Error: A slot number must be supplied. Use --slot <number>\n");
+    return;
+  }
+
+  if(objectID == NULL && label == NULL) {
+    fprintf(stderr, "Error: An ID or label for the object must be supplied. Use --id <hex> or --label <text>\n");
+    return;
+  }
+  int objIDLen = 0;
+  char *objID = NULL;
+  if(objectID != NULL) {
+    objID = hexStrToBin(objectID, strlen(objectID), &objIDLen);
+    if(objID == NULL) {
+      fprintf(stderr, "Please edit --id <hex> to correct error.\n");
+      return;
+    }
+  }
+
+  if(type == NULL) {
+    fprintf(stderr, "Error: An object type must must be supplied. Use --type <text>\n");
+    if(objID) free(objID);
+    return;
+  }
+  if(strncasecmp(type, "CKO_CERTIFICATE", 15) == 0) {
+    oClass = CKO_CERTIFICATE;
+  } else if(strncasecmp(type, "CKO_PUBLIC_KEY", 14) == 0) {
+    oClass = CKO_PUBLIC_KEY;
+  } else {
+    fprintf(stderr, "Error: Please use CKO_CERTIFICATE or CKO_PUBLIC_KEY as an input for --type <text>\n");
+    if(objID) free(objID);
+    return;
+  }
+
+  if(soPIN == NULL) {
+    printf("The SO PIN must have a length between %i and %i characters.\n", MIN_PIN_LEN, MAX_PIN_LEN);
+    #ifdef HAVE_GETPASSPHRASE
+      soPIN = getpassphrase("Enter SO PIN: ");
+    #else
+      soPIN = getpass("Enter SO PIN: ");
+    #endif
+  }
+
+  int soLength = strlen(soPIN);
+  while(soLength < MIN_PIN_LEN || soLength > MAX_PIN_LEN) {
+    printf("Wrong size! The SO PIN must have a length between %i and %i characters.\n", MIN_PIN_LEN, MAX_PIN_LEN);
+    #ifdef HAVE_GETPASSPHRASE
+      soPIN = getpassphrase("Enter SO PIN: ");
+    #else
+      soPIN = getpass("Enter SO PIN: ");
+    #endif
+    soLength = strlen(soPIN);
+  }
+  strcpy(so_pin_copy, soPIN);
+
+  CK_SLOT_ID slotID = atoi(slot);
+  CK_SESSION_HANDLE hSession;
+  CK_RV rv = p11->C_OpenSession(slotID, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession);
+  if(rv != CKR_OK) {
+    if(rv == CKR_SLOT_ID_INVALID) {
+      fprintf(stderr, "Error: The given slot does not exist.\n");
+    } else {
+      fprintf(stderr, "Error: Could not open a session on the given slot.\n");
+    }
+    if(objID) free(objID);
+    return;
+  }
+
+  rv = p11->C_Login(hSession, CKU_SO, (CK_UTF8CHAR_PTR)so_pin_copy, soLength);
+  if(rv != CKR_OK) {
+    if(rv == CKR_PIN_INCORRECT) {
+      fprintf(stderr, "Error: The given user PIN does not match the one in the token.\n");
+    } else {
+      fprintf(stderr, "Error: Could not log in on the token.\n");
+    }
+    if(objID) free(objID);
+    return;
+  }
+
+  // Find object
+  CK_OBJECT_HANDLE oHandle = searchObject(hSession, oClass, label, objID, objIDLen);
+  if(objID) free(objID);
+  if(oHandle == CK_INVALID_HANDLE) {
+    fprintf(stderr, "Error: Could not find a matching object. The SO can only see public objects.\n");
+    return;
+  }
+
+  // Set value
+  CK_ATTRIBUTE objTemplate[] = {
+    { CKA_TRUSTED, &trusted, sizeof(trusted) }
+  };
+  rv = p11->C_SetAttributeValue(hSession, oHandle, objTemplate, 1);
+  if(rv != CKR_OK) {
+    fprintf(stderr, "Error: Could not modify CKA_TRUSTED. rv = 0x%08X\n", rv);
+    return;
+  }
+
+  printf("The CKA_TRUSTED has been modified.\n");  
 }
 
 int removeSessionObjs(char *dbPath) {
@@ -1037,20 +1179,30 @@ void freeKeyMaterial(key_material_t *keyMaterial) {
 
 // Search for an object
 
-CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, char *objID, int objIDLen) {
-  if(objID == NULL) {
+CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, CK_OBJECT_CLASS oClass, char *label, char *objID, int objIDLen) {
+  if(objID == NULL && label == NULL ) {
     return CK_INVALID_HANDLE;
   }
-  CK_OBJECT_CLASS oClass = CKO_PRIVATE_KEY;
   CK_OBJECT_HANDLE hObject = CK_INVALID_HANDLE;
   CK_ULONG objectCount = 0;
+  CK_ULONG labelLen = 0;
+  if(label) labelLen = strlen(label);
 
-  CK_ATTRIBUTE objTemplate[] = {
+  CK_ATTRIBUTE objTemplateID[] = {
     { CKA_CLASS, &oClass, sizeof(oClass) },
     { CKA_ID,    objID,   objIDLen }
   };
+  CK_ATTRIBUTE objTemplateLabel[] = {
+    { CKA_CLASS, &oClass, sizeof(oClass) },
+    { CKA_LABEL, label,   labelLen }
+  };
 
-  CK_RV rv = p11->C_FindObjectsInit(hSession, objTemplate, 2);
+  CK_RV rv;
+  if(objID != NULL) {
+    rv = p11->C_FindObjectsInit(hSession, objTemplateID, 2);
+  } else {
+    rv = p11->C_FindObjectsInit(hSession, objTemplateLabel, 2);
+  }
   if(rv != CKR_OK) {
     fprintf(stderr, "Error: Could not prepare the object search.\n");
     return CK_INVALID_HANDLE;

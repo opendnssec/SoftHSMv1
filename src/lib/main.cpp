@@ -2541,7 +2541,7 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   CHECK_DEBUG_RETURN(rsaKey == NULL_PTR, "C_GenerateKeyPair", "Could not allocate memory", CKR_HOST_MEMORY);
 
   // Add the private key to the database.
-  CK_OBJECT_HANDLE privRef = session->db->addRSAKeyPriv(rsaKey, pPrivateKeyTemplate, ulPrivateKeyAttributeCount);
+  CK_OBJECT_HANDLE privRef = session->db->addRSAKeyPriv(session->getSessionState(), rsaKey, pPrivateKeyTemplate, ulPrivateKeyAttributeCount);
 
   if(privRef == 0) {
     delete rsaKey;
@@ -2551,7 +2551,7 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   }
 
   // Add the public key to the database.
-  CK_OBJECT_HANDLE pubRef = session->db->addRSAKeyPub(rsaKey, pPublicKeyTemplate, ulPublicKeyAttributeCount);
+  CK_OBJECT_HANDLE pubRef = session->db->addRSAKeyPub(session->getSessionState(), rsaKey, pPublicKeyTemplate, ulPublicKeyAttributeCount);
   delete rsaKey;
 
   if(pubRef == 0) {
