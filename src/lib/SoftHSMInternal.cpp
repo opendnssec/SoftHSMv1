@@ -249,8 +249,16 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
                      CKR_SESSION_HANDLE_INVALID);
   CHECK_DEBUG_RETURN(pPin == NULL_PTR, "C_Login", "pPin must not be a NULL_PTR",
                      CKR_ARGUMENTS_BAD);
-  CHECK_DEBUG_RETURN(ulPinLen < MIN_PIN_LEN || ulPinLen > MAX_PIN_LEN, "C_Login", "Incorrent PIN length",
-                     CKR_PIN_INCORRECT);
+
+  if(ulPinLen < MIN_PIN_LEN || ulPinLen > MAX_PIN_LEN) {
+    if(userType == CKU_SO) {
+      session->currentSlot->tokenFlags |= CKF_SO_PIN_COUNT_LOW;
+    } else {
+      session->currentSlot->tokenFlags |= CKF_USER_PIN_COUNT_LOW;
+    }
+    DEBUG_MSG("C_Login", "Incorrent PIN length");
+    return CKR_PIN_INCORRECT;
+  }
 
   int logInType = CKU_USER;
 
@@ -300,6 +308,8 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
     if(strcmp(tmpPIN, session->currentSlot->hashedSOPIN) != 0) {
       free(tmpPIN);
 
+      session->currentSlot->tokenFlags |= CKF_SO_PIN_COUNT_LOW;
+
       DEBUG_MSG("C_Login", "The SO PIN is incorrect");
       return CKR_PIN_INCORRECT;
     }
@@ -315,12 +325,16 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
       memcpy(session->currentSlot->soPIN, pPin, ulPinLen);
     }
 
+    session->currentSlot->tokenFlags &= ~CKF_SO_PIN_COUNT_LOW;
+
     DEBUG_MSG("C_Login", "OK");
     return CKR_OK;
   } else {
     // Is the PIN incorrect?
     if(strcmp(tmpPIN, session->currentSlot->hashedUserPIN) != 0) {
       free(tmpPIN);
+
+      session->currentSlot->tokenFlags |= CKF_USER_PIN_COUNT_LOW;
 
       DEBUG_MSG("C_Login", "The user PIN is incorrect");
       return CKR_PIN_INCORRECT;
@@ -336,6 +350,8 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
       session->currentSlot->userPIN[ulPinLen] = '\0';
       memcpy(session->currentSlot->userPIN, pPin, ulPinLen);
     }
+
+    session->currentSlot->tokenFlags &= ~CKF_USER_PIN_COUNT_LOW;
 
     DEBUG_MSG("C_Login", "OK");
     return CKR_OK;

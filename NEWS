@@ -17,6 +17,8 @@ Bugfixes:
 * BigInt::to_u32bit was accidently dropped in Botan. Adding it
   as a compatibility function to SoftHSM.
 * Better exception handling.
+* CKF_USER_PIN_COUNT_LOW and CKF_SO_PIN_COUNT_LOW must be set 
+  if an incorrect PIN has been entered at least once.
 
 
 SoftHSM 1.2.1 - 2011-05-03 
