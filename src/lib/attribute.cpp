@@ -33,6 +33,7 @@
 ************************************************************/
 
 #include "attribute.h"
+#include "log.h"
 
 // Standard includes
 #include <stdlib.h>
@@ -238,7 +239,11 @@ CK_RV valAttributePubRSA(CK_STATE state, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ul
   try {
     tmpKey = new Botan::RSA_PublicKey(bigN, bigE);
   }
-  catch(...) {
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not re-create the public key: %s", e.what());
+    ERROR_MSG("valAttributePubRSA", errorMsg);
+
     return CKR_ATTRIBUTE_VALUE_INVALID;
   }
 
@@ -351,7 +356,11 @@ CK_RV valAttributePrivRSA(CK_STATE state, Botan::RandomNumberGenerator *rng, CK_
   try {
     tmpKey = new Botan::RSA_PrivateKey(*rng, bigP, bigQ, bigE, bigD, bigN);
   }
-  catch(...) {
+  catch(std::exception& e) {
+    char errorMsg[1024];
+    snprintf(errorMsg, sizeof(errorMsg), "Could not re-create the private key: %s", e.what());
+    ERROR_MSG("valAttributePrivRSA", errorMsg);
+
     return CKR_ATTRIBUTE_VALUE_INVALID;
   }
 
