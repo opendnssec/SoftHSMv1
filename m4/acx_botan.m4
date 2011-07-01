@@ -118,6 +118,25 @@ AC_DEFUN([ACX_BOTAN],[
 				[Fixes an API change within Botan]
 			)]
 		)
+		AC_LINK_IFELSE(
+			[AC_LANG_PROGRAM([#include <botan/init.h>
+				#include <botan/version.h>],
+				[using namespace Botan;
+				LibraryInitializer::initialize();
+				#if BOTAN_VERSION_CODE < BOTAN_VERSION_CODE_FOR(1,8,12)
+				#error "Old API";
+				#endif
+				#if BOTAN_VERSION_CODE < BOTAN_VERSION_CODE_FOR(1,9,11) && BOTAN_VERSION_CODE >= BOTAN_VERSION_CODE_FOR(1,9,0)
+				#error "Old API";
+				#endif])],
+			[AC_MSG_RESULT([checking for Botan PK_Signer reuse ... yes])],
+			[AC_MSG_RESULT([checking for Botan PK_Signer reuse ... no])
+			AC_DEFINE_UNQUOTED(
+				[BOTAN_NO_PK_SIGNER_REUSE],
+				[1],
+				[A bug in Botan prevents reuse of PK_Signer]
+			)]
+		)
 	fi
 	AC_LANG_POP([C++])
 

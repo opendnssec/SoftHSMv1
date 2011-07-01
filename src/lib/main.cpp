@@ -1569,8 +1569,11 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     return CKR_ARGUMENTS_BAD;
   }
 
+#ifndef BOTAN_NO_PK_SIGNER_REUSE
   // Check if we cannot reuse the old PK_Signer
   if(!session->pkSigner || session->signMech != pMechanism->mechanism || session->signKey != hKey) {
+#endif
+
     if(session->pkSigner) {
       delete session->pkSigner;
       session->pkSigner = NULL;
@@ -1681,7 +1684,10 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
 
     session->signMech = pMechanism->mechanism;
     session->signKey = hKey;
+
+#ifndef BOTAN_NO_PK_SIGNER_REUSE
   }
+#endif
 
   session->signInitialized = true;
 
