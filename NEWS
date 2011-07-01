@@ -10,7 +10,9 @@ SoftHSM trunk
 * Updated backup instructions.
 * Only a Security Officer can set CKA_TRUSTED to true.
 * The softhsm tool can set the value of CKA_TRUSTED.
-* Support Botan 1.10.0
+* Support Botan 1.10.0.
+* Better signing performance with a single element cache for 
+  the PK_Signer object.
 
 Bugfixes:
 * API changes in Botan created a namespace collision.

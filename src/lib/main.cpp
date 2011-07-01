@@ -1569,107 +1569,118 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     return CKR_ARGUMENTS_BAD;
   }
 
-  session->signSinglePart = false;
+  // Check if we cannot reuse the old PK_Signer
+  if(!session->pkSigner || session->signMech != pMechanism->mechanism || session->signKey != hKey) {
+    if(session->pkSigner) {
+      delete session->pkSigner;
+      session->pkSigner = NULL;
+    }
+
+    session->signSinglePart = false;
 #ifdef BOTAN_PRE_1_9_4_FIX
-  Botan::EMSA *hashFunc = NULL_PTR;
+    Botan::EMSA *hashFunc = NULL_PTR;
 
-  // Selects the correct padding and hash algorithm.
-  switch(pMechanism->mechanism) {
-    case CKM_RSA_PKCS:
-      hashFunc = new Botan::EMSA3_Raw();
-      session->signSinglePart = true;
-      break;
-    case CKM_RSA_X_509:
-      hashFunc = new Botan::EMSA_Raw();
-      session->signSinglePart = true;
-      break;
-    case CKM_MD5_RSA_PKCS:
-      hashFunc = new Botan::EMSA3(new Botan::MD5);
-      break;
-    case CKM_RIPEMD160_RSA_PKCS:
-      hashFunc = new Botan::EMSA3(new Botan::RIPEMD_160);
-      break;
-    case CKM_SHA1_RSA_PKCS:
-      hashFunc = new Botan::EMSA3(new Botan::SHA_160);
-      break;
-    case CKM_SHA256_RSA_PKCS:
-      hashFunc = new Botan::EMSA3(new Botan::SHA_256);
-      break;
-    case CKM_SHA384_RSA_PKCS:
-      hashFunc = new Botan::EMSA3(new Botan::SHA_384);
-      break;
-    case CKM_SHA512_RSA_PKCS:
-      hashFunc = new Botan::EMSA3(new Botan::SHA_512);
-      break;
-    default:
-      DEBUG_MSG("C_SignInit", "The selected mechanism is not supported");
-      return CKR_MECHANISM_INVALID;
-      break;
-  }
+    // Selects the correct padding and hash algorithm.
+    switch(pMechanism->mechanism) {
+      case CKM_RSA_PKCS:
+        hashFunc = new Botan::EMSA3_Raw();
+        session->signSinglePart = true;
+        break;
+      case CKM_RSA_X_509:
+        hashFunc = new Botan::EMSA_Raw();
+        session->signSinglePart = true;
+        break;
+      case CKM_MD5_RSA_PKCS:
+        hashFunc = new Botan::EMSA3(new Botan::MD5);
+        break;
+      case CKM_RIPEMD160_RSA_PKCS:
+        hashFunc = new Botan::EMSA3(new Botan::RIPEMD_160);
+        break;
+      case CKM_SHA1_RSA_PKCS:
+        hashFunc = new Botan::EMSA3(new Botan::SHA_160);
+        break;
+      case CKM_SHA256_RSA_PKCS:
+        hashFunc = new Botan::EMSA3(new Botan::SHA_256);
+        break;
+      case CKM_SHA384_RSA_PKCS:
+        hashFunc = new Botan::EMSA3(new Botan::SHA_384);
+        break;
+      case CKM_SHA512_RSA_PKCS:
+        hashFunc = new Botan::EMSA3(new Botan::SHA_512);
+        break;
+      default:
+        DEBUG_MSG("C_SignInit", "The selected mechanism is not supported");
+        return CKR_MECHANISM_INVALID;
+        break;
+    }
 
-  if(hashFunc == NULL_PTR) {
-    ERROR_MSG("C_SignInit", "Could not create the hash function");
-    return CKR_DEVICE_MEMORY;
-  }
+    if(hashFunc == NULL_PTR) {
+      ERROR_MSG("C_SignInit", "Could not create the hash function");
+      return CKR_DEVICE_MEMORY;
+    }
 #else
-  std::string emsa;
+    std::string emsa;
 
-  // Selects the correct padding and hash algorithm.
-  switch(pMechanism->mechanism) {
-    case CKM_RSA_PKCS:
-      emsa = "EMSA3(Raw)";
-      session->signSinglePart = true;
-      break;
-    case CKM_RSA_X_509:
-      emsa = "Raw";
-      session->signSinglePart = true;
-      break;
-    case CKM_MD5_RSA_PKCS:
-      emsa = "EMSA3(MD5)";
-      break;
-    case CKM_RIPEMD160_RSA_PKCS:
-      emsa = "EMSA3(RIPEMD-160)";
-      break;
-    case CKM_SHA1_RSA_PKCS:
-      emsa = "EMSA3(SHA-160)";
-      break;
-    case CKM_SHA256_RSA_PKCS:
-      emsa = "EMSA3(SHA-256)";
-      break;
-    case CKM_SHA384_RSA_PKCS:
-      emsa = "EMSA3(SHA-384)";
-      break;
-    case CKM_SHA512_RSA_PKCS:
-      emsa = "EMSA3(SHA-512)";
-      break;
-    default:
-      DEBUG_MSG("C_SignInit", "The selected mechanism is not supported");
-      return CKR_MECHANISM_INVALID;
-      break;
-  }
+    // Selects the correct padding and hash algorithm.
+    switch(pMechanism->mechanism) {
+      case CKM_RSA_PKCS:
+        emsa = "EMSA3(Raw)";
+        session->signSinglePart = true;
+        break;
+      case CKM_RSA_X_509:
+        emsa = "Raw";
+        session->signSinglePart = true;
+        break;
+      case CKM_MD5_RSA_PKCS:
+        emsa = "EMSA3(MD5)";
+        break;
+      case CKM_RIPEMD160_RSA_PKCS:
+        emsa = "EMSA3(RIPEMD-160)";
+        break;
+      case CKM_SHA1_RSA_PKCS:
+        emsa = "EMSA3(SHA-160)";
+        break;
+      case CKM_SHA256_RSA_PKCS:
+        emsa = "EMSA3(SHA-256)";
+        break;
+      case CKM_SHA384_RSA_PKCS:
+        emsa = "EMSA3(SHA-384)";
+        break;
+      case CKM_SHA512_RSA_PKCS:
+        emsa = "EMSA3(SHA-512)";
+        break;
+      default:
+        DEBUG_MSG("C_SignInit", "The selected mechanism is not supported");
+        return CKR_MECHANISM_INVALID;
+        break;
+    }
 #endif
 
-  // Creates the signer with given key and mechanism.
-  try {
+    // Creates the signer with given key and mechanism.
+    try {
 #ifdef BOTAN_PRE_1_9_4_FIX
-    Botan::PK_Signing_Key *signKey = dynamic_cast<Botan::PK_Signing_Key*>(cryptoKey);
-    session->signSize = (cryptoKey->max_input_bits() + 8) / 8;
-    session->pkSigner = new Botan::PK_Signer(*signKey, &*hashFunc);
+      Botan::PK_Signing_Key *signKey = dynamic_cast<Botan::PK_Signing_Key*>(cryptoKey);
+      session->signSize = (cryptoKey->max_input_bits() + 8) / 8;
+      session->pkSigner = new Botan::PK_Signer(*signKey, &*hashFunc);
 #else
-    session->signSize = (cryptoKey->max_input_bits() + 8) / 8;
-    session->pkSigner = new Botan::PK_Signer(*dynamic_cast<Botan::Private_Key*>(cryptoKey), emsa);
+      session->signSize = (cryptoKey->max_input_bits() + 8) / 8;
+      session->pkSigner = new Botan::PK_Signer(*dynamic_cast<Botan::Private_Key*>(cryptoKey), emsa);
 #endif
-  }
-  catch(std::exception& e) {
-    char errorMsg[1024];
-    snprintf(errorMsg, sizeof(errorMsg), "Could not create the signing function: %s", e.what());
-    ERROR_MSG("C_SignInit", errorMsg);
-    return CKR_GENERAL_ERROR;
-  }
+    }
+    catch(std::exception& e) {
+      char errorMsg[1024];
+      snprintf(errorMsg, sizeof(errorMsg), "Could not create the signing function: %s", e.what());
+      ERROR_MSG("C_SignInit", errorMsg);
+      return CKR_GENERAL_ERROR;
+    }
 
-  if(!session->pkSigner) {
-    ERROR_MSG("C_SignInit", "Could not create the signing function");
-    return CKR_DEVICE_MEMORY;
+    if(!session->pkSigner) {
+      ERROR_MSG("C_SignInit", "Could not create the signing function");
+      return CKR_DEVICE_MEMORY;
+    }
+
+    session->signMech = pMechanism->mechanism;
+    session->signKey = hKey;
   }
 
   session->signInitialized = true;
@@ -1748,9 +1759,6 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
   *pulSignatureLen = session->signSize;
 
   // Finalizing
-  session->signSize = 0;
-  delete session->pkSigner;
-  session->pkSigner = NULL_PTR;
   session->signInitialized = false;
 
   DEBUG_MSG("C_Sign", "OK");
@@ -1879,9 +1887,6 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
   *pulSignatureLen = session->signSize;
 
   // Finalizing
-  session->signSize = 0;
-  delete session->pkSigner;
-  session->pkSigner = NULL_PTR;
   session->signInitialized = false;
 
   DEBUG_MSG("C_SignFinal", "OK");

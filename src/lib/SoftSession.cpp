@@ -72,6 +72,8 @@ SoftSession::SoftSession(CK_FLAGS rwSession, SoftSlot *givenSlot, char *appID) {
   signSinglePart = false;
   signSize = 0;
   signInitialized = false;
+  signMech = CKM_VENDOR_DEFINED;
+  signKey = CK_INVALID_HANDLE;
 
   pkVerifier = NULL_PTR;
   verifySinglePart = false;

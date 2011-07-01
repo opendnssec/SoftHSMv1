@@ -93,6 +93,8 @@ class SoftSession {
     bool signSinglePart;
     CK_ULONG signSize;
     bool signInitialized;
+    CK_MECHANISM_TYPE signMech;
+    CK_OBJECT_HANDLE signKey;
 
     // Verify
     Botan::PK_Verifier *pkVerifier;
