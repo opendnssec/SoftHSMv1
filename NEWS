@@ -2,11 +2,11 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
-SoftHSM trunk
+SoftHSM 1.3.0 - 2011-07-XX
 
-* Add partial support for CKA_ALWAYS_AUTHENTICATE. Not in use.
+* Can now read CKA_ALWAYS_AUTHENTICATE but does not use it.
 * Encryption and decryption using CKM_RSA_PKCS.
-* Support X.509 certificates (patch from Thomas Calderon)
+* Support X.509 certificates. (Patch from Thomas Calderon)
 * Updated backup instructions.
 * Only a Security Officer can set CKA_TRUSTED to true.
 * The softhsm tool can set the value of CKA_TRUSTED.
