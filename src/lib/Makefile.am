@@ -23,7 +23,6 @@ libsofthsm_la_SOURCES =		main.cpp main.h \
 				SoftFind.cpp SoftFind.h \
 				SoftDatabase.cpp SoftDatabase.h \
 				SoftKeyStore.cpp SoftKeyStore.h \
-				pkcs11_unix.h \
 				util.h \
 				cryptoki_compat/pkcs11.h
 libsofthsm_la_LIBADD =		@BOTAN_LIBS@ @SQLITE3_LIBS@ @YIELD_LIB@
