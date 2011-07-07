@@ -1,0 +1,176 @@
+$Id$
+
+Contributed by Jaroslav Imrich.
+
+********************************************************************************
+*                  Building SoftHSM on Windows with MinGW                      *
+********************************************************************************
+
+This guide is "work in progress" as SoftHSM currently does not support building 
+under Windows with MinGW.
+
+Note that binary build of Botan available from its homepage cannot be used 
+with GCC because it is built for Microsoft C compiler.
+
+Step 1: Install MinGW with MSYS
+===============================
+
+  1. Download "Automat MinGW Installer" (mingw-get-inst-20110530.exe)
+     from http://sourceforge.net/projects/mingw/files/
+
+  2. Install into "C:\MinGW" with "Pre-packaged repository catalogues" 
+     and following components:
+
+       - C compiler
+       - C++ compiler
+       - MSYS Basic System
+
+  3. Execute MSYS console via Windows Start menu: "Start > All programs > 
+     MinGw > MinGW Shell"
+
+  4. Install Autoconf package with following command:
+     mingw-get install autoconf
+
+  5. Install Autotools package with following command:
+     mingw-get install autotools
+
+
+Step 2: Install Python 2.7 (required to build Botan)
+====================================================
+
+  1. Download Python 2.7 (python-2.7.2.msi)
+     from http://www.python.org/download/windows/
+
+  2. Install into "c:\Python27"
+
+  3. Add "c:\Python27" into "Path" environment variable:
+
+     3.1. Righ-click on "My Computer" and select "Properties"
+
+     3.2. On "Advanced" tab click "Environment variables" button
+
+     3.3. Select "Path" amongst the "System variables" and click "Edit" button
+
+     3.4. Append ";C:\Python27" to the end of "Variable value"
+
+     3.5. Close all open dialogs with "OK" button
+
+  4. Restart MSYS console to apply changes made to environment variables
+
+
+Step 3: Build Botan
+===================
+
+  1. Download "Botan" sources (Botan-1.8.12.tgz)
+     from http://botan.randombit.net/download.html
+
+  2. Copy downloaded file into your MSYS home directory
+     (c:\MinGW\msys\1.0\home\Administrator\)
+
+  3. Extract downloaded archive in MSYS console with following commands:
+     tar -xf Botan-1.8.12.tgz
+     cd Botan-1.8.12
+
+  4. Run configuration script with command:
+     ./configure.py --prefix=c:/botan --cc=gcc
+
+  5. Edit generated Makefile:
+
+     5.1. Replace line:
+          LINK_TO = -ladvapi32.lib -luser32.lib
+          with line:
+          LINK_TO = -ladvapi32 -luser32
+
+     5.2. Replace line:
+          INSTALL_CMD_EXEC = copy
+          with line:
+          INSTALL_CMD_EXEC = cp
+
+     5.3. Replace line:
+          INSTALL_CMD_DATA = copy
+          with line:
+          INSTALL_CMD_DATA = cp
+
+     5.4. Replace line:
+          for i in $(DOCS); do \
+          with line:
+          for i in "$(DOCS)"; do \
+
+     5.5. Replace line:
+          for i in $(HEADERS); do \
+          with line:
+          for i in "$(HEADERS)"; do \
+
+     5.6. Replace line:
+          $(INSTALL_CMD_EXEC) $(CONFIG_SCRIPT) $(BINDIR)
+          with line:
+          #$(INSTALL_CMD_EXEC) $(CONFIG_SCRIPT) $(BINDIR)
+
+     5.7. Replace line:
+          $(INSTALL_CMD_DATA) $(PKGCONFIG) $(PKGCONF_DIR)
+          with line:
+          #$(INSTALL_CMD_DATA) $(PKGCONFIG) $(PKGCONF_DIR)
+
+  6. Build and install Botan with following command:
+     make && make check && make install
+
+  7. Botan is installed in "C:\botan"
+
+
+Step 4: Build SQLite
+====================
+
+  1. Download "SQLite" sources (sqlite-autoconf-3070701.tar.gz)
+     from http://www.sqlite.org/
+
+  2. Copy downloaded file into your MSYS home directory
+     (c:\MinGW\msys\1.0\home\Administrator\)
+
+  3. Extract downloaded archive in MSYS console with following commands:
+     tar -xf sqlite-autoconf-3070701.tar.gz
+     cd sqlite-autoconf-3070701
+
+  4. Run configuration script with command:
+     ./configure --prefix=c:/sqlite3
+
+  5. Build and install SQLite with following command:
+     make && make install
+
+  6. SQLite is installed in "C:\sqlite3"
+
+
+Step 5: Install TortoiseSVN (required to get latest version of SoftHSM sources)
+===============================================================================
+
+  1. Download TortoiseSVN (TortoiseSVN-1.6.16.21511-win32-svn-1.6.17.msi)
+     from http://tortoisesvn.net/downloads.html
+
+  2. Install into default location suggested by installation wizard
+
+
+Step 6: Checkout latest version of SoftHSM sources from SVN
+===========================================================
+
+  1. Create directory "c:\MinGW\msys\1.0\home\Administrator\SoftHSM"
+
+  2. Right-click newly created directory and choose "SVN Checkout..."
+
+  3. Enter "http://svn.opendnssec.org/trunk/softHSM/" as "URL of repository"
+
+  4. Start checkout by clicking "OK" button
+
+
+Step 7: Build SoftHSM
+=====================
+
+  1. Enter "SoftHSM" directory in MSYS console with following command:
+     cd ~/SoftHSM
+
+  2. Generate configuration script with command:
+     autoreconf --install --force
+ 
+  3. Run configuration script with command:
+     ./configure --with-botan=c:/botan --with-sqlite3=c:/sqlite3
+
+  4. Build and install SoftHSM with following command:
+     make && make install

@@ -15,7 +15,9 @@ SUBDIRS = src checks
 
 man_MANS = softhsm.conf.5
 
-EXTRA_DIST = $(srcdir)/m4/*.m4 $(srcdir)/softhsm.conf.5.in
+EXTRA_DIST = 	$(srcdir)/m4/*.m4 \
+		$(srcdir)/README.MinGW \
+		$(srcdir)/softhsm.conf.5.in
 
 install-data-hook:
 	test -d ${DESTDIR}${sysconfdir} || \

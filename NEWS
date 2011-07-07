@@ -13,6 +13,8 @@ SoftHSM 1.3.0 - 2011-07-XX
 * Support Botan 1.10.0.
 * Better signing performance with a single element cache for 
   the PK_Signer object.
+* Document README.MinGW describes how to build on Windows.
+  (Contributed by Jaroslav Imrich)
 
 Bugfixes:
 * API changes in Botan created a namespace collision.
