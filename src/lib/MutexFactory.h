@@ -37,7 +37,7 @@
 
 #include "config.h"
 #include "osmutex.h"
-#include "pkcs11.h"
+#include "cryptoki.h"
 #include <memory>
 
 class Mutex

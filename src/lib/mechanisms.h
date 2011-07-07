@@ -29,7 +29,7 @@
 #ifndef SOFTHSM_MECHANISMS_H
 #define SOFTHSM_MECHANISMS_H 1
 
-#include "pkcs11.h"
+#include "cryptoki.h"
 
 // The number of supported mechanisms
 #define NR_SUPPORTED_MECHANISMS 15

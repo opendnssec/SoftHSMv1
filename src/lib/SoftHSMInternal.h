@@ -36,7 +36,7 @@
 #ifndef SOFTHSM_SOFTHSMINTERNAL_H
 #define SOFTHSM_SOFTHSMINTERNAL_H 1
 
-#include "pkcs11.h"
+#include "cryptoki.h"
 #include "SoftFind.h"
 #include "SoftDatabase.h"
 #include "SoftSession.h"

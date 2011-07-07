@@ -29,7 +29,7 @@
 #ifndef SOFTHSM_ATTRIBUTE_H
 #define SOFTHSM_ATTRIBUTE_H 1
 
-#include "pkcs11.h"
+#include "cryptoki.h"
 
 // Includes for the crypto library
 #include <botan/rng.h>

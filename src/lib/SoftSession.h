@@ -37,7 +37,7 @@
 #define SOFTHSM_SOFTSESSION_H 1
 
 #include "config.h"
-#include "pkcs11.h"
+#include "cryptoki.h"
 #include "SoftFind.h"
 #include "SoftDatabase.h"
 #include "SoftKeyStore.h"

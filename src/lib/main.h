@@ -29,7 +29,7 @@
 #ifndef SOFTHSM_MAIN_H
 #define SOFTHSM_MAIN_H 1
 
-#include "pkcs11.h"
+#include "cryptoki.h"
 
 class SoftSession;
 

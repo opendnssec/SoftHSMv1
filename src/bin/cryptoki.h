@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2008-2009 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2010 SURFnet bv
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,20 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/************************************************************
-*
-* This class handles the slots
-*
-************************************************************/
+/*****************************************************************************
+ cryptoki.h
 
-#ifndef SOFTHSM_SOFTSLOT_H
-#define SOFTHSM_SOFTSLOT_H 1
+ This include file turns off export of functions by the SoftHSM library by not
+ setting the #define symbol CRYPTOKI_EXPORTS before the main PKCS #11 header
+ file is included. Include this header file in all SoftHSM code that
+ does not link into a PKCS #11 library.
+ *****************************************************************************/
 
-#include "SoftSession.h"
+#ifndef SOFTHSM_ATTRIBUTE_H
+#define SOFTHSM_ATTRIBUTE_H
 
-#include "cryptoki.h"
+#define CRYPTOKI_COMPAT
 
-// Includes for the crypto library
-#include <botan/rng.h>
+#include "pkcs11.h"
 
-class SoftSlot {
-  public:
-    SoftSlot();
-    ~SoftSlot();
-
-    void addSlot(CK_SLOT_ID newSlotID, char *newDBPath);
-    SoftSlot *getSlot(CK_SLOT_ID getID);
-    SoftSlot *getNextSlot();
-    CK_SLOT_ID getSlotID();
-
-    void readDB();
-    char *dbPath;
-    char *userPIN;
-    char *soPIN;
-
-    CK_FLAGS slotFlags;
-    CK_FLAGS tokenFlags;
-
-    char *tokenLabel;
-    char *hashedUserPIN;
-    char *hashedSOPIN;
-
-  private:
-    CK_SLOT_ID slotID;
-    SoftSlot *nextSlot;
-};
-
-#endif /* SOFTHSM_SOFTSLOT_H */
+#endif /* SOFTHSM_ATTRIBUTE_H */

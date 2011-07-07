@@ -36,7 +36,7 @@
 #ifndef SOFTHSM_SOFTFIND_H
 #define SOFTHSM_SOFTFIND_H 1
 
-#include "pkcs11.h"
+#include "cryptoki.h"
 
 class SoftFind {
   public:
