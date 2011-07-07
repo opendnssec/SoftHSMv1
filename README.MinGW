@@ -74,6 +74,9 @@ Step 3: Build Botan
   4. Run configuration script with command:
      ./configure.py --prefix=c:/botan --cc=gcc
 
+     If you are running a 64-bit OS, then also add --cpu=i386.
+     MinGW does not come with a 64-bit compiler.
+
   5. Edit generated Makefile:
 
      5.1. Replace line:
