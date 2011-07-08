@@ -29,15 +29,15 @@
 /*****************************************************************************
  cryptoki.h
 
- This include file turns off export of functions by the SoftHSM library by not
- setting the #define symbol CRYPTOKI_EXPORTS before the main PKCS #11 header
- file is included. Include this header file in all SoftHSM code that
- does not link into a PKCS #11 library.
+ We need to turn on CRYPTOKI_EXPORTS because we are statically linking with 
+ libsofthsm. If we do not do this, then it will not find the symbols in 
+ Windows.
  *****************************************************************************/
 
 #ifndef SOFTHSM_ATTRIBUTE_H
 #define SOFTHSM_ATTRIBUTE_H
 
+#define CRYPTOKI_EXPORTS
 #define CRYPTOKI_COMPAT
 
 #include "pkcs11.h"
