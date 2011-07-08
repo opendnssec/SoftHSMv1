@@ -47,6 +47,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <time.h>
 
 // Includes for the crypto library
 #include <botan/pipe.h>
