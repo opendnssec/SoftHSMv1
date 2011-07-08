@@ -128,6 +128,7 @@ AC_DEFINE_UNQUOTED(
 )
 
 # Host specific configuration
+AC_CANONICAL_HOST
 case "${host}" in
 *-*-winnt* | *-*-mingw* | *-*-cygwin*)
   AC_DEFINE_UNQUOTED(
