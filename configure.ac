@@ -78,7 +78,7 @@ AC_CHECK_LIB(rt, sched_yield, [YIELD_LIB=-lrt],
 AC_SUBST([YIELD_LIB])
 
 AC_CHECK_FUNCS(getpassphrase)
-AC_CHECK_HEADERS([sys/time.h dlfcn.h pthread.h], [], [],
+AC_CHECK_HEADERS([sys/time.h dlfcn.h pthread.h syslog.h], [], [],
   [[#ifdef HAVE_DLFCN_H
   #include <dlfcn.h>
   #endif

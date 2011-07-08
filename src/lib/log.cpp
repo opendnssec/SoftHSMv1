@@ -32,22 +32,33 @@
 *
 ************************************************************/
 
-#include <syslog.h>
-
 #include "log.h"
+#include "config.h"
+
+#ifdef HAVE_SYSLOG_H
+#include <syslog.h>
+#endif
 
 void logError(const char *functionName, const char *text) {
+#ifdef HAVE_SYSLOG_H
   syslog(LOG_ERR, "SoftHSM: %s: %s", functionName, text);
+#endif
 }
 
 void logWarning(const char *functionName, const char *text) {
+#ifdef HAVE_SYSLOG_H
   syslog(LOG_WARNING, "SoftHSM: %s: %s", functionName, text);
+#endif
 }
 
 void logInfo(const char *functionName, const char *text) {
+#ifdef HAVE_SYSLOG_H
   syslog(LOG_INFO, "SoftHSM: %s: %s", functionName, text);
+#endif
 }
 
 void logDebug(const char *functionName, const char *text) {
+#ifdef HAVE_SYSLOG_H
   syslog(LOG_DEBUG, "SoftHSM: %s: %s", functionName, text);
+#endif
 }
