@@ -66,7 +66,11 @@ void usage() {
 int main(int argc, char **argv) {
   int c;
 
+#ifdef WIN32
+  _putenv("SOFTHSM_CONF=" CHECKS_SOFTHSM_CONF);
+#else
   setenv("SOFTHSM_CONF", CHECKS_SOFTHSM_CONF, 1);
+#endif
 
   if(argc == 1) {
     usage();

@@ -28,6 +28,7 @@ Bugfixes:
 * Windows: Set CRYPTOKI_EXPORTS.
 * Windows: Load library correctly softhsm.
 * Windows: Compatibility function for getpass.
+* Windows: Use _putenv and not setenv.
 
 
 SoftHSM 1.2.1 - 2011-05-03 
