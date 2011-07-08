@@ -49,7 +49,6 @@ static const char rcsid[] = "$ISC: base64.c,v 8.6 1999/01/08 19:25:18 vixie Exp 
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/socket.h>
 
 #include <ctype.h>
 #include <stdio.h>
