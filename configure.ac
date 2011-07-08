@@ -126,11 +126,24 @@ AC_DEFINE_UNQUOTED(
   ["$default_softhsm_conf"],
   [The default location of softhsm.conf]
 )
-AC_DEFINE_UNQUOTED(
-  [DEFAULT_PKCS11_LIB],
-  ["$full_libdir/libsofthsm.so"],
-  [The default PKCS#11 library]
-)
+
+# Host specific configuration
+case "${host}" in
+*-*-winnt* | *-*-mingw* | *-*-cygwin*)
+  AC_DEFINE_UNQUOTED(
+    [DEFAULT_PKCS11_LIB],
+    ["$full_libdir/libsofthsm.dll"],
+    [The default PKCS#11 library]
+  )
+  ;;
+*)
+  AC_DEFINE_UNQUOTED(
+    [DEFAULT_PKCS11_LIB],
+    ["$full_libdir/libsofthsm.so"],
+    [The default PKCS#11 library]
+  )
+  ;;
+esac
 
 # Generate the libtool script and install script 
 AC_PROG_INSTALL
