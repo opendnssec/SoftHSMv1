@@ -26,6 +26,8 @@ Bugfixes:
   if an incorrect PIN has been entered at least once.
 * Windows: Detect LoadLibrary.
 * Windows: Set CRYPTOKI_EXPORTS.
+* Windows: Load library correctly softhsm.
+* Windows: Compatibility function for getpass.
 
 
 SoftHSM 1.2.1 - 2011-05-03 

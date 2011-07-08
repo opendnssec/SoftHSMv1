@@ -48,8 +48,13 @@
 #include <iostream>
 #include <fstream>
 #include <sched.h>
-#if defined(HAVE_DLOPEN)
+
+#ifdef HAVE_DLOPEN
 #include <dlfcn.h>
+#endif
+
+#ifdef HAVE_LOADLIBRARY
+#include <windows.h>
 #endif
 
 // Includes for the crypto library
@@ -158,6 +163,25 @@ static const struct option long_options[] = {
   { "version",         0, NULL, OPT_VERSION },
   { NULL,              0, NULL, 0 }
 };
+
+#ifdef WIN32
+#include <conio.h>
+char *getpass(const char *prompt) {
+  static char buf[MAX_PIN_LEN+1];
+  size_t i;
+
+  fputs(prompt, stderr);
+  fflush(stderr);
+  for(i = 0; i < sizeof(buf) - 1; i++) {
+    buf[i] = _getch();
+    if(buf[i] == '\r')
+      break;
+  }
+  buf[i] = 0;
+  fputs("\n", stderr);
+  return buf;
+}
+#endif
 
 int main(int argc, char *argv[]) {
   int option_index = 0;
@@ -341,7 +365,7 @@ int main(int argc, char *argv[]) {
     p11->C_Finalize(NULL_PTR);
     if(moduleHandle) {
 #if defined(HAVE_LOADLIBRARY)
-      // no idea
+      FreeLibrary((HMODULE)moduleHandle);
 #elif defined(HAVE_DLOPEN)
       dlclose(moduleHandle);
 #endif
@@ -357,20 +381,24 @@ CK_C_GetFunctionList loadLibrary(char *module) {
 
 #if defined(HAVE_LOADLIBRARY)
   // Load PKCS #11 library
+  HMODULE pDynLib = NULL;
   if(module) {
-    HINSTANCE hDLL = LoadLibrary(_T(module));
+    pDynLib = LoadLibrary(module);
   } else {
-    HINSTANCE hDLL = LoadLibrary(_T(DEFAULT_PKCS11_LIB));
+    pDynLib = LoadLibrary(DEFAULT_PKCS11_LIB);
   }
 
-  if(hDLL == NULL) {
+  if(pDynLib == NULL) {
     // Failed to load the PKCS #11 library
     return NULL;
   }
 
   // Retrieve the entry point for C_GetFunctionList
-  pGetFunctionList = (CK_C_GetFunctionList) GetProcAddress(hDLL, _T("C_GetFunctionList"));
-            
+  pGetFunctionList = (CK_C_GetFunctionList) GetProcAddress(pDynLib, "C_GetFunctionList");
+
+  // Store the handle so we can close it later
+  moduleHandle = pDynLib;
+
 #elif defined(HAVE_DLOPEN)
   // Load PKCS #11 library
   void* pDynLib;
