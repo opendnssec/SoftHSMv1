@@ -29,6 +29,7 @@ Bugfixes:
 * Windows: Load library correctly softhsm.
 * Windows: Compatibility function for getpass.
 * Windows: Use _putenv and not setenv.
+* Windows: Generate the DLL file.
 
 
 SoftHSM 1.2.1 - 2011-05-03 
