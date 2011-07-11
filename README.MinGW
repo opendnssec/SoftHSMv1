@@ -173,7 +173,7 @@ Step 7: Build SoftHSM
      autoreconf --install --force
  
   3. Run configuration script with command:
-     ./configure --with-botan=c:/botan --with-sqlite3=c:/sqlite3
+     ./configure --with-botan=c:/botan --with-sqlite3=c:/sqlite3 --prefix=c:/SoftHSM
 
   4. Build and install SoftHSM with following command:
      make && make install
