@@ -14,7 +14,7 @@ SoftHSM 1.3.0 - 2011-07-XX
 * Better signing performance with a single element cache for 
   the PK_Signer object.
 * Document README.MinGW describes how to build on Windows.
-  (Contributed by Jaroslav Imrich)
+  (Text and patches contributed by Jaroslav Imrich)
 
 Bugfixes:
 * API changes in Botan created a namespace collision.
@@ -26,11 +26,12 @@ Bugfixes:
   if an incorrect PIN has been entered at least once.
 * Windows: Detect LoadLibrary.
 * Windows: Set CRYPTOKI_EXPORTS.
-* Windows: Load library correctly softhsm.
+* Windows: Load library correctly in softhsm.
 * Windows: Compatibility function for getpass.
 * Windows: Use _putenv and not setenv.
 * Windows: Generate the DLL file.
 * Windows: The softhsm tool will use the DLL file by default.
+* Windows: Log to EventLog.
 
 
 SoftHSM 1.2.1 - 2011-05-03 
