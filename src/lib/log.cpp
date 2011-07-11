@@ -39,6 +39,7 @@
 #include <syslog.h>
 #else
 #include <windows.h>
+#include <stdio.h>
 #endif
 
 void logError(const char *functionName, const char *text) {
@@ -49,7 +50,7 @@ void logError(const char *functionName, const char *text) {
   if(hEventLog) {
     char msg[1024];
     snprintf(msg, sizeof(msg), "SoftHSM: %s: %s", functionName, text);
-    ReportEvent(hEventLog, EVENTLOG_ERROR_TYPE, 0, 0, NULL, 1, 0, (LPCWSTR*)msg, NULL));
+    ReportEvent(hEventLog, EVENTLOG_ERROR_TYPE, 0, 0, NULL, 1, 0, (LPCSTR*)msg, NULL);
     CloseEventLog(hEventLog);
   }
 #endif
@@ -63,7 +64,7 @@ void logWarning(const char *functionName, const char *text) {
   if(hEventLog) {
     char msg[1024];
     snprintf(msg, sizeof(msg), "SoftHSM: %s: %s", functionName, text);
-    ReportEvent(hEventLog, EVENTLOG_WARNING_TYPE, 0, 0, NULL, 1, 0, (LPCWSTR*)msg, NULL));
+    ReportEvent(hEventLog, EVENTLOG_WARNING_TYPE, 0, 0, NULL, 1, 0, (LPCSTR*)msg, NULL);
     CloseEventLog(hEventLog);
   }
 #endif
@@ -77,7 +78,7 @@ void logInfo(const char *functionName, const char *text) {
   if(hEventLog) {
     char msg[1024];
     snprintf(msg, sizeof(msg), "SoftHSM: %s: %s", functionName, text);
-    ReportEvent(hEventLog, EVENTLOG_INFORMATION_TYPE, 0, 0, NULL, 1, 0, (LPCWSTR*)msg, NULL));
+    ReportEvent(hEventLog, EVENTLOG_INFORMATION_TYPE, 0, 0, NULL, 1, 0, (LPCSTR*)msg, NULL);
     CloseEventLog(hEventLog);
   }
 #endif
