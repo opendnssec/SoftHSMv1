@@ -58,7 +58,8 @@ void usage() {
   printf("  --topkcs8           Convert from BIND .private-key format to PKCS#8.\n");
   printf("                          Use with --in, --out, and --pin.\n");
   printf("  --tobind            Convert from PKCS#8 to BIND .private-key format.\n");
-  printf("                          Use with --in, --pin, --name, --ttl, --ksk, and --algorithm.\n");
+  printf("                          Use with --in, --pin, --name, --ttl, --ksk,\n");
+  printf("                          and --algorithm.\n");
   printf("  --algorithm <alg>   Specifies which DNSSEC algorithm to use in file.\n");
   printf("                           RSAMD5\n");
   printf("                           DSA\n");
@@ -71,7 +72,8 @@ void usage() {
   printf("  --help              Shows this help screen.\n");
   printf("  --in <path>         The path to the input file.\n");
   printf("  --ksk               Set the flag to 257. Key Signing Key. Optional.\n");
-  printf("  --name <name>       The owner name. Do not forget the trailing dot, e.g. \"example.com.\"\n");
+  printf("  --name <name>       The owner name. Do not forget the trailing dot,\n");
+  printf("                      e.g. \"example.com.\"\n");
   printf("  --out <path>        The path to the output file.\n");
   printf("  --pin <PIN>         To encrypt/decrypt PKCS#8 file. Optional.\n");
   printf("  --ttl <ttl>         The TTL to use for the DNSKEY RR. Optional.\n");
