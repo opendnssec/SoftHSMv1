@@ -32,6 +32,7 @@ Bugfixes:
 * Windows: Generate the DLL file.
 * Windows: The softhsm tool will use the DLL file by default.
 * Windows: Log to EventLog.
+* Windows: Fix parsing of configuration file.
 
 
 SoftHSM 1.2.1 - 2011-05-03 

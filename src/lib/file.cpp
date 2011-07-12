@@ -90,7 +90,7 @@ CK_RV readConfigFile() {
     }
 
     // Get the second part of the line
-    char *dbPath = strtok(NULL, ":");
+    char *dbPath = strtok(NULL, "\0");
     if(dbPath == NULL) {
       continue;
     }
