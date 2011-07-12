@@ -46,11 +46,11 @@ void logError(const char *functionName, const char *text) {
 #ifndef WIN32
   syslog(LOG_ERR, "SoftHSM: %s: %s", functionName, text);
 #else
-  HANDLE hEventLog = OpenEventLog(NULL, "Application");
+  HANDLE hEventLog = OpenEventLog(NULL, "SoftHSM");
   if(hEventLog) {
     char msg[1024];
     char* msgs[1];
-    snprintf(msg, sizeof(msg), "SoftHSM: %s: %s", functionName, text);
+    snprintf(msg, sizeof(msg), "%s: %s", functionName, text);
     msgs[0] = msg;
     ReportEvent(hEventLog, EVENTLOG_ERROR_TYPE, 0, 0, NULL, 1, 0, (const char **)msgs, NULL);
     CloseEventLog(hEventLog);
@@ -62,11 +62,11 @@ void logWarning(const char *functionName, const char *text) {
 #ifndef WIN32
   syslog(LOG_WARNING, "SoftHSM: %s: %s", functionName, text);
 #else
-  HANDLE hEventLog = OpenEventLog(NULL, "Application");
+  HANDLE hEventLog = OpenEventLog(NULL, "SoftHSM");
   if(hEventLog) {
     char msg[1024];
     char* msgs[1];
-    snprintf(msg, sizeof(msg), "SoftHSM: %s: %s", functionName, text);
+    snprintf(msg, sizeof(msg), "%s: %s", functionName, text);
     msgs[0] = msg;
     ReportEvent(hEventLog, EVENTLOG_WARNING_TYPE, 0, 0, NULL, 1, 0, (const char **)msgs, NULL);
     CloseEventLog(hEventLog);
@@ -78,11 +78,11 @@ void logInfo(const char *functionName, const char *text) {
 #ifndef WIN32
   syslog(LOG_INFO, "SoftHSM: %s: %s", functionName, text);
 #else
-  HANDLE hEventLog = OpenEventLog(NULL, "Application");
+  HANDLE hEventLog = OpenEventLog(NULL, "SoftHSM");
   if(hEventLog) {
     char msg[1024];
     char* msgs[1];
-    snprintf(msg, sizeof(msg), "SoftHSM: %s: %s", functionName, text);
+    snprintf(msg, sizeof(msg), "%s: %s", functionName, text);
     msgs[0] = msg;
     ReportEvent(hEventLog, EVENTLOG_INFORMATION_TYPE, 0, 0, NULL, 1, 0, (const char **)msgs, NULL);
     CloseEventLog(hEventLog);
