@@ -33,6 +33,8 @@ Bugfixes:
 * Windows: The softhsm tool will use the DLL file by default.
 * Windows: Log to EventLog.
 * Windows: Fix parsing of configuration file.
+* Windows: The check program now links with a shared libgcc in order to 
+  make the exceptions work.
 
 
 SoftHSM 1.2.1 - 2011-05-03 
