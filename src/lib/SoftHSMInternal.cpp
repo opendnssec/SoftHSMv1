@@ -774,6 +774,12 @@ CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDL
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] != NULL_PTR) {
       sessions[i]->keyStore->removeKey(hObject);
+
+      // Also reset the single element cache, so that the old pipe will not be reused
+      // if the handle is reused by a new object.
+      if(sessions[i]->signKey == hObject) {
+        sessions[i]->signKey = CK_INVALID_HANDLE;
+      }
     }
   }
 
