@@ -2,7 +2,7 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
-SoftHSM 1.3.0 - 2011-08-XX
+SoftHSM 1.3.0 - 2011-08-12
 
 * Can now read CKA_ALWAYS_AUTHENTICATE but does not use it.
 * Encryption and decryption using CKM_RSA_PKCS.
