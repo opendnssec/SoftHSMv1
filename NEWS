@@ -2,7 +2,7 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
-SoftHSM 1.3.0 - 2011-07-XX
+SoftHSM 1.3.0 - 2011-08-XX
 
 * Can now read CKA_ALWAYS_AUTHENTICATE but does not use it.
 * Encryption and decryption using CKM_RSA_PKCS.
@@ -35,6 +35,10 @@ Bugfixes:
 * Windows: Fix parsing of configuration file.
 * Windows: The check program now links with a shared libgcc in order to 
   make the exceptions work.
+
+Known issue:
+* Firefox does improper setting of CKA_DERIVE attribute during PKCS#12
+  import. See https://bugzilla.mozilla.org/show_bug.cgi?id=515663
 
 
 SoftHSM 1.2.1 - 2011-05-03 
