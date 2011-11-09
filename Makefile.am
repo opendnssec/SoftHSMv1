@@ -16,6 +16,7 @@ SUBDIRS = src checks
 man_MANS = softhsm.conf.5
 
 EXTRA_DIST = 	$(srcdir)/m4/*.m4 \
+		$(srcdir)/LICENSE \
 		$(srcdir)/README.MinGW \
 		$(srcdir)/softhsm.conf.5.in
 
