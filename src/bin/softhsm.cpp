@@ -974,7 +974,7 @@ void trustObject(char *boolTrusted, char *slot, char *soPIN, char *type, char *l
   };
   rv = p11->C_SetAttributeValue(hSession, oHandle, objTemplate, 1);
   if(rv != CKR_OK) {
-    fprintf(stderr, "Error: Could not modify CKA_TRUSTED. rv = 0x%08X\n", rv);
+    fprintf(stderr, "Error: Could not modify CKA_TRUSTED. rv = 0x%08X\n", (unsigned int)rv);
     return;
   }
 
