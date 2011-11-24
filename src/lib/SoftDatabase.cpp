@@ -122,7 +122,10 @@ CK_RV SoftDatabase::init(char *dbPath) {
     int dbVersion = sqlite3_column_int(pragStatem, 0);
     FINALIZE_STMT(pragStatem);
 
-    if(dbVersion != 100) {
+    if(dbVersion == 0) {
+      // The token database has not been initialized.
+      return CKR_TOKEN_NOT_RECOGNIZED;
+    } else if(dbVersion != 100) {
       char warnMsg[1024];
       snprintf(warnMsg, sizeof(warnMsg), "Wrong database schema version: %s", dbPath);
       ERROR_MSG("init", warnMsg);
