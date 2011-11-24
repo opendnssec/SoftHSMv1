@@ -90,6 +90,10 @@ full_localstatedir=`eval eval eval eval eval echo "${localstatedir}" | sed "s#NO
 full_libdir=`eval eval eval eval eval echo "${libdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 default_softhsm_conf="`eval echo ${full_sysconfdir} | sed s,NONE,$ac_default_prefix,g`/softhsm.conf"
 
+# Install the library in a sub-directory
+full_libdir="$full_libdir/softhsm"
+libdir=$full_libdir
+
 # Define some variables for the code
 AC_DEFINE_UNQUOTED(
   [VERSION_MAJOR],
