@@ -1,9 +1,9 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2009-2011 .SE (The Internet Infrastructure Foundation).
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -12,7 +12,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -38,20 +38,20 @@
 // Main functions
 
 void usage();
-void to_pkcs8(char *in_path, char *out_path, char *file_pin);
-void to_bind(char *in_path, char *file_pin, char *name, int ttl, int key_flag, char *algorithm_str);
+int to_pkcs8(char *in_path, char *out_path, char *file_pin);
+int to_bind(char *in_path, char *file_pin, char *name, int ttl, int key_flag, char *algorithm_str);
 
 // Support functions
 
-void save_rsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigN, Botan::BigInt bigE,
+int save_rsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigN, Botan::BigInt bigE,
                     Botan::BigInt bigD, Botan::BigInt bigP, Botan::BigInt bigQ);
-void save_dsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigDP, Botan::BigInt bigDQ,
+int save_dsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigDP, Botan::BigInt bigDQ,
                     Botan::BigInt bigDG, Botan::BigInt bigDX);
 Botan::Private_Key* key_from_pkcs8(char *in_path, char *file_pin);
 int get_key_algorithm(Botan::Private_Key *priv_key, char *algorithm_str);
 void print_big_int(FILE *file_pointer, const char *file_tag, Botan::BigInt big_integer);
-void save_rsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_flag, int algorithm);
-void save_dsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_flag, int algorithm);
+int save_rsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_flag, int algorithm);
+int save_dsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_flag, int algorithm);
 int create_rsa_rdata(unsigned char *rdata, int length, Botan::Private_Key *priv_key, int key_flag, int algorithm);
 int create_dsa_rdata(unsigned char *rdata, int length, Botan::Private_Key *priv_key, int key_flag, int algorithm);
 int print_dnskey(FILE *file_pointer, char *name, int ttl, unsigned char *rdata, int rdata_size);

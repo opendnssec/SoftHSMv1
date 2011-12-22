@@ -1,9 +1,9 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2008-2009 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2008-2011 .SE (The Internet Infrastructure Foundation).
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -12,7 +12,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -31,8 +31,8 @@
 * SoftHSM
 *
 * This program is for creating and initializing tokens for
-* the libsofthsm. libsofthsm implements parts of the PKCS#11 
-* interface defined by RSA Labratories, PKCS11 v2.20, 
+* the libsofthsm. libsofthsm implements parts of the PKCS#11
+* interface defined by RSA Labratories, PKCS11 v2.20,
 * called Cryptoki.
 *
 ************************************************************/
@@ -207,6 +207,7 @@ int main(int argc, char *argv[]) {
   int doOptimize = 0;
   int doTrusted = 0;
   int action = 0;
+  int status = 0;
 
   moduleHandle = NULL;
   p11 = NULL;
@@ -271,33 +272,37 @@ int main(int argc, char *argv[]) {
       case OPT_VERSION:
       case 'v':
         printf("%s\n", PACKAGE_VERSION);
-        exit(0);
+        return 0;
         break;
       case OPT_HELP:
       case 'h':
+        usage();
+        return 0;
+        break;
       default:
         usage();
-        exit(0);
+        return 1;
         break;
     }
   }
 
   // No action given, display the usage.
-  if(action == 0) {
+  if(action != 1) {
+    fprintf(stderr, "Error: Must perform one action.\n\n");
     usage();
-    return 0;
+    return 1;
   } else {
     CK_C_GetFunctionList pGetFunctionList = loadLibrary(module);
     if(pGetFunctionList == NULL) {
       fprintf(stderr, "Error: Could not load the library.\n");
-      exit(1);
+      return 1;
     }
     (*pGetFunctionList)(&p11);
 
     CK_RV rv = p11->C_Initialize(NULL_PTR);
     if(rv != CKR_OK) {
       fprintf(stderr, "Error: Could not initialize libsofthsm. Probably missing the configuration file.\n");
-      exit(1);
+      return 1;
     }
   }
 
@@ -321,25 +326,26 @@ int main(int argc, char *argv[]) {
 
   // We should create the token.
   if(doInitToken) {
-    initToken(slot, label, soPIN, userPIN);
+    status = initToken(slot, label, soPIN, userPIN);
   }
 
   // Show all available slots
   if(doShowSlots) {
-    showSlots();
+    status = showSlots();
   }
 
   // Import a key pair from the given path
   if(doImport) {
-    importKeyPair(inPath, filePIN, slot, userPIN, label, objectID, forceExec);
+    status = importKeyPair(inPath, filePIN, slot, userPIN, label, objectID, forceExec);
   }
 
   // Export a key pair to the given path
   if(doExport) {
     if(module) {
       fprintf(stderr, "Error: Cannot perform export in combination with the module option.\n");
+      status = 1;
     } else {
-      exportKeyPair(outPath, filePIN, slot, userPIN, objectID);
+      status = exportKeyPair(outPath, filePIN, slot, userPIN, objectID);
     }
   }
 
@@ -347,14 +353,15 @@ int main(int argc, char *argv[]) {
   if(doOptimize) {
     if(module) {
       fprintf(stderr, "Error: Cannot perform optimization in combination with the module option.\n");
+      status = 1;
     } else {
-      optimize(slot, userPIN);
+      status = optimize(slot, userPIN);
     }
   }
 
   // Set CKA_TRUSTED
   if(doTrusted) {
-    trustObject(boolTrusted, slot, soPIN, type, label, objectID);
+    status = trustObject(boolTrusted, slot, soPIN, type, label, objectID);
   }
 
   if(was_initialized == false) {
@@ -372,7 +379,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  return 0;
+  return status;
 }
 
 // Load the PKCS#11 library
@@ -428,24 +435,24 @@ CK_C_GetFunctionList loadLibrary(char *module) {
 
 // Creates a SoftHSM token at the given location.
 
-void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
+int initToken(char *slot, char *label, char *soPIN, char *userPIN) {
   // Keep a copy of the PINs because getpass/getpassphrase will overwrite the previous PIN.
   char so_pin_copy[MAX_PIN_LEN+1];
   char user_pin_copy[MAX_PIN_LEN+1];
 
   if(slot == NULL) {
     fprintf(stderr, "Error: A slot number must be supplied. Use --slot <number>\n");
-    return;
+    return 1;
   }
 
   if(label == NULL) {
     fprintf(stderr, "Error: A label for the token must be supplied. Use --label <text>\n");
-    return;
+    return 1;
   }
 
   if(strlen(label) > 32) {
     fprintf(stderr, "Error: The token label must not have a length greater than 32 chars.\n");
-    return;
+    return 1;
   }
 
   if(soPIN == NULL) {
@@ -477,7 +484,7 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
       userPIN = getpass("Enter user PIN: ");
     #endif
   }
-	
+
   int userLength = strlen(userPIN);
   while(userLength < MIN_PIN_LEN || userLength > MAX_PIN_LEN) {
     printf("Wrong size! The user PIN must have a length between %i and %i characters.\n", MIN_PIN_LEN, MAX_PIN_LEN);
@@ -503,20 +510,20 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
       break;
     case CKR_SLOT_ID_INVALID:
       fprintf(stderr, "Error: The given slot does not exist.\n");
-      return;
+      return 1;
       break;
     case CKR_PIN_INCORRECT:
       fprintf(stderr, "Error: The given SO PIN does not match the one in the token.\n");
-      return;
+      return 1;
       break;
     case CKR_TOKEN_NOT_PRESENT:
       fprintf(stderr, "Error: The token is not present.\n");
       fprintf(stderr, "Error: Probably missing write permissions, please check the path and file given in the configuration.\n");
-      return;
+      return 1;
       break;
     default:
       fprintf(stderr, "Error: The library could not initialize the token.\n");
-      return;
+      return 1;
       break;
   }
 
@@ -524,37 +531,39 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
   rv = p11->C_OpenSession(slotID, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession);
   if(rv != CKR_OK) {
     fprintf(stderr, "Error: Could not open a session with the library.\n");
-    return;
+    return 1;
   }
 
   rv = p11->C_Login(hSession, CKU_SO, (CK_UTF8CHAR_PTR)so_pin_copy, soLength);
   if(rv != CKR_OK) {
     fprintf(stderr, "Error: Could not log in on the token.\n");
-    return;
+    return 1;
   }
 
   rv = p11->C_InitPIN(hSession, (CK_UTF8CHAR_PTR)user_pin_copy, userLength);
   if(rv != CKR_OK) {
     fprintf(stderr, "Error: Could not initialize the user PIN.\n");
-    return;
+    return 1;
   }
 
   printf("The token has been initialized.\n");
+
+  return 0;
 }
 
-void showSlots() {
+int showSlots() {
   CK_ULONG ulSlotCount;
   CK_RV rv = p11->C_GetSlotList(CK_FALSE, NULL_PTR, &ulSlotCount);
   if(rv != CKR_OK) {
     fprintf(stderr, "Error: Could not get the number of slots.\n");
-    return;
+    return 1;
   }
 
   CK_SLOT_ID_PTR pSlotList = (CK_SLOT_ID_PTR)malloc(ulSlotCount*sizeof(CK_SLOT_ID));
   rv = p11->C_GetSlotList(CK_FALSE, pSlotList, &ulSlotCount);
   if (rv != CKR_OK) {
     fprintf(stderr, "Error: Could not get the slot list.\n");
-    return;
+    return 1;
   }
 
   printf("Available slots:\n");
@@ -564,10 +573,10 @@ void showSlots() {
     CK_TOKEN_INFO tokenInfo;
 
     rv = p11->C_GetSlotInfo(pSlotList[i], &slotInfo);
-    if(rv != CKR_OK) {  
+    if(rv != CKR_OK) {
       fprintf(stderr, "Error: Could not get the slot info.\n");
       free(pSlotList);
-      return;
+      return 1;
     }
 
     printf("Slot %-2lu\n", pSlotList[i]);
@@ -580,7 +589,7 @@ void showSlots() {
       rv = p11->C_GetTokenInfo(pSlotList[i], &tokenInfo);
       if(rv != CKR_OK) {
         fprintf(stderr, "Error: Could not get the token info.\n");
-        return;
+        return 1;
       }
 
       printf("           Token initialized: ");
@@ -604,35 +613,37 @@ void showSlots() {
   }
 
   free(pSlotList);
+
+  return 0;
 }
 
 // Import a key pair from given path
 
-void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *label, char *objectID, int forceExec) {
+int importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *label, char *objectID, int forceExec) {
   if(slot == NULL) {
     fprintf(stderr, "Error: A slot number must be supplied. Use --slot <number>\n");
-    return;
+    return 1;
   }
 
   if(label == NULL) {
     fprintf(stderr, "Error: A label for the object must be supplied. Use --label <text>\n");
-    return;
+    return 1;
   }
 
   if(userPIN == NULL) {
     fprintf(stderr, "Error: An user PIN must be supplied. Use --pin <PIN>\n");
-    return;
+    return 1;
   }
 
   if(objectID == NULL) {
     fprintf(stderr, "Error: An ID for the object must be supplied. Use --id <hex>\n");
-    return;
+    return 1;
   }
   int objIDLen = 0;
   char *objID = hexStrToBin(objectID, strlen(objectID), &objIDLen);
   if(objID == NULL) {
     fprintf(stderr, "Please edit --id <hex> to correct error.\n");
-    return;
+    return 1;
   }
 
   CK_SLOT_ID slotID = atoi(slot);
@@ -645,7 +656,7 @@ void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
       fprintf(stderr, "Error: Could not open a session on the given slot.\n");
     }
     free(objID);
-    return;
+    return 1;
   }
 
   rv = p11->C_Login(hSession, CKU_USER, (CK_UTF8CHAR_PTR)userPIN, strlen(userPIN));
@@ -656,20 +667,20 @@ void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
       fprintf(stderr, "Error: Could not log in on the token.\n");
     }
     free(objID);
-    return;
+    return 1;
   }
 
   CK_OBJECT_HANDLE oHandle = searchObject(hSession, CKO_PRIVATE_KEY, NULL, objID, objIDLen);
   if(oHandle != CK_INVALID_HANDLE && forceExec == 0) {
     free(objID);
     fprintf(stderr, "Error: The ID is already assigned to another object. Use --force to override this message.\n");
-    return;
+    return 1;
   }
 
   key_material_t *keyMat = importKeyMat(filePath, filePIN);
   if(keyMat == NULL) {
     free(objID);
-    return;
+    return 1;
   }
 
   CK_OBJECT_CLASS pubClass = CKO_PUBLIC_KEY, privClass = CKO_PRIVATE_KEY;
@@ -715,7 +726,7 @@ void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
     freeKeyMaterial(keyMat);
     free(objID);
     fprintf(stderr, "Error: Could not save the private key in the token.\n");
-    return;
+    return 1;
   }
 
   rv = p11->C_CreateObject(hSession, pubTemplate, 10, &hKey2);
@@ -726,40 +737,42 @@ void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
   if(rv != CKR_OK) {
     p11->C_DestroyObject(hSession, hKey1);
     fprintf(stderr, "Error: Could not save the public key in the token.\n");
-    return;
+    return 1;
   }
 
   printf("The key pair has been imported to the token in slot %lu.\n", slotID);
+
+  return 0;
 }
 
-void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectID) {
+int exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectID) {
   if(filePIN != NULL) {
     int filePinLen = strlen(filePIN);
     if(filePinLen < MIN_PIN_LEN || filePinLen > MAX_PIN_LEN) {
       fprintf(stderr, "Error: The file PIN must have a length between %i and %i characters.\n", MIN_PIN_LEN, MAX_PIN_LEN);
-      return;
+      return 1;
     }
   }
 
   if(slot == NULL) {
     fprintf(stderr, "Error: A slot number must be supplied. Use --slot <number>\n");
-    return;
+    return 1;
   }
 
   if(userPIN == NULL) {
     fprintf(stderr, "Error: An user PIN must be supplied. Use --pin <PIN>\n");
-    return;
+    return 1;
   }
 
   if(objectID == NULL) {
     fprintf(stderr, "Error: An ID for the object must be supplied. Use --id <hex>\n");
-    return;
+    return 1;
   }
   int objIDLen = 0;
   char *objID = hexStrToBin(objectID, strlen(objectID), &objIDLen);
   if(objID == NULL) {
     fprintf(stderr, "Please edit --id <hex> to correct error.\n");
-    return;
+    return 1;
   }
 
   CK_SLOT_ID slotID = atoi(slot);
@@ -772,7 +785,7 @@ void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
       fprintf(stderr, "Error: Could not open a session on the given slot.\n");
     }
     free(objID);
-    return;
+    return 1;
   }
 
   rv = p11->C_Login(hSession, CKU_USER, (CK_UTF8CHAR_PTR)userPIN, strlen(userPIN));
@@ -783,7 +796,7 @@ void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
       fprintf(stderr, "Error: Could not log in on the token.\n");
     }
     free(objID);
-    return;
+    return 1;
   }
 
   // Find the object handle
@@ -791,20 +804,20 @@ void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
   free(objID);
   if(oHandle == CK_INVALID_HANDLE) {
     fprintf(stderr, "Error: Could not find the private key with ID = %s\n", objectID);
-    return;
+    return 1;
   }
 
   // Get the path to the token database
   char *dbPath = getDBPath(slotID);
   if(dbPath == NULL) {
-    return;
+    return 1;
   }
 
   // Extract the key directly from the database
   Botan::Private_Key *privKey = getPrivKey(dbPath, oHandle);
   free(dbPath);
   if(privKey == NULL) {
-    return;
+    return 1;
   }
 
   // Write the key to disk
@@ -814,17 +827,19 @@ void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
   }
 
   delete privKey;
+
+  return 0;
 }
 
-void optimize(char *slot, char *userPIN) {
+int optimize(char *slot, char *userPIN) {
   if(slot == NULL) {
     fprintf(stderr, "Error: A slot number must be supplied. Use --slot <number>\n");
-    return;
+    return 1;
   }
 
   if(userPIN == NULL) {
     fprintf(stderr, "Error: An user PIN must be supplied. Use --pin <PIN>\n");
-    return;
+    return 1;
   }
 
   CK_SLOT_ID slotID = atoi(slot);
@@ -836,7 +851,7 @@ void optimize(char *slot, char *userPIN) {
     } else {
       fprintf(stderr, "Error: Could not open a session on the given slot.\n");
     }
-    return;
+    return 1;
   }
 
   rv = p11->C_Login(hSession, CKU_USER, (CK_UTF8CHAR_PTR)userPIN, strlen(userPIN));
@@ -846,13 +861,13 @@ void optimize(char *slot, char *userPIN) {
     } else {
       fprintf(stderr, "Error: Could not log in on the token.\n");
     }
-    return;
+    return 1;
   }
 
   // Get the path to the token database
   char *dbPath = getDBPath(slotID);
   if(dbPath == NULL) {
-    return;
+    return 1;
   }
 
   if(!removeSessionObjs(dbPath)) {
@@ -860,17 +875,18 @@ void optimize(char *slot, char *userPIN) {
   }
 
   free(dbPath);
+
+  return 0;
 }
 
-
-void trustObject(char *boolTrusted, char *slot, char *soPIN, char *type, char *label, char *objectID) {
+int trustObject(char *boolTrusted, char *slot, char *soPIN, char *type, char *label, char *objectID) {
   char so_pin_copy[MAX_PIN_LEN+1];
   CK_BBOOL trusted;
   CK_OBJECT_CLASS oClass;
 
   if(boolTrusted == NULL) {
     fprintf(stderr, "Error: A boolean value must be supplied. Use --trusted <bool>\n");
-    return;
+    return 1;
   }
   if(strncasecmp(boolTrusted, "true", 4) == 0) {
     trusted = CK_TRUE;
@@ -878,17 +894,17 @@ void trustObject(char *boolTrusted, char *slot, char *soPIN, char *type, char *l
     trusted = CK_FALSE;
   } else {
     fprintf(stderr, "Error: Please use true or false as an input for --trusted <bool>\n");
-    return;
+    return 1;
   }
 
   if(slot == NULL) {
     fprintf(stderr, "Error: A slot number must be supplied. Use --slot <number>\n");
-    return;
+    return 1;
   }
 
   if(objectID == NULL && label == NULL) {
     fprintf(stderr, "Error: An ID or label for the object must be supplied. Use --id <hex> or --label <text>\n");
-    return;
+    return 1;
   }
   int objIDLen = 0;
   char *objID = NULL;
@@ -896,14 +912,14 @@ void trustObject(char *boolTrusted, char *slot, char *soPIN, char *type, char *l
     objID = hexStrToBin(objectID, strlen(objectID), &objIDLen);
     if(objID == NULL) {
       fprintf(stderr, "Please edit --id <hex> to correct error.\n");
-      return;
+      return 1;
     }
   }
 
   if(type == NULL) {
     fprintf(stderr, "Error: An object type must must be supplied. Use --type <text>\n");
     if(objID) free(objID);
-    return;
+    return 1;
   }
   if(strncasecmp(type, "CKO_CERTIFICATE", 15) == 0) {
     oClass = CKO_CERTIFICATE;
@@ -912,7 +928,7 @@ void trustObject(char *boolTrusted, char *slot, char *soPIN, char *type, char *l
   } else {
     fprintf(stderr, "Error: Please use CKO_CERTIFICATE or CKO_PUBLIC_KEY as an input for --type <text>\n");
     if(objID) free(objID);
-    return;
+    return 1;
   }
 
   if(soPIN == NULL) {
@@ -946,7 +962,7 @@ void trustObject(char *boolTrusted, char *slot, char *soPIN, char *type, char *l
       fprintf(stderr, "Error: Could not open a session on the given slot.\n");
     }
     if(objID) free(objID);
-    return;
+    return 1;
   }
 
   rv = p11->C_Login(hSession, CKU_SO, (CK_UTF8CHAR_PTR)so_pin_copy, soLength);
@@ -957,7 +973,7 @@ void trustObject(char *boolTrusted, char *slot, char *soPIN, char *type, char *l
       fprintf(stderr, "Error: Could not log in on the token.\n");
     }
     if(objID) free(objID);
-    return;
+    return 1;
   }
 
   // Find object
@@ -965,7 +981,7 @@ void trustObject(char *boolTrusted, char *slot, char *soPIN, char *type, char *l
   if(objID) free(objID);
   if(oHandle == CK_INVALID_HANDLE) {
     fprintf(stderr, "Error: Could not find a matching object. The SO can only see public objects.\n");
-    return;
+    return 1;
   }
 
   // Set value
@@ -975,10 +991,12 @@ void trustObject(char *boolTrusted, char *slot, char *soPIN, char *type, char *l
   rv = p11->C_SetAttributeValue(hSession, oHandle, objTemplate, 1);
   if(rv != CKR_OK) {
     fprintf(stderr, "Error: Could not modify CKA_TRUSTED. rv = 0x%08X\n", (unsigned int)rv);
-    return;
+    return 1;
   }
 
-  printf("The CKA_TRUSTED has been modified.\n");  
+  printf("The CKA_TRUSTED has been modified.\n");
+
+  return 0;
 }
 
 int removeSessionObjs(char *dbPath) {
@@ -992,6 +1010,7 @@ int removeSessionObjs(char *dbPath) {
 
   if(sqlite3_open(dbPath, &db) != 0) {
     fprintf(stderr, "ERROR: Could not connect to database.\n");
+    return 1;
   }
 
   if(sqlite3_prepare_v2(db, select_str, -1, &select_sql, NULL) != 0) {

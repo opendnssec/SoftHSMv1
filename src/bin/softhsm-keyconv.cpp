@@ -1,9 +1,9 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2009-2011 .SE (The Internet Infrastructure Foundation).
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -12,7 +12,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -34,7 +34,7 @@
 * format to/from PKCS#8 key file format. So that keys can be
 * imported/exported from/to BIND to/from SoftHSM.
 *
-* Some of the design/code is from keyconv.c written by 
+* Some of the design/code is from keyconv.c written by
 * Hakan Olsson and Jakob Schlyter in 2000 and 2001.
 *
 ************************************************************/
@@ -133,6 +133,7 @@ int main(int argc, char *argv[]) {
   int action = 0;
   int key_flag = 256;
   int ttl = 3600;
+  int status = 0;
 
   while ((opt = getopt_long(argc, argv, "hv", long_options, &option_index)) != -1) {
     switch (opt) {
@@ -168,21 +169,25 @@ int main(int argc, char *argv[]) {
       case OPT_VERSION:
       case 'v':
         printf("%s\n", PACKAGE_VERSION);
-        exit(0);
+        return 0;
         break;
       case OPT_HELP:
       case 'h':
+        usage();
+        return 0;
+        break;
       default:
         usage();
-        exit(0);
+        return 1;
         break;
     }
   }
 
   // No action given, display the usage.
-  if(action == 0) {
+  if(action != 1) {
+    fprintf(stderr, "Error: Must perform one action.\n\n");
     usage();
-    exit(0);
+    return 1;
   }
 
   // Init the Botan crypto library
@@ -190,27 +195,28 @@ int main(int argc, char *argv[]) {
 
   // We should convert to PKCS#8
   if(do_to_pkcs8) {
-    to_pkcs8(in_path, out_path, file_pin);
+    status = to_pkcs8(in_path, out_path, file_pin);
   }
 
   // We should convert to BIND
   if(do_to_bind) {
-    to_bind(in_path, file_pin, name, ttl, key_flag, algorithm_str);
+    status = to_bind(in_path, file_pin, name, ttl, key_flag, algorithm_str);
   }
 
   // Deinitialize the Botan crypto lib
   Botan::LibraryInitializer::deinitialize();
 
-  return 0;
+  return status;
 }
 
 // Convert from BIND to PKCS#8
 
-void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
+int to_pkcs8(char *in_path, char *out_path, char *file_pin) {
   FILE *file_pointer = NULL;
   char line[MAX_LINE], data[MAX_LINE], *value_pointer;
   int lineno = 0, m, n, error = 0, found, algorithm = DNS_KEYALG_ERROR, data_length;
   uint32_t bitfield = 0;
+  int status = 0;
 
   Botan::BigInt bigN = Botan::BigInt(0);
   Botan::BigInt bigE = Botan::BigInt(0);
@@ -224,18 +230,18 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
 
   if(in_path == NULL) {
     fprintf(stderr, "Error: A path to the input file must be supplied. Use --in <path>\n");
-    return;
+    return 1;
   }
 
   if(out_path == NULL) {
     fprintf(stderr, "Error: A path to the output file must be supplied. Use --out <path>\n");
-    return;
+    return 1;
   }
 
   file_pointer = fopen(in_path, "r");
   if(!file_pointer) {
     fprintf(stderr, "Error: Could not open input file %.100s for reading.\n", in_path);
-    return;
+    return 1;
   }
 
   // Loop over all of the lines
@@ -384,59 +390,62 @@ void to_pkcs8(char *in_path, char *out_path, char *file_pin) {
 
   // Something went wrong. Clean up and quit.
   if(error) {
-    return;
+    return 1;
   }
 
   // Save the the key to the disk
   switch(algorithm) {
     case DNS_KEYALG_ERROR:
       fprintf(stderr, "Error: The algorithm was not given in the file.\n", algorithm);
+      status = 1;
       break;
     case DNS_KEYALG_RSAMD5:
     case DNS_KEYALG_RSASHA1:
     case DNS_KEYALG_RSASHA1_NSEC3_SHA1:
     case DNS_KEYALG_RSASHA256:
     case DNS_KEYALG_RSASHA512:
-      save_rsa_pkcs8(out_path, file_pin, bigN, bigE, bigD, bigP, bigQ);
+      status = save_rsa_pkcs8(out_path, file_pin, bigN, bigE, bigD, bigP, bigQ);
       break;
     case DNS_KEYALG_DSA:
     case DNS_KEYALG_DSA_NSEC3_SHA1:
-      save_dsa_pkcs8(out_path, file_pin, bigDP, bigDQ, bigDG, bigDX);
+      status = save_dsa_pkcs8(out_path, file_pin, bigDP, bigDQ, bigDG, bigDX);
       break;
     default:
       fprintf(stderr, "Error: The algorithm %i is not supported.\n", algorithm);
+      status = 1;
       break;
   }
 
-  return;
+  return status;
 }
 
 // Convert from PKCS#8 to BIND
 
-void to_bind(char *in_path, char *file_pin, char *name, int ttl, int key_flag, char *algorithm_str) {
+int to_bind(char *in_path, char *file_pin, char *name, int ttl, int key_flag, char *algorithm_str) {
   int algorithm;
   Botan::Private_Key *priv_key;
   char priv_out[MAX_LINE], pub_out[MAX_LINE];
+  int status = 0;
 
   if(in_path == NULL) {
     fprintf(stderr, "Error: A path to the input file must be supplied. Use --in <path>\n");
-    return;
+    return 1;
   }
 
   if(name == NULL) {
     fprintf(stderr, "Error: The name of the zone must be supplied. Use --name <zone>\n");
-    return;
+    return 1;
   }
 
   if(algorithm_str == NULL) {
     fprintf(stderr, "Error: An algorithm must be supplied. Use --algorithm <algo>\n");
-    return;
+    return 1;
   }
 
   // Get private key from PKCS8
   priv_key = key_from_pkcs8(in_path, file_pin);
   if(priv_key == NULL) {
-    return;
+    return 1;
   }
 
   // Determine which algorithm to use
@@ -444,41 +453,47 @@ void to_bind(char *in_path, char *file_pin, char *name, int ttl, int key_flag, c
 
   // Save keys to disk
   switch(algorithm) {
+    case DNS_KEYALG_ERROR:
+      fprintf(stderr, "Error: The algorithm was not given in the file.\n", algorithm);
+      status = 1;
+      break;
     case DNS_KEYALG_RSAMD5:
     case DNS_KEYALG_RSASHA1:
     case DNS_KEYALG_RSASHA1_NSEC3_SHA1:
     case DNS_KEYALG_RSASHA256:
     case DNS_KEYALG_RSASHA512:
-      save_rsa_bind(name, ttl, priv_key, key_flag, algorithm);
+      status = save_rsa_bind(name, ttl, priv_key, key_flag, algorithm);
       break;
     case DNS_KEYALG_DSA:
     case DNS_KEYALG_DSA_NSEC3_SHA1:
-      save_dsa_bind(name, ttl, priv_key, key_flag, algorithm);
+      status = save_dsa_bind(name, ttl, priv_key, key_flag, algorithm);
       break;
-    case DNS_KEYALG_ERROR:
     default:
+      fprintf(stderr, "Error: The algorithm %i is not supported.\n", algorithm);
+      status = 1;
       break;
   }
 
   delete priv_key;
 
-  return;
+  return status;
 }
 
 // Save the RSA key as a PKCS#8 file
 
-void save_rsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigN, Botan::BigInt bigE, 
+int save_rsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigN, Botan::BigInt bigE,
                     Botan::BigInt bigD, Botan::BigInt bigP, Botan::BigInt bigQ) {
 
   char buffer[MAX_LINE];
   Botan::Private_Key *priv_key = NULL;
   Botan::AutoSeeded_RNG *rng;
+  int status = 0;
 
   // See if the key material was found. Not checking D and N,
   // because they can be reconstructed if they are zero.
   if(bigE.is_zero() || bigP.is_zero() || bigQ.is_zero()) {
     fprintf(stderr, "Error: Some parts of the key material is missing in the input file.\n");
-    return;
+    return 1;
   }
 
   rng = new Botan::AutoSeeded_RNG();
@@ -490,7 +505,7 @@ void save_rsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigN, Botan::B
     fprintf(stderr, "%s\n", e.what());
     fprintf(stderr, "Error: Could not extract the private key from the file.\n");
     delete rng;
-    return;
+    return 1;
   }
 
   std::ofstream priv_file(out_path);
@@ -498,7 +513,7 @@ void save_rsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigN, Botan::B
     fprintf(stderr, "Error: Could not open file for output.\n");
     delete rng;
     delete priv_key;
-    return;
+    return 1;
   }
 
   try {
@@ -513,29 +528,31 @@ void save_rsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigN, Botan::B
   catch(std::exception& e) {
     fprintf(stderr, "%s\n", e.what());
     fprintf(stderr, "Error: Could not write to file.\n");
+    status = 1;
   }
-	
+
   delete rng;
   delete priv_key;
   priv_file.close();
 
-  return;
+  return status;
 }
 
 // Save the DSA key as a PKCS#8 file
 
-void save_dsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigDP, Botan::BigInt bigDQ, 
+int save_dsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigDP, Botan::BigInt bigDQ, 
                     Botan::BigInt bigDG, Botan::BigInt bigDX) {
 
   char buffer[MAX_LINE];
   Botan::Private_Key *priv_key = NULL;
   Botan::AutoSeeded_RNG *rng;
+  int status = 0;
 
   // See if the key material was found. Not checking Q and X
   // because it can be reconstructed if it is zero.
   if(bigDP.is_zero() || bigDG.is_zero() || bigDX.is_zero()) {
     fprintf(stderr, "Error: Some parts of the key material is missing in the input file.\n");
-    return;
+    return 1;
   }
 
   rng = new Botan::AutoSeeded_RNG();
@@ -547,7 +564,7 @@ void save_dsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigDP, Botan::
     fprintf(stderr, "%s\n", e.what());
     fprintf(stderr, "Error: Could not extract the private key from the file.\n");
     delete rng;
-    return;
+    return 1;
   }
 
   std::ofstream priv_file(out_path);
@@ -555,7 +572,7 @@ void save_dsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigDP, Botan::
     fprintf(stderr, "Error: Could not open file for output.\n");
     delete rng;
     delete priv_key;
-    return;
+    return 1;
   }
 
   try {
@@ -570,13 +587,14 @@ void save_dsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigDP, Botan::
   catch(std::exception& e) {
     fprintf(stderr, "%s\n", e.what());
     fprintf(stderr, "Error: Could not write to file.\n");
+    status = 1;
   }
-	
+
   delete rng;
   delete priv_key;
   priv_file.close();
 
-  return;
+  return status;
 }
 
 // Extract the private key from the PKCS#8 file
@@ -610,7 +628,7 @@ Botan::Private_Key* key_from_pkcs8(char *in_path, char *file_pin) {
 }
 
 // Return the correct DNSSEC key algorithm.
-// Check that the given algorithm matches one of the supported ones and 
+// Check that the given algorithm matches one of the supported ones and
 // matches the algorithm of the key from the PKCS#8 file.
 
 int get_key_algorithm(Botan::Private_Key *priv_key, char *algorithm_str) {
@@ -690,28 +708,29 @@ int get_key_algorithm(Botan::Private_Key *priv_key, char *algorithm_str) {
 
 // Save the private RSA key in BIND format
 
-void save_rsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_flag, int algorithm) {
+int save_rsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_flag, int algorithm) {
   FILE *file_pointer;
   Botan::IF_Scheme_PrivateKey *if_key_priv;
   char priv_out[MAX_LINE], pub_out[MAX_LINE];
   unsigned char rdata[MAX_LINE];
   int key_tag, rdata_size;
+  int status = 0;
 
   if(name == NULL || priv_key == NULL) {
     fprintf(stderr, "Error: save_rsa_bind: Got NULL as an argument.\n");
-    return;
+    return 1;
   }
 
   if(priv_key->algo_name().compare("RSA") != 0) {
     fprintf(stderr, "Error: save_rsa_bind: Got key with wrong algorithm. Got %s.\n", priv_key->algo_name().c_str());
-    return;
+    return 1;
   }
 
   // Create RDATA
   rdata_size = create_rsa_rdata(rdata, MAX_LINE, priv_key, key_flag, algorithm);
   if(rdata_size < 0) {
     fprintf(stderr, "Error: save_rsa_bind: Could not create RDATA.\n");
-    return;
+    return 1;
   }
 
   // Get the key tag
@@ -726,7 +745,7 @@ void save_rsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_fl
   file_pointer = fopen(priv_out, "w");
   if (!file_pointer) {
     fprintf(stderr, "Error: Could not open output file %.100s for writing.\n", priv_out);
-    return;
+    return 1;
   }
 
   // File version
@@ -777,37 +796,39 @@ void save_rsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_fl
   file_pointer = fopen(pub_out, "w");
   if (!file_pointer) {
     fprintf(stderr, "Error: Could not open output file %.100s for writing.\n", pub_out);
-    return;
+    return 1;
   }
 
   if(print_dnskey(file_pointer, name, ttl, rdata, rdata_size) == 0) {
     printf("The public key has been written to %s\n", pub_out);
   } else {
-    printf("Could not write the public key to the file.\n");
+    fprintf(stderr, "Error: Could not write the public key to the file.\n");
+    status = 1;
   }
 
   fclose(file_pointer);
 
-  return;
+  return status;
 }
 
 // Save the private DSA key in BIND format
 
-void save_dsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_flag, int algorithm) {
+int save_dsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_flag, int algorithm) {
   FILE *file_pointer;
   Botan::DL_Scheme_PrivateKey *dl_key_priv;
   char priv_out[MAX_LINE], pub_out[MAX_LINE];
   unsigned char rdata[MAX_LINE];
   int key_tag, rdata_size;
+  int status = 0;
 
   if(name == NULL || priv_key == NULL) {
     fprintf(stderr, "Error: save_dsa_bind: Got NULL as an argument.\n");
-    return;
+    return 1;
   }
 
   if(priv_key->algo_name().compare("DSA") != 0) {
     fprintf(stderr, "Error: save_dsa_bind: Got key with wrong algorithm. Got %s.\n", priv_key->algo_name().c_str());
-    return;
+    return 1;
   }
 
   // Create RDATA
@@ -823,7 +844,7 @@ void save_dsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_fl
   file_pointer = fopen(priv_out, "w");
   if (!file_pointer) {
     fprintf(stderr, "Error: Could not open output file %.100s for writing.\n", priv_out);
-    return;
+    return 1;
   }
 
   // File version
@@ -862,18 +883,19 @@ void save_dsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_fl
   file_pointer = fopen(pub_out, "w");
   if (!file_pointer) {
     fprintf(stderr, "Error: Could not open output file %.100s for writing.\n", pub_out);
-    return;
+    return 1;
   }
 
   if(print_dnskey(file_pointer, name, ttl, rdata, rdata_size) == 0) {
     printf("The public key has been written to %s\n", pub_out);
   } else {
-    printf("Could not write the public key to the file.\n");
+    fprintf(stderr, "Could not write the public key to the file.\n");
+    status = 1;
   }
 
   fclose(file_pointer);
 
-  return;
+  return status;
 }
 
 // Print the BigInt to file

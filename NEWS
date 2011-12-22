@@ -9,6 +9,7 @@ SoftHSM 1.3.1
 Bugfixes:
 * Do not give a warning about the schema version if the token
   has not been initialized yet.
+* The tools now return the correct exit code.
 
 
 SoftHSM 1.3.0 - 2011-08-12

@@ -1,9 +1,9 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2008-2009 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2008-2011 .SE (The Internet Infrastructure Foundation).
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -12,7 +12,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -76,12 +76,12 @@ typedef struct key_material_t {
 // Main functions
 
 void usage();
-void initToken(char *slot, char *label, char *soPIN, char *userPIN);
-void showSlots();
-void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectLabel, char *objectID, int forceExec);
-void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectID);
-void optimize(char *slot, char *userPIN);
-void trustObject(char *boolTrusted, char *slot, char *soPIN, char *type, char *label, char *objectID);
+int initToken(char *slot, char *label, char *soPIN, char *userPIN);
+int showSlots();
+int importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectLabel, char *objectID, int forceExec);
+int exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectID);
+int optimize(char *slot, char *userPIN);
+int trustObject(char *boolTrusted, char *slot, char *soPIN, char *type, char *label, char *objectID);
 
 // Support functions
 
