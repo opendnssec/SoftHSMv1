@@ -2,6 +2,12 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
+SoftHSM
+
+* Update the README with information on moving the database
+  between different architectures.
+
+
 SoftHSM 1.3.1 - 2012-01-17
 
 * The library is now installed in $libdir/softhsm/.

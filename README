@@ -168,3 +168,9 @@ BACKUP
 
     sqlite3 <PATH TO YOUR TOKEN> .dump | sqlite3 copy.db
     sqlite3 copy.db "PRAGMA user_version = 100;"
+
+  Some attributes in the PKSC#11 API are defined as CK_ULONG, unsigned long
+  integer, where the length of the data depends on the architecture (32-bit,
+  64-bit). The attributes are stored directly in the database. The database
+  can thus not be moved between two systems with different architectures.
+
