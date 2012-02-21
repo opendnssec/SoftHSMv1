@@ -95,7 +95,7 @@ MutexLocker::~MutexLocker()
  *****************************************************************************/
 
 // Initialise the one-and-only instance
-std::auto_ptr<MutexFactory> MutexFactory::instance(NULL);
+MutexFactory* MutexFactory::instance = NULL;
 
 // Constructor
 MutexFactory::MutexFactory()
@@ -116,12 +116,22 @@ MutexFactory::~MutexFactory()
 // Return the one-and-only instance
 MutexFactory* MutexFactory::i()
 {
-	if (!instance.get())
+	if (instance == NULL)
 	{
-		instance = std::auto_ptr<MutexFactory>(new MutexFactory());
+		instance = new MutexFactory();
 	}
 
-	return instance.get();
+	return instance;
+}
+
+// Destroy the one-and-only instance
+void MutexFactory::destroy()
+{
+	if (instance != NULL)
+	{
+		delete instance;
+		instance = NULL;
+	}
 }
 
 // Get a mutex instance

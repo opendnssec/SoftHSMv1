@@ -83,6 +83,9 @@ public:
 	// Return the one-and-only instance
 	static MutexFactory* i();
 
+	// Destroy the one-and-only instance
+	static void destroy();
+
 	// Destructor
 	virtual ~MutexFactory();
 
@@ -115,7 +118,7 @@ private:
 	CK_RV UnlockMutex(CK_VOID_PTR mutex);
 
 	// The one-and-only instance
-	static std::auto_ptr<MutexFactory> instance;
+	static MutexFactory* instance;
 
 	// The function pointers
 	CK_CREATEMUTEX createMutex;

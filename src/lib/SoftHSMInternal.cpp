@@ -88,6 +88,7 @@ SoftHSMInternal::~SoftHSMInternal() {
   DELETE_PTR(slots);
 
   MutexFactory::i()->recycleMutex(sessionsMutex);
+  MutexFactory::destroy();
 }
 
 int SoftHSMInternal::getSessionCount() {
