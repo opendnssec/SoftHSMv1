@@ -2,7 +2,7 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
-SoftHSM 1.3.2
+SoftHSM 1.3.2 - 2012-03-07
 
 * Update the README with information on moving the database
   between different architectures.
