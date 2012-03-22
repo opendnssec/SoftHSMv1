@@ -18,7 +18,8 @@ case "$DISTRIBUTION" in
 	fedora | \
 	sl | \
 	debian | \
-	opensuse )
+	opensuse | \
+	suse )
 		(
 			sh autogen.sh &&
 			mkdir -p build &&
