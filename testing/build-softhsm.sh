@@ -18,8 +18,7 @@ case "$DISTRIBUTION" in
 	fedora | \
 	sl | \
 	debian | \
-	opensuse | \
-	suse )
+	opensuse )
 		(
 			sh autogen.sh &&
 			mkdir -p build &&
@@ -64,7 +63,8 @@ case "$DISTRIBUTION" in
 		) &&
 		build_ok=1
 		;;
-	sunos )
+	sunos | \
+	suse )
 		(
 			sh autogen.sh &&
 			mkdir -p build &&
