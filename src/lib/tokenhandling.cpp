@@ -80,7 +80,7 @@ static char sqlDeleteTrigger[] =
 
 static char sqlCreateIndexAttributes[] =
   "CREATE INDEX idxObject ON Attributes (objectID, type);"
-  "CREATE INDEX idxObjectValue ON Attributes (objectID, value);";
+  "CREATE INDEX idxObjectValue ON Attributes (type, value);";
 
 // Initialize a token
 
