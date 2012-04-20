@@ -80,7 +80,7 @@ static char sqlDeleteTrigger[] =
 
 static char sqlCreateIndexAttributes[] =
   "CREATE INDEX idxObject ON Attributes (objectID, type);"
-  "CREATE INDEX idxObjectValue ON Attributes (type, value);";
+  "CREATE INDEX idxTypeValue ON Attributes (type, value);";
 
 // Initialize a token
 
@@ -117,7 +117,7 @@ CK_RV softInitToken(SoftSlot *currentSlot, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinL
   EXEC_DB(db, "DROP TABLE IF EXISTS Attributes");
   EXEC_DB(db, "DROP TRIGGER IF EXISTS deleteTrigger");
   EXEC_DB(db, "DROP INDEX IF EXISTS idxObject");
-  EXEC_DB(db, "DROP INDEX IF EXISTS idxObjectValue");
+  EXEC_DB(db, "DROP INDEX IF EXISTS idxTypeValue");
   EXEC_DB(db, "VACUUM");
 
   // Add the structure
