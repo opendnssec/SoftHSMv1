@@ -81,8 +81,11 @@ INSTALLING
     an indication to SoftHSM on where it should store the information for each
     token. Each token are now treated as uninitialized.
 
-  5. Initialize your tokens. Use either the softhsm tool or the PKCS#11 
-     interface.
+  5. Initialize your tokens.
+
+     Use either the softhsm tool or the PKCS#11 interface. The SO PIN can e.g.
+     be used to re-initialize the token and the user PIN is handed out to the
+     application so it can interact with the token.
 
     softhsm --init-token --slot 0 --label "My token 1"
 

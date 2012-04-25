@@ -5,6 +5,7 @@ NEWS for SoftHSM -- History of user visible changes
 SoftHSM 1.3.3
 
 * Increased performance by adding more indexes to the database.
+* Describe the usage of SO and user PIN in the README.
 
 Bugfixes:
 * Detect if a C++ compiler is missing.
