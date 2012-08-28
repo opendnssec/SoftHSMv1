@@ -454,7 +454,7 @@ int to_bind(char *in_path, char *file_pin, char *name, int ttl, int key_flag, ch
   // Save keys to disk
   switch(algorithm) {
     case DNS_KEYALG_ERROR:
-      fprintf(stderr, "Error: The algorithm was not given in the file.\n", algorithm);
+      fprintf(stderr, "Error: The algorithm was not given in the file.\n");
       status = 1;
       break;
     case DNS_KEYALG_RSAMD5:
