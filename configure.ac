@@ -164,7 +164,7 @@ ifdef(
   ]
 )
 
-softhsmdbdir=${full_localstatedir}/softhsm
+softhsmdbdir=${full_localstatedir}/lib/softhsm
 AC_SUBST([softhsmdbdir])
 AC_SUBST([default_softhsm_conf])
 

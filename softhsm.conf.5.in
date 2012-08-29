@@ -1,4 +1,4 @@
-.TH softhsm.conf 5 "21 December 2009" "SoftHSM"
+.TH softhsm.conf 5 "29 August 2012" "SoftHSM"
 .\" $Id$
 .SH NAME
 softhsm.conf \- SoftHSM configuration file
@@ -45,7 +45,7 @@ Any line that does not have the correct format will be ignored.
 .LP
 .RS
 .nf
-0:/var/softhsm/slot0.db
+0:@softhsmdbdir@/slot0.db
 
 1:/home/user/token.database                # My own token
 .fi
