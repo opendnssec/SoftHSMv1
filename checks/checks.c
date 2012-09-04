@@ -60,6 +60,7 @@ void usage() {
   printf("-k\t\tTest verify functions\n");
   printf("-l\t\tTest encrypt functions\n");
   printf("-m\t\tTest decrypt functions\n");
+  printf("-n\t\tTest all sign and verify mechanisms\n");
   printf("\n-z\t\tRun all tests\n");
 }
 
@@ -79,7 +80,7 @@ int main(int argc, char **argv) {
   /* Init token */
   inittoken();
 
-  while ((c = getopt(argc, argv, "abcdefghijklmz")) != -1) {
+  while ((c = getopt(argc, argv, "abcdefghijklmnz")) != -1) {
     switch(c) {
       case 'a':
         runInitCheck(5);
@@ -120,6 +121,9 @@ int main(int argc, char **argv) {
       case 'm':
         runDecryptCheck(5);
         break;
+      case 'n':
+        runSignVerifyCheck();
+        break;
       case 'z':
         runInitCheck(5);
         runInfoCheck(5);
@@ -133,6 +137,7 @@ int main(int argc, char **argv) {
         runVerifyCheck(5);
         runEncryptCheck(5);
         runDecryptCheck(5);
+        runSignVerifyCheck();
         break;
       default:
         usage();
@@ -1679,3 +1684,100 @@ void runDecryptCheck(unsigned int counter) {
   printf("OK\n");
 }
 
+void runSignVerifyCheck() {
+  CK_RV rv;
+  CK_SESSION_HANDLE hSession;
+  CK_OBJECT_HANDLE hPublicKey, hPrivateKey;
+  CK_MECHANISM keyGenMechanism = {CKM_RSA_PKCS_KEY_PAIR_GEN, NULL_PTR, 0};
+  static CK_ULONG modulusBits = 768;
+  static CK_BYTE publicExponent[] = { 3 };
+  static CK_BYTE id[] = {123};
+  static CK_BBOOL true = CK_TRUE;
+  CK_ATTRIBUTE publicKeyTemplate[] = {
+    {CKA_ENCRYPT, &true, sizeof(true)},
+    {CKA_VERIFY, &true, sizeof(true)},
+    {CKA_WRAP, &true, sizeof(true)},
+    {CKA_PUBLIC_EXPONENT, publicExponent, sizeof(publicExponent)},
+    {CKA_TOKEN, &true, sizeof(true)},
+    {CKA_MODULUS_BITS, &modulusBits, sizeof(modulusBits)}
+  };
+  CK_ATTRIBUTE privateKeyTemplate[] = {
+    {CKA_PRIVATE, &true, sizeof(true)},
+    {CKA_ID, id, sizeof(id)},
+    {CKA_SENSITIVE, &true, sizeof(true)},
+    {CKA_DECRYPT, &true, sizeof(true)},
+    {CKA_SIGN, &true, sizeof(true)},
+    {CKA_UNWRAP, &true, sizeof(true)},
+    {CKA_TOKEN, &true, sizeof(true)}
+  };
+  unsigned int i;
+  CK_ULONG length;
+  CK_BYTE_PTR pSignature;
+  CK_BYTE data[] = {"Text"};
+  static CK_RSA_PKCS_PSS_PARAMS params[] = {
+    { CKM_SHA_1, CKG_MGF1_SHA1, 8 },
+    { CKM_SHA256, CKG_MGF1_SHA256, 8 },
+    { CKM_SHA384, CKG_MGF1_SHA384, 8 },
+    { CKM_SHA512, CKG_MGF1_SHA512, 8 }
+  };
+  unsigned int mechanisms = 12;
+  CK_MECHANISM mechanism[] = {
+    { CKM_RSA_PKCS, NULL_PTR, 0 },
+    { CKM_RSA_X_509, NULL_PTR, 0 },
+    { CKM_MD5_RSA_PKCS, NULL_PTR, 0 },
+    { CKM_RIPEMD160_RSA_PKCS, NULL_PTR, 0 },
+    { CKM_SHA1_RSA_PKCS, NULL_PTR, 0 },
+    { CKM_SHA256_RSA_PKCS, NULL_PTR, 0 },
+    { CKM_SHA384_RSA_PKCS, NULL_PTR, 0 },
+    { CKM_SHA512_RSA_PKCS, NULL_PTR, 0 },
+    { CKM_SHA1_RSA_PKCS_PSS, &params[0], sizeof(params[0]) },
+    { CKM_SHA256_RSA_PKCS_PSS, &params[1], sizeof(params[1]) },
+    { CKM_SHA384_RSA_PKCS_PSS, &params[2], sizeof(params[2]) },
+    { CKM_SHA512_RSA_PKCS_PSS, &params[3], sizeof(params[3]) }
+  };
+
+  printf("Checking all sign and verify mechanisms: ");
+
+  /* Initializing */
+
+  rv = C_Initialize(NULL_PTR);
+  assert(rv == CKR_OK);
+  rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession);
+  assert(rv == CKR_OK);
+  rv = C_Login(hSession, CKU_USER, userPIN, sizeof(userPIN) - 1);
+  assert(rv == CKR_OK);
+  rv = C_GenerateKeyPair(hSession, &keyGenMechanism, publicKeyTemplate, 6, privateKeyTemplate, 7, &hPublicKey, &hPrivateKey);
+  assert(rv == CKR_OK);
+
+  for(i = 0; i < mechanisms; i++) {
+    /* Sign */
+
+    rv = C_SignInit(hSession, &mechanism[i], hPrivateKey);
+    assert(rv == CKR_OK);
+    rv = C_Sign(hSession, NULL_PTR, 0, NULL_PTR, &length);
+    assert(rv == CKR_OK);
+    pSignature = (CK_BYTE_PTR)malloc(length);
+    rv = C_Sign(hSession, data, sizeof(data)-1, pSignature, &length);
+    assert(rv == CKR_OK);
+
+    /* Verify */
+
+    rv = C_VerifyInit(hSession, &mechanism[i], hPublicKey);
+    assert(rv == CKR_OK);
+    rv = C_Verify(hSession, data, sizeof(data)-1, pSignature, length);
+    assert(rv == CKR_OK);
+
+    free(pSignature);
+  }
+
+  /* Finalizing */
+
+  rv = C_DestroyObject(hSession, hPrivateKey);
+  assert(rv == CKR_OK);
+  rv = C_DestroyObject(hSession, hPublicKey);
+  assert(rv == CKR_OK);
+  rv = C_Finalize(NULL_PTR);
+  assert(rv == CKR_OK);
+
+  printf("OK\n");
+}

@@ -161,6 +161,9 @@ extern "C" {
 #define min_key_size ulMinKeySize
 #define max_key_size ulMaxKeySize
 
+#define hash_alg hashAlg
+#define salt_len sLen
+
 #define ck_rv_t CK_RV
 #define ck_notify_t CK_NOTIFY
 
@@ -685,6 +688,21 @@ struct ck_mechanism_info
   unsigned long min_key_size;
   unsigned long max_key_size;
   ck_flags_t flags;
+};
+
+
+/* The following MGFs are defined */
+/* CKG_MGF1_SHA256, CKG_MGF1_SHA384, and CKG_MGF1_SHA512
+ * are new for v2.20 */
+#define CKG_MGF1_SHA1         (0x00000001)
+#define CKG_MGF1_SHA256       (0x00000002)
+#define CKG_MGF1_SHA384       (0x00000003)
+#define CKG_MGF1_SHA512       (0x00000004)
+
+struct ck_rsa_pkcs_pss_params {
+  ck_mechanism_type_t hash_alg;
+  unsigned long mgf;
+  unsigned long salt_len;
 };
 
 #define CKF_HW			(1 << 0)
@@ -1249,6 +1267,9 @@ typedef struct ck_mechanism *CK_MECHANISM_PTR;
 typedef struct ck_mechanism_info CK_MECHANISM_INFO;
 typedef struct ck_mechanism_info *CK_MECHANISM_INFO_PTR;
 
+typedef struct ck_rsa_pkcs_pss_params CK_RSA_PKCS_PSS_PARAMS;
+typedef struct ck_rsa_pkcs_pss_params *CK_RSA_PKCS_PSS_PARAMS_PTR;
+
 typedef struct ck_function_list CK_FUNCTION_LIST;
 typedef struct ck_function_list *CK_FUNCTION_LIST_PTR;
 typedef struct ck_function_list **CK_FUNCTION_LIST_PTR_PTR;
@@ -1320,6 +1341,10 @@ typedef struct ck_c_initialize_args *CK_C_INITIALIZE_ARGS_PTR;
 #undef ck_mechanism_info
 #undef min_key_size
 #undef max_key_size
+
+#undef ck_rsa_pkcs_pss_params
+#undef hash_alg
+#undef salt_len
 
 #undef ck_rv_t
 #undef ck_notify_t

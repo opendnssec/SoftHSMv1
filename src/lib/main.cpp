@@ -51,6 +51,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory>
+#include <sstream>
 
 // C POSIX library header
 #include <sys/time.h>
@@ -65,6 +66,7 @@
 #include <botan/filters.h>
 #include <botan/pipe.h>
 #include <botan/emsa3.h>
+#include <botan/emsa4.h>
 #include <botan/emsa_raw.h>
 #include <botan/eme_pkcs.h>
 #include <botan/pk_keys.h>
@@ -1611,6 +1613,66 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
       case CKM_SHA512_RSA_PKCS:
         hashFunc = new Botan::EMSA3(new Botan::SHA_512);
         break;
+      case CKM_SHA1_RSA_PKCS_PSS:
+        if(pMechanism->pParameter == NULL_PTR || pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+          DEBUG_MSG("C_SignInit", "pParameter must be of type CK_RSA_PKCS_PSS_PARAMS");
+          return CKR_ARGUMENTS_BAD;
+        }
+        if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->hashAlg != CKM_SHA_1) {
+          DEBUG_MSG("C_SignInit", "hashAlg must be CKM_SHA_1");
+          return CKR_ARGUMENTS_BAD;
+        }
+        if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->mgf != CKG_MGF1_SHA1) {
+          DEBUG_MSG("C_SignInit", "mgf must be CKG_MGF1_SHA1");
+          return CKR_ARGUMENTS_BAD;
+        }
+        hashFunc = new Botan::EMSA4(new Botan::SHA_160, CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->sLen);
+        break;
+      case CKM_SHA256_RSA_PKCS_PSS:
+        if(pMechanism->pParameter == NULL_PTR || pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+          DEBUG_MSG("C_SignInit", "pParameter must be of type CK_RSA_PKCS_PSS_PARAMS");
+          return CKR_ARGUMENTS_BAD;
+        }
+        if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->hashAlg != CKM_SHA256) {
+          DEBUG_MSG("C_SignInit", "hashAlg must be CKM_SHA256");
+          return CKR_ARGUMENTS_BAD;
+        }
+        if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->mgf != CKG_MGF1_SHA256) {
+          DEBUG_MSG("C_SignInit", "mgf must be CKG_MGF1_SHA256");
+          return CKR_ARGUMENTS_BAD;
+        }
+        hashFunc = new Botan::EMSA4(new Botan::SHA_256, CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->sLen);
+        break;
+      case CKM_SHA384_RSA_PKCS_PSS:
+        if(pMechanism->pParameter == NULL_PTR || pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+          DEBUG_MSG("C_SignInit", "pParameter must be of type CK_RSA_PKCS_PSS_PARAMS");
+          return CKR_ARGUMENTS_BAD;
+        }
+        if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->hashAlg != CKM_SHA384) {
+          DEBUG_MSG("C_SignInit", "hashAlg must be CKM_SHA384");
+          return CKR_ARGUMENTS_BAD;
+        }
+        if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->mgf != CKG_MGF1_SHA384) {
+          DEBUG_MSG("C_SignInit", "mgf must be CKG_MGF1_SHA384");
+          return CKR_ARGUMENTS_BAD;
+        }
+        hashFunc = new Botan::EMSA4(new Botan::SHA_384, CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->sLen);
+        break;
+      case CKM_SHA512_RSA_PKCS_PSS:
+        if(pMechanism->pParameter == NULL_PTR || pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+          DEBUG_MSG("C_SignInit", "pParameter must be of type CK_RSA_PKCS_PSS_PARAMS");
+          return CKR_ARGUMENTS_BAD;
+        }
+        if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->hashAlg != CKM_SHA512) {
+          DEBUG_MSG("C_SignInit", "hashAlg must be CKM_SHA512");
+          return CKR_ARGUMENTS_BAD;
+        }
+        if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->mgf != CKG_MGF1_SHA512) {
+          DEBUG_MSG("C_SignInit", "mgf must be CKG_MGF1_SHA512");
+          return CKR_ARGUMENTS_BAD;
+        }
+        hashFunc = new Botan::EMSA4(new Botan::SHA_512, CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->sLen);
+        break;
       default:
         DEBUG_MSG("C_SignInit", "The selected mechanism is not supported");
         return CKR_MECHANISM_INVALID;
@@ -1623,6 +1685,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     }
 #else
     std::string emsa;
+    std::ostringstream request;
 
     // Selects the correct padding and hash algorithm.
     switch(pMechanism->mechanism) {
@@ -1651,6 +1714,78 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
         break;
       case CKM_SHA512_RSA_PKCS:
         emsa = "EMSA3(SHA-512)";
+        break;
+      case CKM_SHA1_RSA_PKCS_PSS:
+        if(pMechanism->pParameter == NULL_PTR || pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+          DEBUG_MSG("C_SignInit", "pParameter must be of type CK_RSA_PKCS_PSS_PARAMS");
+          return CKR_ARGUMENTS_BAD;
+        }
+        if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->hashAlg != CKM_SHA_1) {
+          DEBUG_MSG("C_SignInit", "hashAlg must be CKM_SHA_1");
+          return CKR_ARGUMENTS_BAD;
+        }
+        if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->mgf != CKG_MGF1_SHA1) {
+          DEBUG_MSG("C_SignInit", "mgf must be CKG_MGF1_SHA1");
+          return CKR_ARGUMENTS_BAD;
+        }
+        request << "EMSA4(SHA-160,MGF1,"
+                << CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->sLen
+                << ")";
+        emsa = request.str();
+        break;
+      case CKM_SHA256_RSA_PKCS_PSS:
+        if(pMechanism->pParameter == NULL_PTR || pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+          DEBUG_MSG("C_SignInit", "pParameter must be of type CK_RSA_PKCS_PSS_PARAMS");
+          return CKR_ARGUMENTS_BAD;
+        }
+        if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->hashAlg != CKM_SHA256) {
+          DEBUG_MSG("C_SignInit", "hashAlg must be CKM_SHA256");
+          return CKR_ARGUMENTS_BAD;
+        }
+        if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->mgf != CKG_MGF1_SHA256) {
+          DEBUG_MSG("C_SignInit", "mgf must be CKG_MGF1_SHA256");
+          return CKR_ARGUMENTS_BAD;
+        }
+        request << "EMSA4(SHA-256,MGF1,"
+                << CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->sLen
+                << ")";
+        emsa = request.str();
+        break;
+      case CKM_SHA384_RSA_PKCS_PSS:
+        if(pMechanism->pParameter == NULL_PTR || pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+          DEBUG_MSG("C_SignInit", "pParameter must be of type CK_RSA_PKCS_PSS_PARAMS");
+          return CKR_ARGUMENTS_BAD;
+        }
+        if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->hashAlg != CKM_SHA384) {
+          DEBUG_MSG("C_SignInit", "hashAlg must be CKM_SHA384");
+          return CKR_ARGUMENTS_BAD;
+        }
+        if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->mgf != CKG_MGF1_SHA384) {
+          DEBUG_MSG("C_SignInit", "mgf must be CKG_MGF1_SHA384");
+          return CKR_ARGUMENTS_BAD;
+        }
+        request << "EMSA4(SHA-384,MGF1,"
+                << CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->sLen
+                << ")";
+        emsa = request.str();
+        break;
+      case CKM_SHA512_RSA_PKCS_PSS:
+        if(pMechanism->pParameter == NULL_PTR || pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+          DEBUG_MSG("C_SignInit", "pParameter must be of type CK_RSA_PKCS_PSS_PARAMS");
+          return CKR_ARGUMENTS_BAD;
+        }
+        if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->hashAlg != CKM_SHA512) {
+          DEBUG_MSG("C_SignInit", "hashAlg must be CKM_SHA512");
+          return CKR_ARGUMENTS_BAD;
+        }
+        if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->mgf != CKG_MGF1_SHA512) {
+          DEBUG_MSG("C_SignInit", "mgf must be CKG_MGF1_SHA512");
+          return CKR_ARGUMENTS_BAD;
+        }
+        request << "EMSA4(SHA-512,MGF1,"
+                << CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->sLen
+                << ")";
+        emsa = request.str();
         break;
       default:
         DEBUG_MSG("C_SignInit", "The selected mechanism is not supported");
@@ -1991,6 +2126,66 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
     case CKM_SHA512_RSA_PKCS:
       hashFunc = new Botan::EMSA3(new Botan::SHA_512);
       break;
+    case CKM_SHA1_RSA_PKCS_PSS:
+      if(pMechanism->pParameter == NULL_PTR || pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+        DEBUG_MSG("C_VerifyInit", "pParameter must be of type CK_RSA_PKCS_PSS_PARAMS");
+        return CKR_ARGUMENTS_BAD;
+      }
+      if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->hashAlg != CKM_SHA_1) {
+        DEBUG_MSG("C_VerifyInit", "hashAlg must be CKM_SHA_1");
+        return CKR_ARGUMENTS_BAD;
+      }
+      if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->mgf != CKG_MGF1_SHA1) {
+        DEBUG_MSG("C_VerifyInit", "mgf must be CKG_MGF1_SHA1");
+        return CKR_ARGUMENTS_BAD;
+      }
+      hashFunc = new Botan::EMSA4(new Botan::SHA_160, CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->sLen);
+      break;
+    case CKM_SHA256_RSA_PKCS_PSS:
+      if(pMechanism->pParameter == NULL_PTR || pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+        DEBUG_MSG("C_VerifyInit", "pParameter must be of type CK_RSA_PKCS_PSS_PARAMS");
+        return CKR_ARGUMENTS_BAD;
+      }
+      if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->hashAlg != CKM_SHA256) {
+        DEBUG_MSG("C_VerifyInit", "hashAlg must be CKM_SHA256");
+        return CKR_ARGUMENTS_BAD;
+      }
+      if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->mgf != CKG_MGF1_SHA256) {
+        DEBUG_MSG("C_VerifyInit", "mgf must be CKG_MGF1_SHA256");
+        return CKR_ARGUMENTS_BAD;
+      }
+      hashFunc = new Botan::EMSA4(new Botan::SHA_256, CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->sLen);
+      break;
+    case CKM_SHA384_RSA_PKCS_PSS:
+      if(pMechanism->pParameter == NULL_PTR || pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+        DEBUG_MSG("C_VerifyInit", "pParameter must be of type CK_RSA_PKCS_PSS_PARAMS");
+        return CKR_ARGUMENTS_BAD;
+      }
+      if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->hashAlg != CKM_SHA384) {
+        DEBUG_MSG("C_VerifyInit", "hashAlg must be CKM_SHA384");
+        return CKR_ARGUMENTS_BAD;
+      }
+      if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->mgf != CKG_MGF1_SHA384) {
+        DEBUG_MSG("C_VerifyInit", "mgf must be CKG_MGF1_SHA384");
+        return CKR_ARGUMENTS_BAD;
+      }
+      hashFunc = new Botan::EMSA4(new Botan::SHA_384, CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->sLen);
+      break;
+    case CKM_SHA512_RSA_PKCS_PSS:
+      if(pMechanism->pParameter == NULL_PTR || pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+        DEBUG_MSG("C_VerifyInit", "pParameter must be of type CK_RSA_PKCS_PSS_PARAMS");
+        return CKR_ARGUMENTS_BAD;
+      }
+      if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->hashAlg != CKM_SHA512) {
+        DEBUG_MSG("C_VerifyInit", "hashAlg must be CKM_SHA512");
+        return CKR_ARGUMENTS_BAD;
+      }
+      if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->mgf != CKG_MGF1_SHA512) {
+        DEBUG_MSG("C_VerifyInit", "mgf must be CKG_MGF1_SHA512");
+        return CKR_ARGUMENTS_BAD;
+      }
+      hashFunc = new Botan::EMSA4(new Botan::SHA_512, CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->sLen);
+      break;
     default:
       DEBUG_MSG("C_VerifyInit", "The selected mechanism is not supported");
       return CKR_MECHANISM_INVALID;
@@ -2000,9 +2195,10 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
   if(hashFunc == NULL_PTR) {
     DEBUG_MSG("C_VerifyInit", "Could not create the hash function");
     return CKR_DEVICE_MEMORY;
-  } 
+  }
 #else
   std::string emsa;
+  std::ostringstream request;
 
   // Selects the correct padding and hash algorithm.
   switch(pMechanism->mechanism) {
@@ -2031,6 +2227,78 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
       break;
     case CKM_SHA512_RSA_PKCS:
       emsa = "EMSA3(SHA-512)";
+      break;
+    case CKM_SHA1_RSA_PKCS_PSS:
+      if(pMechanism->pParameter == NULL_PTR || pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+        DEBUG_MSG("C_VerifyInit", "pParameter must be of type CK_RSA_PKCS_PSS_PARAMS");
+        return CKR_ARGUMENTS_BAD;
+      }
+      if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->hashAlg != CKM_SHA_1) {
+        DEBUG_MSG("C_VerifyInit", "hashAlg must be CKM_SHA_1");
+        return CKR_ARGUMENTS_BAD;
+      }
+      if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->mgf != CKG_MGF1_SHA1) {
+        DEBUG_MSG("C_VerifyInit", "mgf must be CKG_MGF1_SHA1");
+        return CKR_ARGUMENTS_BAD;
+      }
+      request << "EMSA4(SHA-160,MGF1,"
+              << CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->sLen
+              << ")";
+      emsa = request.str();
+      break;
+    case CKM_SHA256_RSA_PKCS_PSS:
+      if(pMechanism->pParameter == NULL_PTR || pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+        DEBUG_MSG("C_VerifyInit", "pParameter must be of type CK_RSA_PKCS_PSS_PARAMS");
+        return CKR_ARGUMENTS_BAD;
+      }
+      if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->hashAlg != CKM_SHA256) {
+        DEBUG_MSG("C_VerifyInit", "hashAlg must be CKM_SHA256");
+        return CKR_ARGUMENTS_BAD;
+      }
+      if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->mgf != CKG_MGF1_SHA256) {
+        DEBUG_MSG("C_VerifyInit", "mgf must be CKG_MGF1_SHA256");
+        return CKR_ARGUMENTS_BAD;
+      }
+      request << "EMSA4(SHA-256,MGF1,"
+              << CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->sLen
+              << ")";
+      emsa = request.str();
+      break;
+    case CKM_SHA384_RSA_PKCS_PSS:
+      if(pMechanism->pParameter == NULL_PTR || pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+        DEBUG_MSG("C_VerifyInit", "pParameter must be of type CK_RSA_PKCS_PSS_PARAMS");
+        return CKR_ARGUMENTS_BAD;
+      }
+      if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->hashAlg != CKM_SHA384) {
+        DEBUG_MSG("C_VerifyInit", "hashAlg must be CKM_SHA384");
+        return CKR_ARGUMENTS_BAD;
+      }
+      if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->mgf != CKG_MGF1_SHA384) {
+        DEBUG_MSG("C_VerifyInit", "mgf must be CKG_MGF1_SHA384");
+        return CKR_ARGUMENTS_BAD;
+      }
+      request << "EMSA4(SHA-384,MGF1,"
+              << CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->sLen
+              << ")";
+      emsa = request.str();
+      break;
+    case CKM_SHA512_RSA_PKCS_PSS:
+      if(pMechanism->pParameter == NULL_PTR || pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+        DEBUG_MSG("C_VerifyInit", "pParameter must be of type CK_RSA_PKCS_PSS_PARAMS");
+        return CKR_ARGUMENTS_BAD;
+      }
+      if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->hashAlg != CKM_SHA512) {
+        DEBUG_MSG("C_VerifyInit", "hashAlg must be CKM_SHA512");
+        return CKR_ARGUMENTS_BAD;
+      }
+      if(CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->mgf != CKG_MGF1_SHA512) {
+        DEBUG_MSG("C_VerifyInit", "mgf must be CKG_MGF1_SHA512");
+        return CKR_ARGUMENTS_BAD;
+      }
+      request << "EMSA4(SHA-512,MGF1,"
+              << CK_RSA_PKCS_PSS_PARAMS_PTR(pMechanism->pParameter)->sLen
+              << ")";
+      emsa = request.str();
       break;
     default:
       DEBUG_MSG("C_VerifyInit", "The selected mechanism is not supported");

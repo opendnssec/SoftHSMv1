@@ -73,6 +73,10 @@ CK_RV getMechanismInfo(CK_MECHANISM_TYPE type, CK_MECHANISM_INFO_PTR pInfo) {
     case CKM_SHA256_RSA_PKCS:
     case CKM_SHA384_RSA_PKCS:
     case CKM_SHA512_RSA_PKCS:
+    case CKM_SHA1_RSA_PKCS_PSS:
+    case CKM_SHA256_RSA_PKCS_PSS:
+    case CKM_SHA384_RSA_PKCS_PSS:
+    case CKM_SHA512_RSA_PKCS_PSS:
       pInfo->ulMinKeySize = 512;
       pInfo->ulMaxKeySize = 4096;
       pInfo->flags = CKF_SIGN | CKF_VERIFY;
