@@ -4,7 +4,8 @@ NEWS for SoftHSM -- History of user visible changes
 
 SoftHSM 1.3.4
 
-* SOFTHSM-28: Support RSASSA-PSS signature scheme.
+* SOFTHSM-28: Support RSASSA-PSS signature scheme. (Patch from
+  Aleksander Trofimowicz)
 * SOFTHSM-29: The default location of the token database is
   now $localstatedir/lib/softhsm/.
 
