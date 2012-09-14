@@ -1715,10 +1715,10 @@ void runSignVerifyCheck() {
   CK_BYTE_PTR pSignature;
   CK_BYTE data[] = {"Text"};
   static CK_RSA_PKCS_PSS_PARAMS params[] = {
-    { CKM_SHA_1, CKG_MGF1_SHA1, 8 },
-    { CKM_SHA256, CKG_MGF1_SHA256, 8 },
-    { CKM_SHA384, CKG_MGF1_SHA384, 8 },
-    { CKM_SHA512, CKG_MGF1_SHA512, 8 }
+    { CKM_SHA_1, CKG_MGF1_SHA1, 20 },
+    { CKM_SHA256, CKG_MGF1_SHA256, 0 },
+    { CKM_SHA384, CKG_MGF1_SHA384, 0 },
+    { CKM_SHA512, CKG_MGF1_SHA512, 0 }
   };
   unsigned int mechanisms = 12;
   CK_MECHANISM mechanism[] = {
