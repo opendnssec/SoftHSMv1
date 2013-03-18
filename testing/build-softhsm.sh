@@ -11,6 +11,11 @@ case "$DISTRIBUTION" in
 		export AUTOMAKE_VERSION="1.11"
 		append_ldflags "-L/usr/local/lib"
 		;;
+	sunos )
+		if uname -m 2>/dev/null | $GREP -q -i sun4v 2>/dev/null; then
+			ARCH_FLAG="--enable-64bit CC=\"gcc -m64\" CXX=\"g++ -m64\""
+		fi
+	;;		
 esac
 case "$DISTRIBUTION" in
 	centos | \
@@ -63,7 +68,20 @@ case "$DISTRIBUTION" in
 		) &&
 		build_ok=1
 		;;
-	sunos | \
+	sunos )
+		(
+			sh autogen.sh &&
+			mkdir -p build &&
+			cd build &&
+			eval ../configure --prefix="$INSTALL_ROOT" \
+				--with-botan=/usr/local $ARCH_FLAG &&
+			$MAKE &&
+			$MAKE check &&
+			$MAKE install &&
+			cp "softhsm.conf" "$INSTALL_ROOT/etc/softhsm.conf.build"
+		) &&
+		build_ok=1
+		;;
 	suse )
 		(
 			sh autogen.sh &&
