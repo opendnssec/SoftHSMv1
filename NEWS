@@ -2,6 +2,12 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
+SoftHSM trunk
+
+Bugfixes:
+* SUPPORT-76: Add -Wall -Werror flags and fix the warnings.
+
+
 SoftHSM 1.3.4 - 2012-11-24
 
 * SOFTHSM-28: Support RSASSA-PSS signature scheme. (Patch from

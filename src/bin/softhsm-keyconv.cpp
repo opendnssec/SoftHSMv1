@@ -396,7 +396,7 @@ int to_pkcs8(char *in_path, char *out_path, char *file_pin) {
   // Save the the key to the disk
   switch(algorithm) {
     case DNS_KEYALG_ERROR:
-      fprintf(stderr, "Error: The algorithm was not given in the file.\n", algorithm);
+      fprintf(stderr, "Error: The algorithm %i was not given in the file.\n", algorithm);
       status = 1;
       break;
     case DNS_KEYALG_RSAMD5:
@@ -424,7 +424,6 @@ int to_pkcs8(char *in_path, char *out_path, char *file_pin) {
 int to_bind(char *in_path, char *file_pin, char *name, int ttl, int key_flag, char *algorithm_str) {
   int algorithm;
   Botan::Private_Key *priv_key;
-  char priv_out[MAX_LINE], pub_out[MAX_LINE];
   int status = 0;
 
   if(in_path == NULL) {
@@ -484,7 +483,6 @@ int to_bind(char *in_path, char *file_pin, char *name, int ttl, int key_flag, ch
 int save_rsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigN, Botan::BigInt bigE,
                     Botan::BigInt bigD, Botan::BigInt bigP, Botan::BigInt bigQ) {
 
-  char buffer[MAX_LINE];
   Botan::Private_Key *priv_key = NULL;
   Botan::AutoSeeded_RNG *rng;
   int status = 0;
@@ -543,7 +541,6 @@ int save_rsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigN, Botan::Bi
 int save_dsa_pkcs8(char *out_path, char *file_pin, Botan::BigInt bigDP, Botan::BigInt bigDQ, 
                     Botan::BigInt bigDG, Botan::BigInt bigDX) {
 
-  char buffer[MAX_LINE];
   Botan::Private_Key *priv_key = NULL;
   Botan::AutoSeeded_RNG *rng;
   int status = 0;
@@ -1108,7 +1105,7 @@ int print_dnskey(FILE *file_pointer, char *name, int ttl, unsigned char *rdata, 
 
 unsigned int keytag(unsigned char key[], unsigned int keysize) {
   unsigned long ac;     /* assumed to be 32 bits or larger */
-  int i;                /* loop index */
+  unsigned int i;       /* loop index */
 
   if(keysize < 4) {
     return 0;

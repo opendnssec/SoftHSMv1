@@ -120,7 +120,7 @@ CK_RV valAttributeCertificate(CK_STATE state, CK_ATTRIBUTE_PTR pTemplate, CK_ULO
         // Check for the correct size
         if(pTemplate[i].ulValueLen == sizeof(CK_ULONG)) {
           CK_ULONG value = *(CK_ULONG*)pTemplate[i].pValue;
-          if(value < 0 || value > 3) {
+          if(value > 3) {
             return CKR_ATTRIBUTE_VALUE_INVALID;
           }
         } else {
@@ -255,6 +255,9 @@ CK_RV valAttributePubRSA(CK_STATE state, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ul
 }
 
 CK_RV valAttributePrivRSA(CK_STATE state, Botan::RandomNumberGenerator *rng, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
+  // Unused variable, but saved if we ever need to do checks on the state
+  (void) state;
+
   Botan::BigInt bigN = Botan::BigInt(0);
   Botan::BigInt bigE = Botan::BigInt(0);
   Botan::BigInt bigD = Botan::BigInt(0);

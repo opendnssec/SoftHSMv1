@@ -450,28 +450,7 @@ CK_RV C_GetMechanismList(CK_SLOT_ID slotID, CK_MECHANISM_TYPE_PTR pMechanismList
   CHECK_DEBUG_RETURN(currentSlot == NULL_PTR, "C_GetMechanismList", "The given slotID does note exist",
                      CKR_SLOT_ID_INVALID);
 
-  if(pMechanismList == NULL_PTR) {
-    *pulCount = NR_SUPPORTED_MECHANISMS;
-
-    DEBUG_MSG("C_GetMechanismList", "OK, returning list length");
-    return CKR_OK;
-  }
-
-  if(*pulCount < NR_SUPPORTED_MECHANISMS) {
-    *pulCount = NR_SUPPORTED_MECHANISMS;
-
-    DEBUG_MSG("C_GetMechanismList", "Buffer to small");
-    return CKR_BUFFER_TOO_SMALL;
-  }
-
-  *pulCount = NR_SUPPORTED_MECHANISMS;
-
-  for(int i = 0; i < NR_SUPPORTED_MECHANISMS; i ++) {
-    pMechanismList[i] = supportedMechanisms[i];
-  }
-
-  DEBUG_MSG("C_GetMechanismList", "OK, returning list");
-  return CKR_OK;
+  return getMechanismList(pMechanismList, pulCount);
 }
 
 // Returns information about a mechanism.

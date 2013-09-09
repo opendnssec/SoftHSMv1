@@ -9,5 +9,6 @@ AC_DEFUN([ACX_STRICT],[
 	)
 	if test "${enable_strict}" = "yes"; then
 		CFLAGS="${CFLAGS} -Wall -Wextra"
+		CXXFLAGS="${CXXFLAGS} -Wall -Wextra"
 	fi
 ])

@@ -31,32 +31,7 @@
 
 #include "cryptoki.h"
 
-// The number of supported mechanisms
-#define NR_SUPPORTED_MECHANISMS 19
-
-// A list with the supported mechanisms
-static CK_MECHANISM_TYPE supportedMechanisms[] = {
-	CKM_RSA_PKCS_KEY_PAIR_GEN,
-	CKM_RSA_PKCS,
-	CKM_RSA_X_509,
-	CKM_MD5,
-	CKM_RIPEMD160,
-	CKM_SHA_1,
-	CKM_SHA256,
-	CKM_SHA384,
-	CKM_SHA512,
-	CKM_MD5_RSA_PKCS,
-	CKM_RIPEMD160_RSA_PKCS,
-	CKM_SHA1_RSA_PKCS,
-	CKM_SHA256_RSA_PKCS,
-	CKM_SHA384_RSA_PKCS,
-	CKM_SHA512_RSA_PKCS,
-	CKM_SHA1_RSA_PKCS_PSS,
-	CKM_SHA256_RSA_PKCS_PSS,
-	CKM_SHA384_RSA_PKCS_PSS,
-	CKM_SHA512_RSA_PKCS_PSS
-};
-
+CK_RV getMechanismList(CK_MECHANISM_TYPE_PTR pMechanismList, CK_ULONG_PTR pulCount);
 CK_RV getMechanismInfo(CK_MECHANISM_TYPE type, CK_MECHANISM_INFO_PTR pInfo);
 
 #endif /* SOFTHSM_MECHANISMS_H */

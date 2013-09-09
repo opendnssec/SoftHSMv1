@@ -1349,7 +1349,8 @@ char* getDBPath(CK_SLOT_ID slotID) {
       continue;
     }
 
-    if(atoi(slotidstr) == slotID) {
+    CK_SLOT_ID currentSlot = atoi(slotidstr);
+    if(currentSlot == slotID) {
       // Get the second part of the line
       char *dbPath = strtok(NULL, ":");
       if(dbPath == NULL) {

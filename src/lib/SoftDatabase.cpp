@@ -401,6 +401,9 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(CK_STATE state, Botan::RSA_PrivateKe
 CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(CK_STATE state, Botan::RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, 
     CK_ULONG ulPrivateKeyAttributeCount) {
 
+  // Unused variable, but saved if we ever need to do checks on the state
+  (void) state;
+
   // Begin the transaction
   int retVal = 0;
   while((retVal = sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL)) == SQLITE_BUSY) {
@@ -1270,6 +1273,9 @@ CK_RV SoftDatabase::setAttributePublicKey(CK_STATE state, CK_OBJECT_HANDLE objec
 // This function also performes a sanity check of the template
 
 CK_RV SoftDatabase::setAttributePrivateKey(CK_STATE state, CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate) {
+  // Unused variable, but saved if we ever need to do checks on the state
+  (void) state;
+
   // Evaluate the template for private key objects
   switch(attTemplate->type) {
     case CKA_KEY_TYPE:
