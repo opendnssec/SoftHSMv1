@@ -5,6 +5,7 @@ NEWS for SoftHSM -- History of user visible changes
 SoftHSM trunk
 
 Bugfixes:
+* SOFTHSM-45: Improved handling of a busy database
 * SUPPORT-76: Add -Wall -Werror flags and fix the warnings.
 
 
