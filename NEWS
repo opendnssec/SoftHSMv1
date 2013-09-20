@@ -4,6 +4,9 @@ NEWS for SoftHSM -- History of user visible changes
 
 SoftHSM trunk
 
+
+SoftHSM 1.3.5rc1 - 2013-09-20
+
 Bugfixes:
 * SOFTHSM-45: Improved handling of a busy database
 * SUPPORT-76: Add -Wall -Werror flags and fix the warnings.
