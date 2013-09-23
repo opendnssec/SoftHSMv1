@@ -639,7 +639,7 @@ int importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char
     fprintf(stderr, "Error: An ID for the object must be supplied. Use --id <hex>\n");
     return 1;
   }
-  int objIDLen = 0;
+  size_t objIDLen = 0;
   char *objID = hexStrToBin(objectID, strlen(objectID), &objIDLen);
   if(objID == NULL) {
     fprintf(stderr, "Please edit --id <hex> to correct error.\n");
@@ -768,7 +768,7 @@ int exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char
     fprintf(stderr, "Error: An ID for the object must be supplied. Use --id <hex>\n");
     return 1;
   }
-  int objIDLen = 0;
+  size_t objIDLen = 0;
   char *objID = hexStrToBin(objectID, strlen(objectID), &objIDLen);
   if(objID == NULL) {
     fprintf(stderr, "Please edit --id <hex> to correct error.\n");
@@ -906,7 +906,7 @@ int trustObject(char *boolTrusted, char *slot, char *soPIN, char *type, char *la
     fprintf(stderr, "Error: An ID or label for the object must be supplied. Use --id <hex> or --label <text>\n");
     return 1;
   }
-  int objIDLen = 0;
+  size_t objIDLen = 0;
   char *objID = NULL;
   if(objectID != NULL) {
     objID = hexStrToBin(objectID, strlen(objectID), &objIDLen);
@@ -1050,7 +1050,7 @@ int removeSessionObjs(char *dbPath) {
 
 // Convert a char array of hexadecimal characters into a binary representation
 
-char* hexStrToBin(char *objectID, int idLength, int *newLen) {
+char* hexStrToBin(char *objectID, size_t idLength, size_t *newLen) {
   char *bytes = NULL;
 
   if(idLength % 2 != 0) {
@@ -1058,7 +1058,7 @@ char* hexStrToBin(char *objectID, int idLength, int *newLen) {
     return NULL;
   }
 
-  for(int i = 0; i < idLength; i++) {
+  for(size_t i = 0; i < idLength; i++) {
     if(hexdigit_to_int(objectID[i]) == -1) {
       fprintf(stderr, "Error: Invalid character in hex string.\n");
       return NULL;
@@ -1072,7 +1072,7 @@ char* hexStrToBin(char *objectID, int idLength, int *newLen) {
     return NULL;
   }
 
-  for(int i = 0; i < *newLen; i++) {
+  for(size_t i = 0; i < *newLen; i++) {
     bytes[i] = hexdigit_to_int(objectID[2*i]) * 16 +
                hexdigit_to_int(objectID[2*i+1]);
   }
@@ -1226,7 +1226,7 @@ void freeKeyMaterial(key_material_t *keyMaterial) {
 
 // Search for an object
 
-CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, CK_OBJECT_CLASS oClass, char *label, char *objID, int objIDLen) {
+CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, CK_OBJECT_CLASS oClass, char *label, char *objID, size_t objIDLen) {
   if(objID == NULL && label == NULL ) {
     return CK_INVALID_HANDLE;
   }

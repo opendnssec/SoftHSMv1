@@ -52,8 +52,8 @@ int get_key_algorithm(Botan::Private_Key *priv_key, char *algorithm_str);
 void print_big_int(FILE *file_pointer, const char *file_tag, Botan::BigInt big_integer);
 int save_rsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_flag, int algorithm);
 int save_dsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_flag, int algorithm);
-int create_rsa_rdata(unsigned char *rdata, int length, Botan::Private_Key *priv_key, int key_flag, int algorithm);
-int create_dsa_rdata(unsigned char *rdata, int length, Botan::Private_Key *priv_key, int key_flag, int algorithm);
+int create_rsa_rdata(unsigned char *rdata, size_t length, Botan::Private_Key *priv_key, int key_flag, int algorithm);
+int create_dsa_rdata(unsigned char *rdata, size_t length, Botan::Private_Key *priv_key, int key_flag, int algorithm);
 int print_dnskey(FILE *file_pointer, char *name, int ttl, unsigned char *rdata, int rdata_size);
 unsigned int keytag(unsigned char key[], unsigned int keysize);
 

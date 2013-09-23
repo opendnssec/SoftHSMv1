@@ -86,7 +86,7 @@ int trustObject(char *boolTrusted, char *slot, char *soPIN, char *type, char *la
 // Support functions
 
 /// Hex
-char* hexStrToBin(char *objectID, int idLength, int *newLen);
+char* hexStrToBin(char *objectID, size_t idLength, size_t *newLen);
 int hexdigit_to_int(char ch);
 
 /// Key material
@@ -107,7 +107,7 @@ static void *moduleHandle;
 static CK_FUNCTION_LIST_PTR p11;
 
 /// PKCS#11 support
-CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, CK_OBJECT_CLASS oClass, char *label, char *objID, int objIDLen);
+CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, CK_OBJECT_CLASS oClass, char *label, char *objID, size_t objIDLen);
 
 /// Key to file
 CK_RV writeKeyToDisk(char *filePath, char *filePIN, Botan::Private_Key *privKey);

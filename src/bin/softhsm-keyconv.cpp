@@ -930,8 +930,8 @@ void print_big_int(FILE *file_pointer, const char *file_tag, Botan::BigInt big_i
 
 // Create RSA RDATA
 
-int create_rsa_rdata(unsigned char *rdata, int length, Botan::Private_Key *priv_key, int key_flag, int algorithm) {
-  unsigned int counter = 0, big_e_size, big_n_size;
+int create_rsa_rdata(unsigned char *rdata, size_t length, Botan::Private_Key *priv_key, int key_flag, int algorithm) {
+  size_t counter = 0, big_e_size, big_n_size;
   Botan::IF_Scheme_PrivateKey *if_key_priv;
   Botan::BigInt big_e;
   Botan::BigInt big_n;
@@ -992,8 +992,8 @@ int create_rsa_rdata(unsigned char *rdata, int length, Botan::Private_Key *priv_
 
 // Create DSA RDATA
 
-int create_dsa_rdata(unsigned char *rdata, int length, Botan::Private_Key *priv_key, int key_flag, int algorithm) {
-  unsigned int counter = 0, size, size_t;
+int create_dsa_rdata(unsigned char *rdata, size_t length, Botan::Private_Key *priv_key, int key_flag, int algorithm) {
+  size_t counter = 0, size, size_parameter;
   Botan::DL_Scheme_PrivateKey *dl_key_priv;
   Botan::BigInt big_q;
   Botan::BigInt big_p;
@@ -1012,10 +1012,10 @@ int create_dsa_rdata(unsigned char *rdata, int length, Botan::Private_Key *priv_
   big_g = dl_key_priv->group_g();
   big_y = dl_key_priv->get_y();
   size = big_g.bytes();
-  size_t = (size - 64) / 8;
+  size_parameter = (size - 64) / 8;
 
   // Check the value of T
-  if(size_t > 8) {
+  if(size_parameter > 8) {
     fprintf(stderr, "Error: create_dsa_rdata: No support for DSA T > 8.\n");
     return -1;
   }
@@ -1043,7 +1043,7 @@ int create_dsa_rdata(unsigned char *rdata, int length, Botan::Private_Key *priv_
   rdata[counter++] = (unsigned char)algorithm;
 
   // T
-  rdata[counter++] = (unsigned char)size_t;
+  rdata[counter++] = (unsigned char)size_parameter;
 
   // Q
   big_q.binary_encode((Botan::byte*)(rdata + counter));
@@ -1060,7 +1060,7 @@ int create_dsa_rdata(unsigned char *rdata, int length, Botan::Private_Key *priv_
   // Y
   big_y.binary_encode((Botan::byte*)(rdata + counter));
   counter += size;
-  
+
   return counter;
 }
 
