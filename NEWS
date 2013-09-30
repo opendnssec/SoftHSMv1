@@ -4,15 +4,13 @@ NEWS for SoftHSM -- History of user visible changes
 
 SoftHSM trunk
 
-Bugfixes:
-* SUPPORT-76: Fix more warnings on EPEL.
 
-
-SoftHSM 1.3.5rc1 - 2013-09-20
+SoftHSM 1.3.5 - 2013-09-30
 
 Bugfixes:
 * SOFTHSM-45: Improved handling of a busy database
 * SUPPORT-76: Add -Wall -Werror flags and fix the warnings.
+              Fix more warnings on EPEL.
 
 
 SoftHSM 1.3.4 - 2012-11-24
