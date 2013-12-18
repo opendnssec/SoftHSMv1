@@ -1,0 +1,6 @@
+If the code is downloaded directly from the source code repository, you have to
+prepare the GNU autoconf scripts before building.
+
+1. nstall automake, autoconf, libtool, etc.
+2. Run the command 'autoreconf --install --force'
+3. Continue reading in the file README
