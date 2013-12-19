@@ -35,7 +35,7 @@ can be found at: http://botan.randombit.net and http://www.sqlite.org.
 
 Configure the installation/compilation scripts:
 
-        ./configure
+    ./configure
 
 _Options:_
 
@@ -53,7 +53,7 @@ _For more options:_
 
 Compile the source code:
 
-    make && sudo make install
+    make
 
 Install the library:
 
@@ -120,7 +120,7 @@ more info.
 All keys can be exported from the token database by using the softhsm tool. The
 file will be exported in PKCS#8 format.
 
-      softhsm --export key2.pem --slot 1 --id A1B2 --pin 123456
+    softhsm --export key2.pem --slot 1 --id A1B2 --pin 123456
 
 Add, --file-pin PIN, if you want to output an encrypted file. Use, softhsm
 --help, for more info.
@@ -154,8 +154,8 @@ Add, --pin PIN, if you the PKCS#8 file is encrypted. Use, softhsm-keyconv
 
 The following files will be created in this example:
 
-      Kexample.com.+007+05474.private
-      Kexample.com.+007+05474.key
+    Kexample.com.+007+05474.private
+    Kexample.com.+007+05474.key
 
 
 ## Backup
