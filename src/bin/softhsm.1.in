@@ -1,5 +1,4 @@
 .TH SOFTHSM 1 "13 June 2011" "SoftHSM"
-.\" $Id$
 .SH NAME
 softhsm \- support tool for libsofthsm
 .SH SYNOPSIS
