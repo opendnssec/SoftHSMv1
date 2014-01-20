@@ -47,9 +47,6 @@
 #include <fstream>
 #include <sched.h>
 
-#include <sys/types.h>
-#include <sys/stat.h>
-
 #ifdef HAVE_DLOPEN
 #include <dlfcn.h>
 #endif
@@ -213,9 +210,6 @@ int main(int argc, char *argv[]) {
   moduleHandle = NULL;
   p11 = NULL;
   bool was_initialized = false;
-
-  // Restrict umask to protect any files created
-  umask(077);
 
   while ((opt = getopt_long(argc, argv, "hv", long_options, &option_index)) != -1) {
     switch (opt) {
