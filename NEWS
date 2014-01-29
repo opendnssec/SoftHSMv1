@@ -2,6 +2,9 @@ NEWS for SoftHSM -- History of user visible changes
 
 SoftHSM trunk
 
+Bugfixes:
+* Fix malloc(0) warning in clang.
+
 
 SoftHSM 1.3.5 - 2013-09-30
 
