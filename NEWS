@@ -2,6 +2,8 @@ NEWS for SoftHSM -- History of user visible changes
 
 SoftHSM trunk
 
+* SOFTHSM-51: Call umask to restrict created files.
+
 Bugfixes:
 * Fix malloc(0) warning in clang.
 
