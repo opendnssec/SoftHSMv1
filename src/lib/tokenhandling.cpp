@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * Copyright (c) 2008-2009 .SE (The Internet Infrastructure Foundation).
  * All rights reserved.
@@ -40,6 +38,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sqlite3.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define EXEC_DB(db, sql) \
   if(sqlite3_exec(db, sql, NULL, NULL, NULL)) { \
@@ -99,9 +99,13 @@ CK_RV softInitToken(SoftSlot *currentSlot, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinL
     }
   }
 
+  // Circumvent the sqlite3 reliance on umask to enforce secure permissions
+  mode_t saved_umask = umask(S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
   // Open the database
   sqlite3 *db = NULL;
   int result = sqlite3_open(currentSlot->dbPath, &db);
+  // Restore umask to avoid side effects
+  (void) umask(saved_umask);
   if(result){
     if(db != NULL) {
       sqlite3_close(db);

@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * Copyright (c) 2008-2009 .SE (The Internet Infrastructure Foundation).
  * All rights reserved.
@@ -40,6 +38,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <sched.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
 using std::string;
 
 // Rollback the object if it can't be saved
@@ -114,8 +115,12 @@ SoftDatabase::~SoftDatabase() {
 }
 
 CK_RV SoftDatabase::init(char *dbPath) {
+  // Circumvent the sqlite3 reliance on umask to enforce secure permissions
+  mode_t saved_umask = umask(S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
   // Open the database
   int result = sqlite3_open(dbPath, &db);
+  // Restore umask to avoid side effects
+  (void) umask(saved_umask);
   if(result) {
     char warnMsg[1024];
     snprintf(warnMsg, sizeof(warnMsg), "Could not open token database. Probably wrong privileges: %s", dbPath);

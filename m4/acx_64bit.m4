@@ -1,5 +1,3 @@
-# $Id$
-
 AC_DEFUN([ACX_64BIT],[
 	AC_ARG_ENABLE(
 	        [64bit],

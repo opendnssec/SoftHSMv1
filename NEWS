@@ -1,8 +1,11 @@
-$Id$
-
 NEWS for SoftHSM -- History of user visible changes
 
-SoftHSM trunk
+SoftHSM 1.3.6 - 2014-02-24
+
+* SOFTHSM-51: Call umask to restrict created files.
+
+Bugfixes:
+* Fix malloc(0) warning in clang.
 
 
 SoftHSM 1.3.5 - 2013-09-30

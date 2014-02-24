@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * Copyright (c) 2008-2011 .SE (The Internet Infrastructure Foundation).
  * All rights reserved.
@@ -1053,7 +1051,7 @@ int removeSessionObjs(char *dbPath) {
 char* hexStrToBin(char *objectID, size_t idLength, size_t *newLen) {
   char *bytes = NULL;
 
-  if(idLength % 2 != 0) {
+  if(idLength < 2 || idLength % 2 != 0) {
     fprintf(stderr, "Error: Invalid length on hex string.\n");
     return NULL;
   }
