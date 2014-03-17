@@ -1,5 +1,3 @@
-# $Id: Makefile 230 2009-02-27 15:23:09Z rb $
-
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 CLEANFILES = no.token token.db K*.key* K*.private* *.pkcs8 
