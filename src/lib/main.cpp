@@ -56,6 +56,7 @@
 
 // Includes for the crypto library
 #include <botan/init.h>
+#include <botan/libstate.h>
 #include <botan/md5.h>
 #include <botan/rmd160.h>
 #include <botan/sha160.h>
@@ -73,6 +74,7 @@
 
 // Keeps the internal state
 std::auto_ptr<SoftHSMInternal> state(NULL);
+bool was_initialized = false;
 
 // A list with Cryptoki version number
 // and pointers to the API functions.
@@ -212,8 +214,23 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
     return rv;
   }
 
-  // Init the Botan crypto library 
-  Botan::LibraryInitializer::initialize("thread_safe=true");
+  // Check if Botan has already been initialized
+#ifdef BOTAN_PRE_1_9_10_FIX
+  Botan::Library_State* state = Botan::swap_global_state(0);
+  Botan::swap_global_state(state);
+#else
+  Botan::Library_State* state = Botan::Global_State_Management::swap_global_state(0);
+  Botan::Global_State_Management::swap_global_state(state);
+#endif
+
+  if(state) {
+    was_initialized = true;
+  }
+
+  // Init the Botan crypto library
+  if(was_initialized == false) {
+    Botan::LibraryInitializer::initialize("thread_safe=true");
+  }
 
   DEBUG_MSG("C_Initialize", "OK");
   return CKR_OK;
@@ -234,7 +251,9 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved) {
   state.reset(NULL);
 
   // Deinitialize the Botan crypto lib
-  Botan::LibraryInitializer::deinitialize();
+  if(was_initialized == false) {
+    Botan::LibraryInitializer::deinitialize();
+  }
 
   DEBUG_MSG("C_Finalize", "OK");
   return CKR_OK;

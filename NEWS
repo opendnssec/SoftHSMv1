@@ -4,6 +4,7 @@ SoftHSM 1.3 develop
 
 Bugfixes:
 * SOFTHSM-94: umask affecting the calling application.
+* SOFTHSM-96: Check if Botan has already been initialized.
 
 
 SoftHSM 1.3.6 - 2014-02-24
