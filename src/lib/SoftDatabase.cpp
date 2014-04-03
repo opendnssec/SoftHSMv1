@@ -40,6 +40,9 @@
 #include <sched.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
 
 using std::string;
 
@@ -115,15 +118,22 @@ SoftDatabase::~SoftDatabase() {
 }
 
 CK_RV SoftDatabase::init(char *dbPath) {
-  // Circumvent the sqlite3 reliance on umask to enforce secure permissions
-  mode_t saved_umask = umask(S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+  // Create and set file permissions if the DB does not exist.
+  int fd = open(dbPath, O_CREAT, S_IRUSR | S_IWUSR);
+  if(fd == -1) {
+    char warnMsg[1024];
+    snprintf(warnMsg, sizeof(warnMsg), "Could not open the token database. errno=%i. "
+                                       "Probably wrong privileges: %s", errno, dbPath);
+    ERROR_MSG("init", warnMsg);
+    return CKR_TOKEN_NOT_PRESENT;
+  }
+  close(fd);
+
   // Open the database
   int result = sqlite3_open(dbPath, &db);
-  // Restore umask to avoid side effects
-  (void) umask(saved_umask);
   if(result) {
     char warnMsg[1024];
-    snprintf(warnMsg, sizeof(warnMsg), "Could not open token database. Probably wrong privileges: %s", dbPath);
+    snprintf(warnMsg, sizeof(warnMsg), "Could not open the token database: %s", dbPath);
     ERROR_MSG("init", warnMsg);
     return CKR_TOKEN_NOT_PRESENT;
   }
