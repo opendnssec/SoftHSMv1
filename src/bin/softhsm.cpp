@@ -309,12 +309,11 @@ int main(int argc, char *argv[]) {
 #ifdef BOTAN_PRE_1_9_10_FIX
   Botan::Library_State* state = Botan::swap_global_state(0);
   Botan::swap_global_state(state);
-#else
-  Botan::Library_State* state = Botan::Global_State_Management::swap_global_state(0);
-  Botan::Global_State_Management::swap_global_state(state);
-#endif
 
   if(state) {
+#else
+  if(Botan::Global_State_Management::global_state_exists()) {
+#endif
     was_initialized = true;
   }
 
