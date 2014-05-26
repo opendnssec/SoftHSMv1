@@ -97,12 +97,16 @@ case "$DISTRIBUTION" in
 		build_ok=1
 		;;
 	ubuntu )
+		BOTAN="/usr/local"
+		if lsb_release -r 2>/dev/null | grep -q "14.04" 2>/dev/null; then
+			BOTAN="/usr"
+		fi
 		(
 			sh autogen.sh &&
 			mkdir -p build &&
 			cd build &&
 			../configure --prefix="$INSTALL_ROOT" \
-				--with-botan=/usr/local &&
+				--with-botan="$BOTAN" &&
 			$MAKE &&
 			# All checks does not work on ubuntu currently (segfaults), run the checks that do
 			(cd checks && ./checks -abcdei) &&
