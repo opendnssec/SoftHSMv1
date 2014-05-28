@@ -1,6 +1,6 @@
 NEWS for SoftHSM -- History of user visible changes
 
-SoftHSM 1.3 develop
+SoftHSM 1.3.7 - 2014-05-28
 
 Bugfixes:
 * SOFTHSM-94: umask affecting the calling application.
