@@ -35,6 +35,7 @@
 #include "util.h"
 
 // Includes for the crypto library
+#include <botan/libstate.h>
 #include <botan/if_algo.h>
 #include <botan/rsa.h>
 
@@ -97,13 +98,30 @@ SoftSession::~SoftSession() {
 
   DELETE_PTR(findAnchor);
   findCurrent = NULL_PTR;
-  DELETE_PTR(digestPipe);
-  DELETE_PTR(pkEncryptor);
-  DELETE_PTR(pkDecryptor);
-  DELETE_PTR(pkSigner);
-  DELETE_PTR(pkVerifier);
-  DELETE_PTR(keyStore);
-  DELETE_PTR(rng);
+
+  // Another PKCS#11 library may have finalized Botan before we close the session.
+  // It will not help to reinitialize Botan, since it requires the same
+  // instance of Botan memory allocator. The memory leak will only happen
+  // when the two PKCS#11 libraries using Botan are closing down.
+
+  // Check if Botan is initialized
+#ifdef BOTAN_PRE_1_9_10_FIX
+  Botan::Library_State* state = Botan::swap_global_state(0);
+  Botan::swap_global_state(state);
+
+  if(state) {
+#else
+  if(Botan::Global_State_Management::global_state_exists()) {
+#endif
+    DELETE_PTR(digestPipe);
+    DELETE_PTR(pkEncryptor);
+    DELETE_PTR(pkDecryptor);
+    DELETE_PTR(pkSigner);
+    DELETE_PTR(pkVerifier);
+    DELETE_PTR(keyStore);
+    DELETE_PTR(rng);
+  }
+
   DELETE_PTR(db);
 }
 
