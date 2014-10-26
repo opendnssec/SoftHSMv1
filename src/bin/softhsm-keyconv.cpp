@@ -48,6 +48,8 @@
 #include <iostream>
 #include <fstream>
 #include <stdint.h>
+#include <fcntl.h>
+#include <errno.h>
 
 void usage() {
   printf("Converting between BIND .private-key format and PKCS#8 key file format.\n");
@@ -390,6 +392,15 @@ int to_pkcs8(char *in_path, char *out_path, char *file_pin) {
   if(error) {
     return 1;
   }
+
+  // Create and set file permissions if the file does not exist.
+  int fd = open(out_path, O_CREAT, S_IRUSR | S_IWUSR);
+  if (fd == -1) {
+    fprintf(stderr, "ERROR: Could not open the output file: %s (errno %i)\n",
+            out_path, errno);
+    return 1;
+  }
+  close(fd);
 
   // Save the the key to the disk
   switch(algorithm) {
@@ -735,8 +746,16 @@ int save_rsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_fla
   snprintf(priv_out, MAX_LINE, "K%s+%03i+%05i.private", name, algorithm, key_tag);
   snprintf(pub_out, MAX_LINE, "K%s+%03i+%05i.key", name, algorithm, key_tag);
 
-  // Create the private key file
+  // Create and set file permissions if the file does not exist.
+  int fd = open(priv_out, O_CREAT, S_IRUSR | S_IWUSR);
+  if (fd == -1) {
+    fprintf(stderr, "ERROR: Could not open the output file: %s (errno %i)\n",
+            priv_out, errno);
+    return 1;
+  }
+  close(fd);
 
+  // Create the private key file
   file_pointer = fopen(priv_out, "w");
   if (!file_pointer) {
     fprintf(stderr, "Error: Could not open output file %.100s for writing.\n", priv_out);
@@ -786,8 +805,16 @@ int save_rsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_fla
 
   printf("The private key has been written to %s\n", priv_out);
 
-  // Create the public key file
+  // Create and set file permissions if the file does not exist.
+  fd = open(pub_out, O_CREAT, S_IRUSR | S_IWUSR);
+  if (fd == -1) {
+    fprintf(stderr, "ERROR: Could not open the output file: %s (errno %i)\n",
+            pub_out, errno);
+    return 1;
+  }
+  close(fd);
 
+  // Create the public key file
   file_pointer = fopen(pub_out, "w");
   if (!file_pointer) {
     fprintf(stderr, "Error: Could not open output file %.100s for writing.\n", pub_out);
@@ -836,6 +863,15 @@ int save_dsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_fla
   snprintf(priv_out, MAX_LINE, "K%s+%03i+%05i.private", name, algorithm, key_tag);
   snprintf(pub_out, MAX_LINE, "K%s+%03i+%05i.key", name, algorithm, key_tag);
 
+  // Create and set file permissions if the file does not exist.
+  int fd = open(priv_out, O_CREAT, S_IRUSR | S_IWUSR);
+  if (fd == -1) {
+    fprintf(stderr, "ERROR: Could not open the output file: %s (errno %i)\n",
+            priv_out, errno);
+    return 1;
+  }
+  close(fd);
+
   file_pointer = fopen(priv_out, "w");
   if (!file_pointer) {
     fprintf(stderr, "Error: Could not open output file %.100s for writing.\n", priv_out);
@@ -873,8 +909,16 @@ int save_dsa_bind(char *name, int ttl, Botan::Private_Key *priv_key, int key_fla
 
   printf("The private key has been written to %s\n", priv_out);
 
-  // Create the public key file
+  // Create and set file permissions if the file does not exist.
+  fd = open(pub_out, O_CREAT, S_IRUSR | S_IWUSR);
+  if (fd == -1) {
+    fprintf(stderr, "ERROR: Could not open the output file: %s (errno %i)\n",
+            pub_out, errno);
+    return 1;
+  }
+  close(fd);
 
+  // Create the public key file
   file_pointer = fopen(pub_out, "w");
   if (!file_pointer) {
     fprintf(stderr, "Error: Could not open output file %.100s for writing.\n", pub_out);

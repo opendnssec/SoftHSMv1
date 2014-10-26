@@ -46,6 +46,8 @@
 #include <iostream>
 #include <fstream>
 #include <sched.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #ifdef HAVE_DLOPEN
 #include <dlfcn.h>
@@ -1005,6 +1007,15 @@ int removeSessionObjs(char *dbPath) {
   CK_BBOOL ckFalse = CK_FALSE;
   int retVal = 0;
 
+  // Create and set file permissions if the DB does not exist.
+  int fd = open(dbPath, O_CREAT, S_IRUSR | S_IWUSR);
+  if(fd == -1) {
+    fprintf(stderr, "Could not open the token database. errno=%i. "
+                    "Probably wrong privileges: %s", errno, dbPath);
+    return 1;
+  }
+  close(fd);
+
   if(sqlite3_open(dbPath, &db) != 0) {
     fprintf(stderr, "ERROR: Could not connect to database.\n");
     return 1;
@@ -1278,6 +1289,15 @@ CK_RV writeKeyToDisk(char *filePath, char *filePIN, Botan::Private_Key *privKey)
     return CKR_GENERAL_ERROR;
   }
 
+  // Create and set file permissions if the file does not exist.
+  int fd = open(filePath, O_CREAT, S_IRUSR | S_IWUSR);
+  if (fd == -1) {
+    fprintf(stderr, "ERROR: Could not open the output file: %s (errno %i)\n",
+            filePath, errno);
+    return CKR_GENERAL_ERROR;
+  }
+  close(fd);
+
   std::ofstream privFile(filePath);
 
   if(!privFile) {
@@ -1468,6 +1488,15 @@ Botan::Private_Key* getPrivKey(char *dbPath, CK_OBJECT_HANDLE oHandle) {
   sqlite3_stmt *select_sql = NULL;
   Botan::Private_Key *privKey = NULL;
 
+  // Create and set file permissions if the DB does not exist.
+  int fd = open(dbPath, O_CREAT, S_IRUSR | S_IWUSR);
+  if(fd == -1) {
+    fprintf(stderr, "Could not open the token database. errno=%i. "
+                    "Probably wrong privileges: %s", errno, dbPath);
+    return NULL;
+  }
+  close(fd);
+
   if(sqlite3_open(dbPath, &db) == 0 && sqlite3_prepare_v2(db, select_str, -1, &select_sql, NULL) == 0) {
     if(getObjectClass(select_sql, oHandle) == CKO_PRIVATE_KEY && getKeyType(select_sql, oHandle) == CKK_RSA) {
       Botan::BigInt bigN = getBigIntAttribute(select_sql, oHandle, CKA_MODULUS);
@@ -1477,7 +1506,7 @@ Botan::Private_Key* getPrivKey(char *dbPath, CK_OBJECT_HANDLE oHandle) {
       Botan::BigInt bigQ = getBigIntAttribute(select_sql, oHandle, CKA_PRIME_2);
 
       Botan::AutoSeeded_RNG *rng = new Botan::AutoSeeded_RNG();
-      
+
       try {
         privKey = new Botan::RSA_PrivateKey(*rng, bigP, bigQ, bigE, bigD, bigN);
       }
