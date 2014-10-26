@@ -3,6 +3,9 @@ NEWS for SoftHSM -- History of user visible changes
 SoftHSM develop
 
 Bugfixes:
+* SOFTHSM-101: softhsm-keyconv creates files with sensitive material
+  in insecure way. Also applies to softhsm when using --export or
+  --optimize.
 * SOFTHSM-104: Inconsistencies between v1 and v2.
 
 
