@@ -42,7 +42,7 @@ SoftSlot::SoftSlot() {
   userPIN = NULL_PTR;
   soPIN = NULL_PTR;
   slotFlags = CKF_REMOVABLE_DEVICE;
-  tokenFlags = CKF_RNG | CKF_LOGIN_REQUIRED | CKF_CLOCK_ON_TOKEN;
+  tokenFlags = CKF_RNG | CKF_LOGIN_REQUIRED | CKF_CLOCK_ON_TOKEN | CKF_DUAL_CRYPTO_OPERATIONS;
   tokenLabel = NULL_PTR;
   slotID = 0;
   nextSlot = NULL_PTR;
@@ -108,7 +108,7 @@ CK_SLOT_ID SoftSlot::getSlotID() {
 // Reads the content of the database.
 
 void SoftSlot::readDB() {
-  tokenFlags = CKF_RNG | CKF_LOGIN_REQUIRED | CKF_CLOCK_ON_TOKEN;
+  tokenFlags = CKF_RNG | CKF_LOGIN_REQUIRED | CKF_CLOCK_ON_TOKEN | CKF_DUAL_CRYPTO_OPERATIONS;
 
   SoftDatabase *db = new SoftDatabase(NULL);
   CK_RV rv = db->init(dbPath);
