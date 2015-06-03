@@ -1,5 +1,5 @@
 #!/bin/sh
 
 sh autogen.sh && \
-./configure && \
+./configure --with-botan=/usr && \
 make all check
