@@ -41,6 +41,7 @@ static CK_MECHANISM_TYPE supportedMechanisms[] = {
   CKM_MD5,
   CKM_RIPEMD160,
   CKM_SHA_1,
+  CKM_SHA224,
   CKM_SHA256,
   CKM_SHA384,
   CKM_SHA512,
@@ -108,6 +109,7 @@ CK_RV getMechanismInfo(CK_MECHANISM_TYPE type, CK_MECHANISM_INFO_PTR pInfo) {
     case CKM_MD5:
     case CKM_RIPEMD160:
     case CKM_SHA_1:
+    case CKM_SHA224:
     case CKM_SHA256:
     case CKM_SHA384:
     case CKM_SHA512:

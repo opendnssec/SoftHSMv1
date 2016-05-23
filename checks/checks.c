@@ -385,6 +385,8 @@ void runInfoCheck(unsigned int counter) {
     assert(rv == CKR_OK);
     rv = C_GetMechanismInfo(slotWithToken, CKM_SHA_1, &info);
     assert(rv == CKR_OK);
+    rv = C_GetMechanismInfo(slotWithToken, CKM_SHA224, &info);
+    assert(rv == CKR_OK);
     rv = C_GetMechanismInfo(slotWithToken, CKM_SHA256, &info);
     assert(rv == CKR_OK);
     rv = C_GetMechanismInfo(slotWithToken, CKM_SHA384, &info);
