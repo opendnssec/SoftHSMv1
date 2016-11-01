@@ -1271,6 +1271,10 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
       mechSize = 20;
       hashFunc = new Botan::SHA_160;
       break;
+    case CKM_SHA224:
+      mechSize = 28;
+      hashFunc = new Botan::SHA_224;
+      break;
     case CKM_SHA256:
       mechSize = 32;
       hashFunc = new Botan::SHA_256;

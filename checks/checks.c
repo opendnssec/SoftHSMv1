@@ -385,6 +385,8 @@ void runInfoCheck(unsigned int counter) {
     assert(rv == CKR_OK);
     rv = C_GetMechanismInfo(slotWithToken, CKM_SHA_1, &info);
     assert(rv == CKR_OK);
+    rv = C_GetMechanismInfo(slotWithToken, CKM_SHA224, &info);
+    assert(rv == CKR_OK);
     rv = C_GetMechanismInfo(slotWithToken, CKM_SHA256, &info);
     assert(rv == CKR_OK);
     rv = C_GetMechanismInfo(slotWithToken, CKM_SHA384, &info);
@@ -543,8 +545,10 @@ void runUserCheck(unsigned int counter) {
     assert(rv == CKR_PIN_INCORRECT);
     rv = C_Login(hSession[0], CKU_USER, userPIN, sizeof(userPIN) - 1);
     assert(rv == CKR_OK);
+    rv = C_Login(hSession[0], CKU_USER, userPIN, sizeof(userPIN) - 1);
+    assert(rv == CKR_USER_ALREADY_LOGGED_IN);
     rv = C_Login(hSession[0], CKU_CONTEXT_SPECIFIC, userPIN, sizeof(userPIN) - 1);
-    assert(rv == CKR_OK);
+    assert(rv == CKR_OPERATION_NOT_INITIALIZED);
     rv = C_Login(hSession[1], CKU_SO, soPIN, sizeof(soPIN) - 2);
     assert(rv == CKR_USER_ANOTHER_ALREADY_LOGGED_IN);
     rv = C_Logout(hSession[0]);
@@ -557,14 +561,16 @@ void runUserCheck(unsigned int counter) {
     assert(rv == CKR_PIN_INCORRECT);
     rv = C_Login(hSession[1], CKU_SO, soPIN, sizeof(soPIN) - 1);
     assert(rv == CKR_OK);
+    rv = C_Login(hSession[1], CKU_SO, soPIN, sizeof(soPIN) - 1);
+    assert(rv == CKR_USER_ALREADY_LOGGED_IN);
     rv = C_Login(hSession[1], CKU_CONTEXT_SPECIFIC, soPIN, sizeof(soPIN) - 1);
-    assert(rv == CKR_OK);
+    assert(rv == CKR_OPERATION_NOT_INITIALIZED);
     rv = C_Login(hSession[1], CKU_USER, userPIN, sizeof(userPIN) - 2);
     assert(rv == CKR_USER_ANOTHER_ALREADY_LOGGED_IN);
 
     /* C_Logout */
 
-    rv = C_Logout(CK_INVALID_HANDLE);    
+    rv = C_Logout(CK_INVALID_HANDLE);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
     rv = C_Logout(hSession[1]);
     assert(rv == CKR_OK);

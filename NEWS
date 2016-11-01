@@ -1,5 +1,15 @@
 NEWS for SoftHSM -- History of user visible changes
 
+SoftHSM 1.3.8 - 2016-??-??
+
+Bugfixes:
+* SOFTHSM-101: softhsm-keyconv creates files with sensitive material
+  in insecure way. Also applies to softhsm when using --export or
+  --optimize.
+* SOFTHSM-104: Inconsistencies between v1 and v2.
+* Issue #17: Use the MutexFactory wrapper functions correctly.
+
+
 SoftHSM 1.3.7 - 2014-05-28
 
 Bugfixes:
