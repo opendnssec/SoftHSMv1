@@ -1,6 +1,6 @@
 NEWS for SoftHSM -- History of user visible changes
 
-SoftHSM 1.3.8 - 2016-??-??
+SoftHSM 1.3.8 - 2016-11-14
 
 Bugfixes:
 * SOFTHSM-101: softhsm-keyconv creates files with sensitive material
